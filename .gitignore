@@ -1,0 +1,34 @@
+# Generated tree-explorations from running the skill.
+# Each run writes to <out>/<UTCdate>__<root-slug>/ (default location).
+# These contain user content; never commit by default.
+tree-out/
+brainstorm-out/
+attack-out/
+design-out/
+code-audit-out/
+
+# Personal / machine-specific Claude Code project memory.
+# CLAUDE.md is shared (working principles); CLAUDE.local.md is for paths,
+# virtualenvs, machine quirks — never commit it.
+CLAUDE.local.md
+
+# cc-memory plugin local state (per-machine sqlite + private conversation
+# notes + topic/session indexes). Regenerable; never commit.
+memory/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build / log artefacts
+*.log
+*.tmp
