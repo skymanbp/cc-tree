@@ -17,6 +17,22 @@ document, a code path, a design prompt). Every node is expanded by the
 only the high-value (`advances`) leaves get re-expanded — until the tree
 reaches **substantive convergence**, not an arbitrary count.
 
+![cc-tree as a radial "phylogenetic tree of thoughts": one ROOT at the
+centre, depth as concentric rings growing outward, four coloured "clades"
+for the four presets (brainstorm / attack / design / code-audit), and the
+terminal leaves aligned on the outer arc whose count is the width. Each
+leaf carries a verdict marker — advances, kept, pruned, or blocked.](docs/assets/cc-tree-radial-tree.svg)
+
+<sub>Inspired by the radial <em>tree of life</em>. The vocabulary the rest
+of this README uses is all in this one picture: <strong>root</strong> (the
+input at the centre — topic · artifact · code · design), <strong>node</strong>
+(one idea / critique / option / finding, each with the same 12-field
+derivation), <strong>depth</strong> (the concentric framing-recursion rings),
+<strong>width</strong> (the number of terminal leaves on the outer arc, set
+by convergence — not a hand-picked cap), and <strong>n</strong> (total nodes
+in the tree). Diagram source:
+<a href="tools/gen_radial_tree.py"><code>tools/gen_radial_tree.py</code></a>.</sub>
+
 ```
         the tree grows OUTWARD from one root, like a phylogenetic tree
 
