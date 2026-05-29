@@ -19,11 +19,12 @@ reaches **substantive convergence**, not an arbitrary count.
 
 ![cc-tree as a radial "phylogenetic tree of thoughts": one ROOT at the
 centre, depth as concentric rings growing outward, four coloured "clades"
-for the four presets (brainstorm / attack / design / code-audit). Branches
-reach uneven depths — only leaves that score "advances" re-expand into the
-next ring, so some ideas stop after one round while others run to full
-depth. Each terminal leaf carries a verdict marker — advances, kept,
-pruned, or blocked — and the total leaf count is the width.](docs/assets/cc-tree-radial-tree.svg)
+for the four presets (brainstorm / attack / design / code-audit). There is
+no single winner — a branch can succeed ("advances"), hit a dead end
+("pruned" / "blocked"), or keep branching and be judged again, so several
+wins appear at different depths and the branches reach uneven length. Each
+terminal leaf carries a verdict marker — advances, kept, pruned, or blocked
+— and the total leaf count is the width.](docs/assets/cc-tree-radial-tree.svg)
 
 <sub>Inspired by the radial <em>tree of life</em>. The vocabulary the rest
 of this README uses is all in this one picture: <strong>root</strong> (the
@@ -37,17 +38,17 @@ tips, wherever they land — set by convergence, not a hand-picked cap), and
 <a href="tools/gen_radial_tree.py"><code>tools/gen_radial_tree.py</code></a>.</sub>
 
 ```
-  the tree grows OUTWARD from one root; only "advances" leaves re-expand, so
-  branches reach UNEVEN depth — some stop after one round, others run deep:
+  the tree grows OUTWARD from one root. a branch can WIN, hit a DEAD END, or
+  keep BRANCHING and be judged again — no single winner, wins at any depth:
 
-    ROOT ──┬── pruned        (a thought tried, then dropped)
-           ├── kept          (kept for reference; not re-expanded)
-           └── advances ──┬── pruned
-                          └── advances ──┬── advances   (frontier)
-                                         └── pruned
+    ROOT ──┬── pruned                      (dead end at depth 1)
+           ├── advances                    (a win at depth 1)
+           └── advances ──┬── pruned        (this branch keeps going…)
+                          └── advances ──┬── advances   (…a deeper win)
+                                         └── blocked
 
   each node → 12 framings (§3.A–§3.L) → 12-field derivation → score → verdict;
-  only "advances" leaves re-expand; stop on substantive convergence, not a count.
+  branches that keep advancing grow deeper; pruned / blocked ones stop.
 ```
 
 The per-node loop, precisely:

@@ -60,32 +60,35 @@ def lf(v):            # leaf
 def br(*kids):        # internal node that advanced and re-expanded
     return {"v": "A", "children": list(kids)}
 
-# Each preset's depth-1 children. The shapes deliberately differ:
-#   design     -> shallow: mostly one-and-done, max depth 2
+# Each preset's depth-1 children. There is NO single winner: a branch can end
+# in "advances" (a direction that paid off — several of these, at different
+# depths), dead-end in "pruned"/"blocked", or keep branching and be judged
+# again. The shapes deliberately differ in how deep they grow:
+#   design     -> shallow: wins early, max depth 2
 #   brainstorm -> a deep spine that runs to full depth 4
 #   attack / code-audit -> mixed, max depth 3
 PRESETS = [
     dict(name="brainstorm", advances="PROMISING", color="#6aa84f", fill="#b6d7a8",
          wedge=(200, 271),
-         tree=[lf("P"),                                   # tried, didn't pan out
-               lf("K"),
-               br(lf("P"),                                # advanced once...
-                  br(lf("K"),                             # ...and again...
-                     br(lf("A"), lf("P"))))]),            # ...to full depth 4
+         tree=[lf("P"),                                   # tried, dead end at depth 1
+               br(lf("A"), lf("P")),                      # one direction wins, one dies
+               br(lf("P"),                                # branch on...
+                  br(lf("A"),                             # ...a win at depth 3...
+                     br(lf("A"), lf("P"))))]),            # ...and again to full depth 4
     dict(name="attack", advances="CONFIRMED", color="#cc4125", fill="#ea9999",
          wedge=(283, 354),
-         tree=[br(lf("P"), lf("B")),
+         tree=[br(lf("A"), lf("B")),
                lf("P"),
-               br(br(lf("K"), lf("P")), lf("K"))]),
+               br(br(lf("A"), lf("P")), lf("K"))]),
     dict(name="design", advances="RECOMMENDED", color="#8e7cc3", fill="#d5c6ec",
          wedge=(6, 77),
-         tree=[lf("K"),
-               br(lf("K"), lf("P")),
+         tree=[lf("A"),
+               br(lf("A"), lf("P")),
                lf("P")]),
     dict(name="code-audit", advances="CONFIRMED", color="#a6794c", fill="#e0cba8",
          wedge=(89, 160),
-         tree=[br(lf("P"), lf("P")),
-               br(br(lf("B"), lf("P")), lf("K")),
+         tree=[br(lf("A"), lf("P")),
+               br(br(lf("B"), lf("A")), lf("K")),
                lf("P")]),
 ]
 
@@ -150,16 +153,6 @@ def max_depth(node, d=1):
         return d
     return max(max_depth(c, d + 1) for c in node["children"])
 
-def widest_gap_angle(a1, a2, leaf_angles):
-    """Angle of the widest leaf-free slot in the wedge (for the clade label)."""
-    bounds = [a1] + sorted(leaf_angles) + [a2]
-    best_gap, best_mid = -1.0, (a1 + a2) / 2
-    for i in range(len(bounds) - 1):
-        g = bounds[i + 1] - bounds[i]
-        if g > best_gap:
-            best_gap, best_mid = g, (bounds[i] + bounds[i + 1]) / 2
-    return best_mid
-
 svg = []
 def add(s):
     svg.append(s)
@@ -186,7 +179,8 @@ add(f'<text x="{CX}" y="48" text-anchor="middle" font-size="30" '
     f'font-weight="700" fill="#222">cc-tree &#8212; a phylogenetic tree of thoughts</text>')
 add(f'<text x="{CX}" y="76" text-anchor="middle" font-size="16" fill="#666">'
     f'one universal radial-tree engine &#183; four swappable presets &#183; '
-    f'branches grow outward only while they keep advancing</text>')
+    f'many directions win, some dead-end, the rest keep branching &#8212; '
+    f'no single winner</text>')
 
 # ---- depth ring guides (dashed) -------------------------------------------
 for d, r in RING.items():
@@ -258,12 +252,11 @@ for p in PRESETS:
             f'stroke="{p["color"]}" stroke-width="1.9"/>')
         draw_subtree(child, 1, p["color"])
 
-    # preset label: a clade name placed just BEYOND this clade's deepest leaf
-    # (radius adapts to how deep the clade grew) and in its widest leaf-free
-    # angular slot, so it never sits on a branch or a verdict glyph.
-    p_depth = max(max_depth(c) for c in p["tree"])
-    label_r = RING[p_depth] + 36
-    lang = widest_gap_angle(a1, a2, [lf["angle"] for lf in leaves])
+    # preset label: a clade name on the OUTER RIM at the wedge mid-angle,
+    # beyond every leaf (RMAX is the deepest any branch can reach), so it can
+    # never sit on a branch or a verdict glyph however the clade grew.
+    lang = (a1 + a2) / 2
+    label_r = RMAX + 40
     lx, ly = pt(lang, label_r)
     sub = f'advances = {p["advances"]}'
     halo_w = max(11.5 * len(p["name"]), 7.0 * len(sub)) + 24
@@ -314,25 +307,32 @@ def callout(x, y, w, h, title, lines, anchor_xy=None, title_color="#222"):
         add(f'<line x1="{bx:.1f}" y1="{by:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" '
             f'stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>')
 
-# root callout (top-left) -> root circle
+# root callout (top-left). No leader line: the centre is already labelled
+# "ROOT", and a corner arrow would have to cut across the attack clade.
 callout(34, 150, 264, 110, "root — the input",
         ["What you hand the engine:",
          "a topic, an artifact (file / doc),",
          "a code path, or a design prompt.",
-         "The whole tree grows from it."],
-        (CX - ROOT_R + 6, CY - ROOT_R - 4))
+         "The whole tree grows from it."])
 
-# 12-framings callout (left) -> root
-callout(34, 300, 264, 110, "12 framings (§3.A–§3.L)",
+def preset(name):
+    return next(p for p in PRESETS if p["name"] == name)
+
+# 12-framings callout (left, at root level) -> a depth-1 node in the attack
+# clade; the leader runs horizontally through the empty left gap, so it
+# crosses no branches.
+fram_anchor = pt(preset("attack")["tree"][0]["angle"], RING[1])
+callout(34, 516, 264, 110, "12 framings (§3.A–§3.L)",
         ["Each node is expanded by the",
          "same 12 framing passes —",
          "first-principles, inversion,",
          "red-team, contrarian, high-risk…"],
-        (CX - ROOT_R - 2, CY + 6))
+        fram_anchor)
 
-# node callout (top-right) -> a design depth-1 internal node
-node_anchor = pt(41.5, RING[1])   # design wedge, depth 1
-callout(W - 298, 150, 264, 130, "node — one thought",
+# node callout (right, at root level) -> a depth-1 node in the design clade;
+# the leader runs horizontally through the empty right gap.
+node_anchor = pt(preset("design")["tree"][1]["angle"], RING[1])
+callout(W - 298, 476, 264, 130, "node — one thought",
         ["One idea / critique / option /",
          "finding. Every node gets the",
          "same 12-field derivation, is",
@@ -340,14 +340,15 @@ callout(W - 298, 150, 264, 130, "node — one thought",
          "verdict. No hedging, no defer."],
         node_anchor)
 
-# depth callout (bottom-left) -> ruler at depth 3
-callout(34, 1000, 304, 130, "depth — concentric rings",
-        ["How far a node sits from the root,",
-         "in framing-recursion rounds.",
-         "Only advances-scored leaves re-expand,",
-         "so some branches stop at depth 1",
-         "and some run to full depth."],
-        pt(ruler, RING[3]))
+# depth callout (bottom-left). No leader line — the depth ruler and the
+# concentric rings right beside it already carry the meaning (an arrow here
+# would only collide with the "depth N" labels).
+callout(34, 1000, 312, 130, "depth — concentric rings",
+        ["How far a node sits from the root.",
+         "A branch grows while it keeps",
+         "advancing; it stops when it wins,",
+         "dead-ends, or is pruned — so the",
+         "branches reach uneven depth."])
 
 # width callout (top centre, small) -> outer rings (top gap, angle 0)
 wc_w = 300
@@ -370,14 +371,14 @@ callout(W - 298, 1000, 264, 110, "n — total nodes",
 # ---- verdict legend (bottom strip) ----------------------------------------
 ly0 = 1188
 add(f'<text x="{CX}" y="{ly0}" text-anchor="middle" font-size="13.5" '
-    f'font-weight="700" fill="#333">leaf verdict → recurse decision '
-    f'(this is what makes the branches uneven):</text>')
+    f'font-weight="700" fill="#333">every leaf is a verdict — a branch can '
+    f'win, dead-end, or keep branching (open node = re-expanded):</text>')
 items = ["A", "K", "P", "B"]
 labels = {  # short legend labels to avoid overflow
-    "A": "advances — re-expands",
-    "K": "kept — no re-expand",
-    "P": "pruned — for reference",
-    "B": "blocked — must finish",
+    "A": "advances — a win (or re-expands)",
+    "K": "kept — held for reference",
+    "P": "pruned — a dead end",
+    "B": "blocked — must be resolved",
 }
 cols = [CX - 520, CX - 250, CX + 30, CX + 320]
 for code, cxp in zip(items, cols):
