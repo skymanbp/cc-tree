@@ -1,8 +1,19 @@
 # cc-tree
 
+[![CI](https://github.com/skymanbp/cc-tree/actions/workflows/ci.yml/badge.svg)](https://github.com/skymanbp/cc-tree/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/skymanbp/cc-tree?color=6aa84f&label=release)](https://github.com/skymanbp/cc-tree/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-8e7cc3)
+[![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
+
 A Claude Code plugin: **one universal radial-tree exploration engine, four
 swappable presets**. Use it for divergent ideation, adversarial critique,
 design-space exploration, or code audit — same engine, different vocabulary.
+
+```bash
+claude plugin marketplace add skymanbp/cc-tree
+claude plugin install cc-tree@cc-tree
+```
 
 > Refactor of [`sci-paper`](https://github.com/skymanbp/sci-paper)'s
 > `brainstorm` + `paper-attack-tree` skills, stripped of paper-specific
@@ -181,7 +192,15 @@ from a prior run's deliverable.
 
 ## Why?
 
-Two reasons.
+|  | ad-hoc "brainstorm with me" | cc-tree |
+|---|---|---|
+| **Coverage** | the 3 obvious angles | 12 fixed framings per node, incl. contrarian / inversion / high-risk |
+| **Completeness** | "we could look at X later" | hard ban on `defer / TODO / future-work` leaves — every leaf derived with `file:line` / URL evidence |
+| **When it stops** | when the chat trails off | substantive convergence (6 conditions), not a node count |
+| **Output** | a chat log | `tree.md` + `tree.json` + a structured per-preset report |
+| **Reuse** | re-prompt from scratch each time | one engine, 4 presets, chainable (`brainstorm → design → attack`) |
+
+Two reasons, in prose.
 
 **Reason 1: the structure repeats.** Brainstorming, adversarial review,
 design exploration, and code audit all share the same skeleton —
