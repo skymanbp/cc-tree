@@ -2,7 +2,7 @@
 name: tree
 description: Universal radial-tree exploration engine. Loads a preset, builds a §2 baseline, then recursively applies 12 framing passes per node until stable convergence (no new high-verdict branches over the last 2 rounds + all 12 framings exercised + all leaves complete). Width × depth × rounds default to ∞; resource caps are opt-in. Hard ban on `defer / future-work / TODO / NEEDS-MORE-INFO` leaves — every leaf must be fully derived before counting. Use when 用户说 "brainstorm" / "attack" / "design exploration" / "code audit" / "explore options" / "find what's wrong" / "what should we build" / "tree of thoughts" / 想做穷尽的发散探索 / 想做多角度审查 / 想对一个工件 adversarial critique / 想做设计空间探索. Prefer the per-preset commands (`/cc-tree:brainstorm`, `/cc-tree:attack`, `/cc-tree:design`, `/cc-tree:code-audit`) when the use-case matches; call this skill directly with `--preset <name|path>` to override or supply a custom preset.
 disable-model-invocation: false
-argument-hint: "<root> --preset <name|path> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R] — `<root>` is a topic string, file path, problem statement, or design prompt; `--preset` is required (use `brainstorm` / `attack` / `design` / `code-audit` for shipped presets, or a path to your own .md)"
+argument-hint: "<root> --preset <name|path> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--field <name|path>] [--seed-from <primary.md>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R] — `<root>` is a topic string, file path, problem statement, or design prompt; `--preset` is required (use `brainstorm` / `attack` / `design` / `code-audit` for shipped presets, or a path to your own .md)"
 ---
 
 # tree — universal radial-tree exploration engine
@@ -55,6 +55,8 @@ before producing the first node** (the engine spec is what defines
 | `--max-branches N` | **∞** | Cap on new branches per node per round. **Floor is 12** because §3 requires all 12 framings to fire; this flag only raises the ceiling. |
 | `--out <dir>` | `tree-out/<UTCdate>__<slug>/` | Output directory. Per-preset commands override (e.g. `brainstorm-out/`). |
 | `--glossary <path>` | (preset-determined) | Path to a glossary / FACTS.md / glossary section in a dossier; used by §2.0 grill prelude. |
+| `--field <name\|path>` | (none) | Field profile for domain-aware reviewer weighting. `<name>` → `field-profiles/<name>.md` in this plugin; `<path>` → a literal file. Feeds §3.C / §3.D / §3.I / §3.J. Missing profile → warn + continue (non-blocking). See [`docs/ENGINE.md#22-field-profile`](../../docs/ENGINE.md). |
+| `--seed-from <primary.md>` | (none) | Seed the tree from a prior run's primary deliverable (`shortlist.md` / `options.md` / `confirmed.md`): each listed item enters as a depth-1 seed node and is re-expanded. The substrate for cross-preset chaining ([`docs/chaining.md`](../../docs/chaining.md)). Alias: `--from-prior`. |
 | `--no-grill` | off | Skip §2.0 glossary grill prelude. Marks root-node terms as `unverified`; §6 convergence adds a warning. |
 | `--no-online` | off | Disable `WebSearch` / `WebFetch`. Local + already-Read references only. |
 | `--min-frameworks N` | 12 | Minimum framing passes per node. **Floor is 12** (full §3.A–§3.L); flag exists for documentation, not relaxation. |
@@ -117,12 +119,21 @@ any framing branches.
 For each node (starting with root, then any high-verdict leaf in the
 next round):
 
-Run §3.A through §3.L in sequence, each producing **at least 1** new
-child branch. See [`docs/framings.md`](../../docs/framings.md) for the
-full prompt per framing, including domain-specific examples per preset.
+Run §3.A through §3.L, each producing **at least 1** new child branch.
+See [`docs/framings.md`](../../docs/framings.md) for the full prompt per
+framing, including domain-specific examples per preset.
+
+**Parallelize when fan-out ≥ 5** (always true for the root and hot
+leaves): dispatch the 12 framings across `Agent(Explore)` sub-agents per
+the mandatory protocol in
+[`docs/ENGINE.md#81-sub-agent-dispatch`](../../docs/ENGINE.md). Running
+them sequentially at that fan-out is a defect. Deep marginal leaves
+(< 5 expected children) may run sequentially.
 
 §3.X (if `--no-online` is off): per node, do 1 round of `WebSearch` +
-`WebFetch` to find prior art / tools / datasets / criticisms.
+`WebFetch`. **The query set is preset-determined** (brainstorm/design →
+prior art + tooling; attack → critiques / errata; code-audit → CVEs /
+advisories) — see [`docs/framings.md`](../../docs/framings.md) §3.X.
 
 ### Step 4 — §4 per-branch 12-field derivation
 

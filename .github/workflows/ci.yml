@@ -16,3 +16,5 @@ jobs:
           python-version: "3.11"
       - name: Validate manifests / skills / presets / commands / tools syntax
         run: python tools/validate_plugin.py
+      - name: Preset schema validator self-tests (positive + negative cases)
+        run: python tools/test_validate.py

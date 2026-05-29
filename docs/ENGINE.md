@@ -1,5 +1,7 @@
 # cc-tree ENGINE specification
 
+> 🌐 中文平行版：[`ENGINE.zh.md`](ENGINE.zh.md)（this English file is canonical).
+
 > This document is the **engine contract**. The `/cc-tree:tree` skill
 > reads this file at session start (along with the active preset and
 > `framings.md`) and treats every section as binding. Presets supply
@@ -298,6 +300,60 @@ If after a documented effort the root still has empty fields:
 Root is written to `<out>/tree.md` + `<out>/tree.json` before any
 §3 pass runs.
 
+### 2.2 Field profile (optional, `--field <name|path>`)
+
+A **field profile** supplies domain-aware reviewer weighting so the
+engine attacks/explores the way a senior practitioner in that field
+would, not just the way the LLM's generic training distribution does.
+It is preset-agnostic — any preset benefits.
+
+Resolution (mirrors `--preset`):
+- `--field <name>` → `field-profiles/<name>.md` in this plugin's
+  install directory;
+- `--field <path>` → a literal file path;
+- if neither resolves to a readable file → emit a **warning**
+  (`[FIELD_PROFILE_NOT_FOUND]`) and continue. Field weighting is an
+  enhancement, never a blocker (same non-blocking contract as
+  `--no-grill`).
+
+When a profile loads, `Read` it in full during §2 baseline and carry
+its four lists into the framing passes that consume them:
+- **Reviewer concerns** → weight §3.C (cross-disciplinary) and §3.D
+  (red team) toward the named concerns first.
+- **Field consensuses** → seed §3.I (contrarian) with the listed
+  consensuses and their known break-regimes.
+- **Common failure modes** → seed §3.J (failure-driven) candidates.
+- **Evidence bar** → raise the §3.X / §4 citation standard to what
+  the field treats as strong evidence.
+
+A field profile **never** relaxes a universal rule (§0.5) — it only
+re-prioritizes which branches get explored first. The
+authoring format is documented in
+[`field-profiles/README.md`](../field-profiles/README.md);
+[`field-profiles/_template.md`](../field-profiles/_template.md) is a
+domain-neutral starting point.
+
+### 2.3 Seed-from (chaining substrate, `--seed-from <primary.md>`)
+
+`--seed-from <path>` makes the run start from a **prior run's primary
+deliverable** instead of (or in addition to) a fresh root. This is the
+universal substrate for cross-preset chaining
+([`chaining.md`](chaining.md)).
+
+- `<path>` points at a previous run's `shortlist.md` / `options.md` /
+  `confirmed.md` (or any list of subject lines).
+- Each listed item enters the new tree as a **depth-1 seed node** with
+  its `verdict_provisional` set to the preset's `advances` label, then
+  is re-expanded with the full §3 pass to find children.
+- Seed nodes are **not** re-validated as if novel — their content is
+  taken as given; the value is the sub-tree grown beneath them (cf. the
+  `--from-prior` anti-pattern: do not re-list seeds as new findings).
+- `--seed-from` composes with a normal `<root>`: the root frames the
+  run, the seeds prime depth-1.
+
+`--from-prior` (used historically by the `attack` / `code-audit`
+presets) is an **alias** for `--seed-from` and behaves identically.
+
 ---
 
 ## 3. §3 framing pass (12 universal framings)
@@ -319,7 +375,8 @@ where X fails. Output: ≥ 1 child that flips the polarity.
 List ≥ 3 external fields where the same structural problem appears
 (biology / economics / CS / math / linguistics / …). Output: ≥ 1
 child transplanting tooling from another field, with breakage cost
-documented.
+documented. If a `--field` profile is loaded (§2.2), exercise its
+listed "reviewer concerns" before generic transplants.
 
 ### §3.D — Adversarial / red team
 Adopt a reviewer-trying-to-disprove stance. List the 3 most
@@ -363,7 +420,9 @@ addresses where it fails.
 Identify ≥ 3 mainstream consensuses the node implicitly depends on.
 For each, ask "in what regime might this consensus be wrong?" Output:
 ≥ 1 child that targets one such consensus as the actual research /
-critique / design question.
+critique / design question. When a `--field` profile is loaded (§2.2),
+seed this pass from its "field consensuses" list and their known
+break-regimes.
 
 ### §3.J — Failure-driven
 List ≥ 3 concrete *present* failures (not "could be better" but
@@ -393,14 +452,21 @@ Output: ≥ 1 child sourced from the self-audit's blind-spot list.
 
 ### §3.X — External resource cross-check (per node, unless `--no-online`)
 
-For each node, in addition to §3.A–§3.L:
-1. `WebSearch` the node's subject + `arxiv` / `github` / `blogpost` /
-   `bench` keywords.
-2. `WebSearch` the node's subject + `claude code plugin` / `mcp
-   server` / `langchain tool` (find tools that could be invoked).
-3. `WebFetch` each promising URL to confirm its actual contents (not
-   `WebSearch` snippets).
-4. Record findings in the node's `external_resources` field.
+For each node, in addition to §3.A–§3.L, run one external cross-check.
+**The query set is preset-determined** — see
+[`framings.md` §3.X](framings.md) for the per-preset flavor. In brief:
+brainstorm/design hunt for prior art + invocable tooling; attack hunts
+for published critiques / errata / misrepresented citations; code-audit
+hunts for CVEs / advisories / the same pattern elsewhere in the repo.
+
+Universal steps:
+1. `WebSearch` the preset-appropriate query set (baseline `<subject>
+   arxiv` / `<subject> github` + the preset's specialized queries).
+2. `WebFetch` each promising URL to confirm its actual contents — a
+   `WebSearch` snippet is never sufficient on its own (§F1).
+3. Record findings in the node's external field (`external_resources`
+   for brainstorm/design; `external_check` / `related_findings` for
+   attack/code-audit).
 
 `--no-online` skips §3.X; node tagged `external_resources_unchecked=true`.
 
@@ -689,20 +755,44 @@ inspection) but cannot weaken the universal mapping.
 | Parallel framing pass for width ≥ 5 | `Agent(Explore)` or `Agent(general-purpose)` sub-agents | Sequential when wall-clock matters |
 | Incremental tree write | direct `Write` / `Edit` on `tree.md` + `tree.json` | Batching to "end of run" |
 
-### 8.1 Sub-agent dispatch (optional; useful when width ≥ 5)
+### 8.1 Sub-agent dispatch (MANDATORY when a node's expected fan-out ≥ 5)
 
-For each §3 framing pass on a hot node, spawn an `Agent(Explore)`
-sub-agent with a self-contained prompt:
-- the node's full §4 fields (so the sub-agent has context),
-- the framing pass's prompt (§3.A–§3.L body),
-- the preset's relevant §3 examples,
-- the requirement that the sub-agent return ≥ 1 child branch with
-  fields 1, 4, 5, 6, 7 partially filled (the main agent finishes the
-  remaining fields after merging).
+When a node will produce ≥ 5 children in a round — **always true for the
+root** (12 framings) and for any hot leaf — the engine MUST parallelize
+the §3 framing passes across sub-agents instead of running them
+sequentially. Sequential execution at that fan-out is a defect, not a
+stylistic choice (§9 anti-pattern "run §3 sequentially"). Below 5
+expected children (deep, mostly-marginal leaves) sequential is allowed:
+the framings themselves are cheap and the real cost is the §4
+derivation that follows.
 
-Sub-agent results MUST be re-verified by the main agent before
-counting (citations, code snippets, theorem references). cc-enslaver
-rule 04 applies transitively.
+**Dispatch protocol:**
+
+1. Spawn one `Agent(Explore)` (or `Agent(general-purpose)`) per framing
+   pass — or batch 2–3 framings per agent to stay within the
+   concurrency cap. Each sub-agent prompt is **self-contained**:
+   - the node's full §4 fields (context the sub-agent can't otherwise
+     see);
+   - the framing pass's prompt (the §3.A–§3.L body from
+     [`framings.md`](framings.md));
+   - the preset's per-framing flavor examples;
+   - the output contract: return ≥ 1 child with fields 1 (subject),
+     4 (derivation/evidence), 5 (assumptions), 6 (predictions), 7
+     (defense) draft-filled, **plus every `file:line` / URL it relied
+     on** so the main agent can re-verify.
+2. The main agent **merges** returned children: apply §F2 / §5.4
+   de-duplication across sub-agents (two agents routinely surface the
+   same branch), then finish the remaining §4 fields and run §5
+   scoring on the survivors.
+3. The main agent **re-verifies every citation** a sub-agent returned
+   (the `file:line` still says what the agent claimed; the WebFetch'd
+   URL still supports the point) before the child counts — cc-enslaver
+   rule 04 applies transitively; a sub-agent's unverified claim is not
+   evidence.
+
+A sub-agent that returns nothing usable (all branches pseudo-divergent
+or unverifiable) does **not** excuse skipping that framing — the main
+agent runs it inline instead. All 12 framings must still fire (§F4).
 
 ---
 

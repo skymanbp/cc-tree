@@ -201,28 +201,35 @@ interruption.
 ## Open questions
 
 1. **Field-agnostic § scoring.** The 5 score dimensions are
-   preset-specific. A user-supplied preset can override them, but
-   there's no metric yet for "is this scoring scheme self-consistent?"
-   May add a `tools/validate_preset.py` in v0.2.
+   preset-specific. **Resolved in v0.2.0** to the extent that
+   `tools/validate_plugin.py` now hard-enforces the structural schema
+   (`score_dims` count + each `key`/`name`/`desc`, `node_schema` count,
+   `verdict_enum` roles, `convergence_metric`, `root_kind`) with
+   behavioral tests in `tools/test_validate.py`. A *semantic*
+   "is this scoring scheme self-consistent / are the dims orthogonal?"
+   check remains future work — structural validity is enforced;
+   judgment of the rubric is not.
 
-2. **Cross-preset chaining.** A natural workflow is *brainstorm →
-   pick top-3 → run design on each → pick winner → run attack on the
-   winner*. Currently each invocation is independent; a `tree-chain`
-   command could pipe outputs. Deferred to v0.3.
+2. **Cross-preset chaining.** **Resolved in v0.2.0**: the
+   `/cc-tree:tree-chain` command + the universal `--seed-from`
+   flag + `docs/chaining.md` handoff contract pipe
+   *brainstorm → design → attack* (top-K between stages, always logged).
 
-3. **Per-framing sub-agent dispatch.** The skill currently runs the
-   12 framings sequentially in the main agent. When width ≥ 5,
-   parallelizing via `Agent(Explore)` is mentioned in §8 but not
-   automated. v0.2 candidate.
+3. **Per-framing sub-agent dispatch.** **Resolved in v0.2.0**: §8.1 now
+   makes sub-agent dispatch **mandatory** at fan-out ≥ 5 (not optional),
+   with a precise dispatch + re-verification contract.
 
-4. **Multi-language preset support.** Preset frontmatter and bodies
-   are language-agnostic; the engine prose in `docs/ENGINE.md` is
-   currently English-primary with Chinese mixed in selected places
-   (inherited from sci-paper). A full bilingual version is a v0.4
-   stretch.
+4. **Multi-language preset support.** **Resolved in v0.2.0**: full
+   bilingual engine docs ship as `docs/ENGINE.zh.md` +
+   `docs/framings.zh.md` (English remains canonical). Preset bodies stay
+   language-agnostic by design.
 
 ## Decision
 
-Ship v0.1.0 as: one skill + four presets + four commands + full
+Shipped v0.1.0 as: one skill + four presets + four commands + full
 `ENGINE.md` + `framings.md` + `presets.md` + CI + validator.
-Defer parallelization, chaining, and per-preset validators to v0.2+.
+
+v0.2.0 closes the v0.1 doc/impl drift (the validator now enforces what
+the docs promise) and lands the four roadmap items above — chaining,
+mandatory parallel dispatch, `--field` weighting, and bilingual docs —
+making the plugin self-contained and CLI-installable.

@@ -44,7 +44,7 @@ verdict_enum:
 
 # === Slot 4: which verdict counts toward §6.2 convergence ratio ===
 # Typically "advances" — engine checks: (last 2 rounds' advances / total) < --min-novelty-ratio
-convergence_metric: advances   # alias: novelty_ratio for brainstorm semantics
+convergence_metric: advances   # must be one of the 4 verdict_enum roles above (verbatim)
 
 # === Slot 5: scoring dimensions (exactly 5; each 0–3) ===
 score_dims:
@@ -237,12 +237,16 @@ final-report verdict counts. Pick something that reads naturally in
 ### `convergence_metric`
 
 Which verdict's "ratio drops below `--min-novelty-ratio`" triggers
-§6.2. For most presets this is `advances`. For an attack preset
-focused on CONFIRMED findings, you might also set
-`confirmed_ratio` (which is the same thing — just named for the
-domain). For specialized presets (e.g. a "risk-survey" preset
-where you want the ratio of NEW-RISKS-FOUND to drop), pick the
-verdict that captures "I'm still finding things".
+§6.2. **It must be one of the four `verdict_enum` role keys**
+(`advances` / `kept` / `pruned` / `blocked`), written *verbatim* —
+the validator (`tools/validate_plugin.py`) rejects anything else
+(no aliases like `novelty_ratio` / `confirmed_ratio`). For almost
+every preset this is `advances`: "I'm still finding new
+expand-worthy nodes". The domain reading (novelty for brainstorm,
+confirmed for attack, recommended for design) comes from the
+*label* you mapped onto the `advances` role in `verdict_enum`, not
+from renaming the metric. Only pick a non-`advances` role if your
+preset genuinely converges on a different signal (rare).
 
 ### `score_dims`
 

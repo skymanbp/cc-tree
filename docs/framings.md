@@ -1,5 +1,7 @@
 # The 12 framings
 
+> 🌐 中文平行版：[`framings.zh.md`](framings.zh.md)（this English file is canonical).
+
 This document expands §3.A–§3.L from [`ENGINE.md`](ENGINE.md) into
 operational prompts with **per-preset examples**. The engine runs
 all 12 framings on every node, every round, with each framing
@@ -497,24 +499,54 @@ something already in the tree.
 ## §3.X — External resource cross-check (per node, unless `--no-online`)
 
 **Purpose.** Verify the node against external state — literature,
-repositories, datasets, tools — that might have already done
-related work or expose related criticisms.
+repositories, datasets, tools, prior criticism — that might have
+already done related work or expose related problems. **What to
+search for is preset-determined** (see flavor below): a brainstorm
+node hunts for prior art and invocable tooling; an attack node hunts
+for published critiques and errata of the artifact's claims. Using
+the wrong query set (e.g. searching for "langchain tool" while
+auditing a paper) wastes the pass.
 
 **Steps.**
 
-1. `WebSearch` `<node subject> arxiv` / `<subject> github` /
-   `<subject> dataset` / `<subject> benchmark`.
-2. `WebSearch` `<subject> claude code plugin` / `<subject> mcp
-   server` / `<subject> langchain tool` (look for invocable
-   tooling, not just literature).
-3. For each promising hit, `WebFetch` the actual page (not
-   snippet) to confirm content matches the search description.
-4. Append findings to the node's §4 `external_resources` /
-   `external_check` field with URL + one-line description.
+1. `WebSearch` with the preset-appropriate query set (see
+   **Per-preset flavor**). Always include `<node subject> arxiv` /
+   `<subject> github` as a baseline; add the preset's specialized
+   queries on top.
+2. For each promising hit, `WebFetch` the actual page (not the
+   snippet) to confirm the content matches the search description —
+   a `WebSearch` snippet is never sufficient on its own (§F1).
+3. Append findings to the node's §4 external field
+   (`external_resources` for brainstorm/design, `external_check` /
+   `related_findings` for attack/code-audit) with URL + one-line
+   description.
 
-**`--no-online` mode.** Skip steps 1–3; tag the node
-`external_resources_unchecked=true`. The §6 convergence test
-still expects this tag to be present (it's not a free pass).
+**Per-preset flavor:**
+
+- **brainstorm.** Prior art and *invocable tooling*: `<subject>
+  arxiv` / `<subject> github` / `<subject> dataset` / `<subject>
+  benchmark`, plus `<subject> claude code plugin` / `<subject> mcp
+  server` / `<subject> langchain tool`. Goal: "has someone built
+  this, and can I reuse it?"
+- **attack.** *Published criticism of the artifact's claim*: `<claim
+  keywords> erratum` / `<claim> arxiv comment` / `<claim> reply` /
+  `<method> failure mode` / `<method> irreproducible`. Also
+  `WebFetch` the artifact's own cited prior work to confirm it
+  actually says what the artifact claims — a misrepresented citation
+  is a high-severity critique.
+- **design.** *Production post-mortems and pattern trade-offs*:
+  `<pattern> architecture tradeoffs` / `<pattern> postmortem` /
+  `<vendor/service> limits` / `<pattern> at scale`. Goal: "who
+  shipped this and what bit them?"
+- **code-audit.** *Known vulnerabilities and advisories*:
+  `<dependency> CVE` / `<dependency> advisory` / `<pattern> CWE` /
+  `<library> <version> security`. Also cross-`Grep` the repo for the
+  same pattern elsewhere (feeds `related_findings`).
+
+**Output.** Append the verified findings to the node's external
+field. `--no-online` mode skips steps 1–2; tag the node
+`external_resources_unchecked=true` (§6 convergence still expects
+the tag — it's not a free pass).
 
 ---
 
