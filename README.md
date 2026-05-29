@@ -19,34 +19,35 @@ reaches **substantive convergence**, not an arbitrary count.
 
 ![cc-tree as a radial "phylogenetic tree of thoughts": one ROOT at the
 centre, depth as concentric rings growing outward, four coloured "clades"
-for the four presets (brainstorm / attack / design / code-audit), and the
-terminal leaves aligned on the outer arc whose count is the width. Each
-leaf carries a verdict marker — advances, kept, pruned, or blocked.](docs/assets/cc-tree-radial-tree.svg)
+for the four presets (brainstorm / attack / design / code-audit). Branches
+reach uneven depths — only leaves that score "advances" re-expand into the
+next ring, so some ideas stop after one round while others run to full
+depth. Each terminal leaf carries a verdict marker — advances, kept,
+pruned, or blocked — and the total leaf count is the width.](docs/assets/cc-tree-radial-tree.svg)
 
 <sub>Inspired by the radial <em>tree of life</em>. The vocabulary the rest
 of this README uses is all in this one picture: <strong>root</strong> (the
 input at the centre — topic · artifact · code · design), <strong>node</strong>
 (one idea / critique / option / finding, each with the same 12-field
-derivation), <strong>depth</strong> (the concentric framing-recursion rings),
-<strong>width</strong> (the number of terminal leaves on the outer arc, set
-by convergence — not a hand-picked cap), and <strong>n</strong> (total nodes
-in the tree). Diagram source:
+derivation), <strong>depth</strong> (the concentric framing-recursion rings;
+branches stop at different rings because only <code>advances</code> leaves
+re-expand), <strong>width</strong> (the total number of terminal leaves /
+tips, wherever they land — set by convergence, not a hand-picked cap), and
+<strong>n</strong> (total nodes in the tree). Diagram source:
 <a href="tools/gen_radial_tree.py"><code>tools/gen_radial_tree.py</code></a>.</sub>
 
 ```
-        the tree grows OUTWARD from one root, like a phylogenetic tree
+  the tree grows OUTWARD from one root; only "advances" leaves re-expand, so
+  branches reach UNEVEN depth — some stop after one round, others run deep:
 
-            depth 0           depth 1             depth 2 … (→ ∞)
-          ┌────────┐       ┌──────────┐        ┌──────────────┐
-          │  ROOT  │──12──▶ │  node    │──12──▶ │  leaf  ✓ adv. │  width =
-          │ topic /│  fra-  │ (idea /  │  fra-  │  leaf  ✗ pruned│  # of
-          │artifact│  mings │ critique/│  mings │  leaf  ~ kept  │  terminal
-          │ / code │        │ option / │        │  leaf  ✓ adv.  │  leaves on
-          │/design │──────▶ │ finding) │──────▶ │  leaf  ✗ pruned│  the outer
-          └────────┘        └──────────┘        └──────────────┘  arc
-                  └─ each node → 12 framings (§3.A–§3.L) → 12-field
-                     derivation → score → verdict; only "advances"
-                     leaves re-expand; stop on convergence, not on a count.
+    ROOT ──┬── pruned        (a thought tried, then dropped)
+           ├── kept          (kept for reference; not re-expanded)
+           └── advances ──┬── pruned
+                          └── advances ──┬── advances   (frontier)
+                                         └── pruned
+
+  each node → 12 framings (§3.A–§3.L) → 12-field derivation → score → verdict;
+  only "advances" leaves re-expand; stop on substantive convergence, not a count.
 ```
 
 The per-node loop, precisely:
