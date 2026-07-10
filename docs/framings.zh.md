@@ -70,7 +70,7 @@ X 失效的边界。
   会破坏任何混合编码的历史数据。"
 
 **Output.** ≥ 1 个探索反面的子分支，明确陈述反演内容，并给出一个
-显式与原方向作对比的 `falsifiability` / `paper_defense`。
+显式与原方向作对比的 `falsifiability` / `artifact_defense`。
 
 ---
 

@@ -7,14 +7,17 @@ on:
 
 jobs:
   validate:
-    name: validate plugin
+    name: validate plugin (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Validate manifests / skills / presets / commands / tools syntax
+          python-version: ${{ matrix.python-version }}
+      - name: Validate manifests / skills / presets / commands / tools syntax / cross-refs
         run: python tools/validate_plugin.py
-      - name: Preset schema validator self-tests (positive + negative cases)
+      - name: Preset schema validator self-tests (positive + negative + parser cases)
         run: python tools/test_validate.py

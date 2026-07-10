@@ -69,7 +69,8 @@ For each `<root>` (a file path to the artifact):
 1. **Full read.** `Read` the entire artifact. If > 2000 lines, use
    `offset` / `limit` chunks until the whole file has been read —
    no skim, no sampling. Critique is a global+local property.
-2. **Focus narrowing (if `--focus <id>`).** `Grep + Read` to narrow
+2. **Focus narrowing (if `--focus <section|claim|equation>`).** `Grep +
+   Read` to narrow
    root to the named section / claim / equation; retain ± 20 lines
    of context so the engine can detect "the artifact addresses
    this critique elsewhere".
@@ -143,7 +144,7 @@ an actionable item; "author should reconsider this" is not actionable.
 
 - ❌ Vague critique like "the paper's logic is unclear" — must point
   to a specific premise → conclusion link that fails.
-- ❌ Reporting a critique without checking `paper_defense` across ≥ 5
+- ❌ Reporting a critique without checking `artifact_defense` across ≥ 5
   major sections — many critiques are actually REFUTED by something
   the engine just hadn't read yet.
 - ❌ Discarding REFUTED nodes as "noise" — they're a positive record;

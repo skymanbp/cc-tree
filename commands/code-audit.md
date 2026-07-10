@@ -1,6 +1,6 @@
 ---
 description: Adversarial code review tree. Wraps `/cc-tree:tree` with the code-audit preset preselected — finds security / performance / correctness / contract findings a static linter would miss. Every finding carries `file:line` evidence + threat-model context + proposed_fix; hard-banned against NEEDS-MORE-INFO deferrals.
-argument-hint: "<file_or_directory_path> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--no-online]"
+argument-hint: "<file_or_directory_path> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--field <name|path>] [--no-online]"
 ---
 
 Invoke the `tree` skill with the code-audit preset. The default

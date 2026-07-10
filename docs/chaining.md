@@ -15,38 +15,51 @@ pipeline.
 ## The handoff contract
 
 Every preset writes a **primary deliverable** of `advances`-verdict
-leaves, sorted by score (`docs/ENGINE.md` §7.2):
+leaves (`docs/ENGINE.md` §7.2), sorted by the preset's own declared
+ranking key — score desc for `brainstorm` / `design`, severity desc
+for `attack`, severity × exploit-likelihood desc for `code-audit`
+(each preset's `output_artifacts` comment is authoritative):
 
-| Preset | Primary deliverable | Each line is a… |
-|---|---|---|
-| brainstorm | `shortlist.md` | research idea / direction |
-| design | `options.md` | design option |
-| attack | `confirmed.md` | confirmed critique |
-| code-audit | `findings.md` | confirmed finding |
+| Preset | Primary deliverable | Each line is a… | Sorted by |
+|---|---|---|---|
+| brainstorm | `shortlist.md` | research idea / direction | score desc |
+| design | `options.md` | design option | score desc |
+| attack | `confirmed.md` | confirmed critique | severity desc |
+| code-audit | `findings.md` | confirmed finding | severity × exploit-likelihood desc |
 
-The next stage consumes that file via
-`--seed-from <primary.md>` (`docs/ENGINE.md` §2.3): each listed item
-becomes a depth-1 seed node and is re-expanded. No reformatting is
-needed — the deliverables are already line-per-item.
+How the next stage consumes that file depends on its preset's
+`root_kind` — see **Root vs seeds** below. For `topic` /
+`design-prompt` stages it's `--seed-from <primary.md>`
+(`docs/ENGINE.md` §2.3): each listed item becomes a depth-1 seed node
+and is re-expanded. No reformatting is needed — the deliverables are
+already line-per-item.
 
 ### Top-K extraction
 
-`tree-chain` takes the **top-K by score** from each stage's primary
-deliverable (default K=3) and seeds them into the next stage. Because
-deliverables are score-sorted, "top-K" is just the first K items. The
-dropped tail is reported (never silently truncated — `docs/ENGINE.md`
-§F7 spirit): the chain log states "seeded 3 of 11; dropped 8 below the
-cut".
+`tree-chain` takes the **top-K by the deliverable's own ranking key**
+from each stage's primary deliverable (default K=3) and carries them
+into the next stage. Because each deliverable is sorted by its
+declared key, "top-K" is just the first K items. The dropped tail is
+reported (never silently truncated — `docs/ENGINE.md` §F7 spirit):
+the chain log states "seeded 3 of 11; dropped 8 below the cut".
 
 ### Root vs seeds in the next stage
 
-- **brainstorm → design**: each seeded idea becomes a design *prompt*.
-  The chain wraps it as `design`'s `design-prompt` root, carrying the
-  idea's `predictions` / `assumptions` as goals/constraints.
-- **design → attack**: the chosen option's `options.md` entry (with its
-  `mechanism` + `trade_offs`) is the artifact the attack stage targets.
+- **brainstorm → design**: run `design` with `--seed-from
+  shortlist.md` (no fresh root needed — `docs/ENGINE.md` §2.3 allows
+  a seeded run to start "instead of a fresh root"). Each seeded idea
+  enters as a depth-1 seed node and is expanded into concrete
+  options; the idea's `predictions` / `assumptions` carry into the
+  option nodes' goals/constraints.
+- **design → attack**: the chosen option file (its `option_<id>.md`,
+  with `mechanism` + `trade_offs`) is passed as the attack stage's
+  **root artifact** — attack's `root_kind` is `artifact`, so the
+  option is the thing under critique, not a seed. (`--seed-from`
+  into attack is reserved for seeding *critiques*, e.g. from a prior
+  review report via `--from-prior`.)
 - **anything → code-audit**: only meaningful when a stage produced
-  actual code paths; otherwise skipped with a logged reason.
+  actual code paths (passed as the `code` root); otherwise skipped
+  with a logged reason.
 
 ## Worked example
 

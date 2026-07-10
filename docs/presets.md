@@ -47,6 +47,8 @@ verdict_enum:
 convergence_metric: advances   # must be one of the 4 verdict_enum roles above (verbatim)
 
 # === Slot 5: scoring dimensions (exactly 5; each 0–3) ===
+# Inline flow-map entries (shown) and standard block-map list items
+# (`- key: S` + indented `name:` / `desc:` lines) both parse.
 score_dims:
   - {key: S, name: scientific-value,  desc: "Magnitude of contribution if successful"}
   - {key: N, name: novelty,           desc: "Difference from existing work"}
@@ -196,7 +198,7 @@ Add anti-patterns specific to your preset:
 ```markdown
 ## Preset anti-patterns (code-audit-specific, in addition to ENGINE.md §9)
 
-- ❌ "Defense in depth" used as `paper_defense` — must be a *specific*
+- ❌ "Defense in depth" used as `mitigation_present` — must be a *specific*
   mitigation at a *specific* file:line.
 - ❌ "Insufficient input validation" as a critique — must specify
   *which* input, *what* validation is missing, and *which* attack the
@@ -263,7 +265,7 @@ universal slot categories in [`ENGINE.md`](ENGINE.md) §4 — slot 1
 is subject statement, slot 2 is parent framing, etc. You can
 deviate in names but the engine expects 12 fields covering the
 universal categories. For radically different schemas (e.g. you
-need 14 fields), file an issue — that's a v0.2 conversation.
+need 14 fields), file an issue.
 
 ### `output_artifacts`
 

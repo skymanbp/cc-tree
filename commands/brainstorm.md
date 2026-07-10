@@ -1,6 +1,6 @@
 ---
 description: Divergent radial-tree ideation. Wraps `/cc-tree:tree` with the brainstorm preset preselected — exhaustive exploration of research directions or problem-solving paths, hard-banned against `future-work / TODO / NEEDS-MORE-INFO` deferred leaves.
-argument-hint: "[topic] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--no-grill] [--no-online]"
+argument-hint: "[topic] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--field <name|path>] [--no-grill] [--no-online]"
 ---
 
 Invoke the `tree` skill with the brainstorm preset. The default

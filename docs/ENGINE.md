@@ -231,7 +231,10 @@ Read in full before §2 baseline.
 
 (See `skills/tree/SKILL.md` for the full table; same semantics
 applied here. The engine MUST raise errors on unknown flags rather
-than silently ignoring them.)
+than silently ignoring them. A preset and its command wrapper may
+document additional preset-specific flags — e.g. `attack`'s
+`--focus <section|claim|equation>` — and a flag documented by the
+active preset or its wrapper is not "unknown".)
 
 ---
 
@@ -309,7 +312,9 @@ It is preset-agnostic — any preset benefits.
 
 Resolution (mirrors `--preset`):
 - `--field <name>` → `field-profiles/<name>.md` in this plugin's
-  install directory;
+  install directory. Files beginning with `_` (e.g. `_template.md`)
+  are scaffolding, not selectable fields — `--field _template`
+  resolves to `[FIELD_PROFILE_NOT_FOUND]`;
 - `--field <path>` → a literal file path;
 - if neither resolves to a readable file → emit a **warning**
   (`[FIELD_PROFILE_NOT_FOUND]`) and continue. Field weighting is an
@@ -486,11 +491,11 @@ Universal field categories:
 |---|---|---|
 | 1 | Subject statement (≤ 3 sentences) | `idea_statement` / `critique_statement` / `option_statement` / `finding_statement` |
 | 2 | Parent framing (§3.A–§3.L) | always `parent_framing` |
-| 3 | Position / target | `paper_position` for attack; not applicable for brainstorm |
+| 3 | Position / target | `artifact_position` for attack; not applicable for brainstorm |
 | 4 | Derivation / evidence | `derivation` / `evidence` / `mechanism` / `repro_steps` |
 | 5 | Assumptions (≥ 3) | always `assumptions` |
 | 6 | Predictions / consequences | `predictions` / `observable_consequences` |
-| 7 | Defense / counter-defense | `falsifiability` (brainstorm/design) / `paper_defense` (attack) / `mitigation_present` (code-audit) |
+| 7 | Defense / counter-defense | `falsifiability` (brainstorm/design) / `artifact_defense` (attack) / `mitigation_present` (code-audit) |
 | 8 | Comparison to prior work / state | `novelty_vs_literature` / `alternative_interpretations` |
 | 9 | Cost / fixability / feasibility | `feasibility` / `proposed_fix` / `cost_of_change` |
 | 10 | Risks / pitfalls | always `risks` |
@@ -541,7 +546,7 @@ Each preset declares a 4-tuple `verdict_enum = (advances, kept,
 pruned, blocked)`. The mapping rule is:
 
 - `score ≥ 11` (and any preset-specific extra gates, e.g. attack's
-  "no paper_defense found") → `advances`
+  "no artifact_defense found") → `advances`
 - `8 ≤ score ≤ 10` → `kept` (stays in tree but not re-expanded)
 - `score ≤ 7` → `pruned` (greyed, derivation kept for reference)
 - any field tagged `[NEEDS VERIFICATION]` dominating → `blocked`
@@ -671,6 +676,7 @@ with the same `--out <dir>` to resume.
 │                       #   design:     options.md (recommended)
 │                       #   code-audit: findings.md
 ├── <secondary>.md*     # preset's marginal / pending / refuted lists
+├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # long-field spillovers
 ```
@@ -751,7 +757,7 @@ inspection) but cannot weaken the universal mapping.
 | §3 framing pass — literature check | `WebFetch` (arXiv abs / DOI / spec page) | `WebSearch` snippets used as conclusions |
 | §3 framing pass — code / data check | `Read` (full file) / `Grep` / `Bash` (run repro) | Reading only the diff or a search hit |
 | §4 numerical self-check | `Bash + python (sympy / numpy)` | "Easy to verify" / "obvious by inspection" |
-| §4 paper_defense / mitigation_present check (attack/code-audit) | `Grep` across ≥ 5 major sections + `Read` each hit | Only checking adjacent paragraphs |
+| §4 artifact_defense / mitigation_present check (attack/code-audit) | `Grep` across ≥ 5 major sections + `Read` each hit | Only checking adjacent paragraphs |
 | Parallel framing pass for width ≥ 5 | `Agent(Explore)` or `Agent(general-purpose)` sub-agents | Sequential when wall-clock matters |
 | Incremental tree write | direct `Write` / `Edit` on `tree.md` + `tree.json` | Batching to "end of run" |
 

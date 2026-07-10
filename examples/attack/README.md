@@ -13,12 +13,15 @@ artifact.
 - [`expected-out/tree.md`](expected-out/tree.md) — the same critiques in
   the `docs/ENGINE.md` §7.3 node format (root + 3 leaves).
 
-> ⚠️ The files under `expected-out/` are **hand-authored to document the
-> output format**, not the product of a real engine run. A real run
-> (`/cc-tree:attack ./sample-claim.md`) additionally produces
-> `tree.json`, `marginal.md`, `refuted.md`, a `REPORT.md`, and a full
-> 12-field derivation per node, and may surface more critiques than the
-> three shown here.
+> ⚠️ The files under `expected-out/` are the **abridged output of a real
+> capped run** (`--width 3 --depth 1 --no-online --no-grill`), trimmed
+> to the root + CONFIRMED leaves to document the output format. An
+> uncapped run (`/cc-tree:attack ./sample-claim.md`) additionally
+> produces `tree.json`, `marginal.md`, `refuted.md`, a `REPORT.md`, and
+> a full 12-field derivation per node, and may surface more critiques
+> than the three shown here. CI bounds-checks every `file:line`
+> citation in these files against `sample-claim.md`
+> (`tools/validate_plugin.py` cross-refs).
 
 ## Regenerate it for real
 

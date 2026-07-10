@@ -164,7 +164,8 @@ loaded at session start). Skills then appear namespaced: `/cc-tree:tree`,
 /cc-tree:tree <root> --preset brainstorm
 /cc-tree:tree <file> --preset ./my-custom-preset.md
 
-# Domain-aware reviewer weighting
+# Domain-aware reviewer weighting (physics ships built-in; author other
+# fields from field-profiles/_template.md)
 /cc-tree:attack ./paper.tex --field physics
 ```
 

@@ -83,7 +83,7 @@ exploring one of these inverses.
   with mixed encodings."
 
 **Output.** ≥ 1 child branch exploring the inverse, with the
-inversion explicitly stated and a `falsifiability` / `paper_defense`
+inversion explicitly stated and a `falsifiability` / `artifact_defense`
 that explicitly compares to the original direction.
 
 ---

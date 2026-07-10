@@ -1,6 +1,6 @@
-> 🌐 English (canonical): [ENGINE.md](ENGINE.md) · 本文是中文平行翻译，若有歧义以英文版为准。
-
 # cc-tree ENGINE specification（引擎规范）
+
+> 🌐 English (canonical): [ENGINE.md](ENGINE.md) · 本文是中文平行翻译，若有歧义以英文版为准。
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -205,7 +205,9 @@ CWD 的路径）。无论哪种方式，预设都在 §2 基线之前被完整 R
 ### 1.3 Flag table（flag 表）
 
 （完整表格见 `skills/tree/SKILL.md`；此处适用相同的语义。引擎对未知 flag
-必须报错，而不是静默忽略。）
+必须报错，而不是静默忽略。预设及其 command wrapper 可以记录额外的预设
+特定 flag——例如 `attack` 的 `--focus <section|claim|equation>`——由
+当前激活预设或其 wrapper 记录在案的 flag 不算"未知"。）
 
 ---
 
@@ -274,7 +276,9 @@ allowed"。
 无关——任何预设都能受益。
 
 解析方式（镜像 `--preset`）：
-- `--field <name>` → 本插件安装目录下的 `field-profiles/<name>.md`；
+- `--field <name>` → 本插件安装目录下的 `field-profiles/<name>.md`。
+  以 `_` 开头的文件（如 `_template.md`）是脚手架，不是可选择的领域——
+  `--field _template` 解析为 `[FIELD_PROFILE_NOT_FOUND]`；
 - `--field <path>` → 一个字面文件路径；
 - 如果两者都无法解析到一个可读文件 → 发出一条**警告**
   （`[FIELD_PROFILE_NOT_FOUND]`）并继续。领域加权是一种增强，绝不是
@@ -358,7 +362,7 @@ allowed"。
 替换该节点结构的每个主要组件（数据集、算法、目标指标、受众、依赖），并
 观察变化。输出：≥ 1 个子节点，其中某一处替换产生了一个非平凡的新方向。
 
-### §3.H — Office-hours 6Q（office-hours 六问）
+### §3.H — Office-hours 6Q（办公室时间 6 问）
 一次 YC 式的六问拷问：
 1. 需求现实：具体谁会受益，有多少人？
 2. 现状：他们今天是怎么应付的？
@@ -369,7 +373,7 @@ allowed"。
 
 输出：≥ 1 个子节点，它要么通过全部 6 个问题，要么明确说明它在哪里失败。
 
-### §3.I — Contrarian（逆向 / 唱反调）
+### §3.I — Contrarian（逆共识）
 识别该节点隐含依赖的 ≥ 3 个主流共识。对每一个，问"在什么区间下这个共识
 可能是错的？"输出：≥ 1 个子节点，把某一个这样的共识作为真正的研究 /
 批判 / 设计问题来攻击。当加载了 `--field` 画像（§2.2）时，从它的
@@ -385,7 +389,7 @@ allowed"。
 挑出最具体的那个并完整推导。输出：≥ 1 个子节点。引擎**不得**跳过这个
 框架视角（F4）。
 
-### §3.L — Meta (LLM blind-spot self-audit)（元层：LLM 盲区自审）
+### §3.L — Meta (LLM blind-spot self-audit)（元层：LLM 盲点自审）
 自审，七问：
 1. 我所有的分支是不是都来自训练分布里高频的框架视角？
 2. 我有没有把"我能写出来的东西"和"实际上重要的东西"混为一谈？
@@ -396,7 +400,7 @@ allowed"。
 6. 我是不是在回避实验密集 / 代码密集型的分支？补一个。
 7. 树里最古怪的那个分支真的够古怪吗？不够就再强制加一个。
 
-输出：≥ 1 个来自该自审盲区清单的子节点。
+输出：≥ 1 个来自该自审盲点清单的子节点。
 
 ### §3.X — External resource cross-check (per node, unless `--no-online`)（外部资源交叉核对，逐节点，除非 `--no-online`）
 
@@ -432,11 +436,11 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
 |---|---|---|
 | 1 | 主题陈述（≤ 3 句） | `idea_statement` / `critique_statement` / `option_statement` / `finding_statement` |
 | 2 | 父框架视角（§3.A–§3.L） | 始终为 `parent_framing` |
-| 3 | 位置 / 目标 | attack 用 `paper_position`；brainstorm 不适用 |
+| 3 | 位置 / 目标 | attack 用 `artifact_position`；brainstorm 不适用 |
 | 4 | 推导 / 证据 | `derivation` / `evidence` / `mechanism` / `repro_steps` |
 | 5 | 假设（≥ 3） | 始终为 `assumptions` |
 | 6 | 预测 / 后果 | `predictions` / `observable_consequences` |
-| 7 | 应答 / 反防御 | `falsifiability`（brainstorm/design）/ `paper_defense`（attack）/ `mitigation_present`（code-audit） |
+| 7 | 应答 / 反防御 | `falsifiability`（brainstorm/design）/ `artifact_defense`（attack）/ `mitigation_present`（code-audit） |
 | 8 | 与既有工作 / 现状的比较 | `novelty_vs_literature` / `alternative_interpretations` |
 | 9 | 成本 / 可修复性 / 可行性 | `feasibility` / `proposed_fix` / `cost_of_change` |
 | 10 | 风险 / 陷阱 | 始终为 `risks` |
@@ -480,7 +484,7 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
 blocked)`。映射规则为：
 
 - `score ≥ 11`（外加任何预设特定的额外关卡，例如 attack 的
-  "未发现 paper_defense"）→ `advances`
+  "未发现 artifact_defense"）→ `advances`
 - `8 ≤ score ≤ 10` → `kept`（留在树中但不重新展开）
 - `score ≤ 7` → `pruned`（置灰，推导保留以供参考）
 - 任何字段被标记 `[NEEDS VERIFICATION]` 且占主导 → `blocked`
@@ -596,6 +600,7 @@ blocked)`。映射规则为：
 │                       #   design:     options.md (recommended)
 │                       #   code-audit: findings.md
 ├── <secondary>.md*     # preset's marginal / pending / refuted lists
+├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # long-field spillovers
 ```
@@ -674,7 +679,7 @@ blocked)`。映射规则为：
 | §3 框架视角 pass —— 文献核查 | `WebFetch`（arXiv abs / DOI / 规范页面） | 把 `WebSearch` 片段当作结论 |
 | §3 框架视角 pass —— 代码 / 数据核查 | `Read`（完整文件）/ `Grep` / `Bash`（运行复现） | 只读 diff 或一个搜索命中 |
 | §4 数值自检 | `Bash + python (sympy / numpy)` | "易于验证" / "一眼可知" |
-| §4 paper_defense / mitigation_present 核查（attack/code-audit） | `Grep` 横跨 ≥ 5 个主要章节 + 对每个命中 `Read` | 只检查相邻段落 |
+| §4 artifact_defense / mitigation_present 核查（attack/code-audit） | `Grep` 横跨 ≥ 5 个主要章节 + 对每个命中 `Read` | 只检查相邻段落 |
 | 宽度 ≥ 5 时的并行框架视角 pass | `Agent(Explore)` 或 `Agent(general-purpose)` 子代理 | 在墙钟时间要紧时仍然串行 |
 | 增量树写入 | 在 `tree.md` + `tree.json` 上直接 `Write` / `Edit` | 攒到"运行结束时"再批量写 |
 

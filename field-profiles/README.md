@@ -7,14 +7,23 @@ prioritizing that field's habitual concerns, consensuses, and failure
 modes — instead of relying only on the model's generic training
 distribution.
 
-Profiles are **preset-agnostic**: the same `field-profiles/physics.md`
-helps `attack` audit a physics paper, `brainstorm` explore physics
-research directions, and `code-audit` review a physics simulation.
+Profiles are **preset-agnostic**: one profile (say, a `physics.md`
+you author) helps `attack` audit a physics paper, `brainstorm` explore
+physics research directions, and `code-audit` review a physics
+simulation.
+
+One concrete profile ships with the plugin:
+[`physics.md`](physics.md) (ApJ/MNRAS/PRD-reviewer weighting, weak-
+lensing/cosmology flavored). For any other field, author your own from
+[`_template.md`](_template.md) (see "Authoring one" below); an
+unresolvable `--field <name>` warns `[FIELD_PROFILE_NOT_FOUND]` and
+continues without weighting.
 
 ## Using a profile
 
 ```bash
 # By name — resolves to field-profiles/<name>.md in this plugin
+# (physics ships built-in; other names need authoring first)
 /cc-tree:attack ./paper.tex --field physics
 
 # By path — any file you control

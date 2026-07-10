@@ -55,15 +55,20 @@ before producing the first node** (the engine spec is what defines
 | `--max-branches N` | **∞** | Cap on new branches per node per round. **Floor is 12** because §3 requires all 12 framings to fire; this flag only raises the ceiling. |
 | `--out <dir>` | `tree-out/<UTCdate>__<slug>/` | Output directory. Per-preset commands override (e.g. `brainstorm-out/`). |
 | `--glossary <path>` | (preset-determined) | Path to a glossary / FACTS.md / glossary section in a dossier; used by §2.0 grill prelude. |
-| `--field <name\|path>` | (none) | Field profile for domain-aware reviewer weighting. `<name>` → `field-profiles/<name>.md` in this plugin; `<path>` → a literal file. Feeds §3.C / §3.D / §3.I / §3.J. Missing profile → warn + continue (non-blocking). See [`docs/ENGINE.md#22-field-profile`](../../docs/ENGINE.md). |
+| `--field <name\|path>` | (none) | Field profile for domain-aware reviewer weighting. `<name>` → `field-profiles/<name>.md` in this plugin; `<path>` → a literal file. Feeds §3.C / §3.D / §3.I / §3.J + the §3.X / §4 evidence bar. Missing profile → warn + continue (non-blocking). See [`docs/ENGINE.md#22-field-profile`](../../docs/ENGINE.md). |
 | `--seed-from <primary.md>` | (none) | Seed the tree from a prior run's primary deliverable (`shortlist.md` / `options.md` / `confirmed.md`): each listed item enters as a depth-1 seed node and is re-expanded. The substrate for cross-preset chaining ([`docs/chaining.md`](../../docs/chaining.md)). Alias: `--from-prior`. |
 | `--no-grill` | off | Skip §2.0 glossary grill prelude. Marks root-node terms as `unverified`; §6 convergence adds a warning. |
 | `--no-online` | off | Disable `WebSearch` / `WebFetch`. Local + already-Read references only. |
 | `--min-frameworks N` | 12 | Minimum framing passes per node. **Floor is 12** (full §3.A–§3.L); flag exists for documentation, not relaxation. |
 | `--min-novelty-ratio R` | 0.15 | §6.2 convergence requires "last 2 rounds' high-verdict / total < R". |
 
+> Presets and their command wrappers may document additional
+> preset-specific flags (e.g. `attack`'s
+> `--focus <section|claim|equation>`); a flag documented by the active
+> preset or its wrapper is not "unknown" (`docs/ENGINE.md` §1.3).
+
 > Caps default to ∞ on purpose. The intended termination is §6
-> substantive convergence — see [`docs/ENGINE.md#6-convergence`](../../docs/ENGINE.md#6-convergence).
+> substantive convergence — see [`docs/ENGINE.md §6`](../../docs/ENGINE.md#6-6-convergence).
 > Caps are escape valves for quick exploration; when one trips, the
 > engine still drives every in-flight node to a complete state before
 > reporting `WIDTH_CAP_REACHED` / `DEPTH_CAP_REACHED` /
@@ -105,7 +110,7 @@ Follow the preset's baseline recipe. For all presets this includes:
 - §2.0 (unless `--no-grill`): glossary-grill prelude. Lock root-node
   noun-phrases to the glossary if one was supplied; surface MISSING /
   AMBIGUOUS / CONFLICT one question at a time per
-  [`docs/ENGINE.md#20-glossary-grill`](../../docs/ENGINE.md#20-glossary-grill).
+  [`docs/ENGINE.md §2.0`](../../docs/ENGINE.md#20-glossary-grill-prelude-mandatory-unless---no-grill).
 - §2.A or §2.B (preset-determined): build the root node from real
   evidence (Read files, Grep symbols, WebFetch references). The root
   must have the 5-8 fields the preset specifies, each with `file:line`
@@ -139,7 +144,7 @@ advisories) — see [`docs/framings.md`](../../docs/framings.md) §3.X.
 
 For each branch produced in §3, fill the preset's 12 node-field schema.
 Field requirements live in
-[`docs/ENGINE.md#4-per-node-derivation`](../../docs/ENGINE.md#4-per-node-derivation).
+[`docs/ENGINE.md §4`](../../docs/ENGINE.md#4-4-per-node-derivation-12-field-schema).
 Hard rules:
 - No field may contain `应该 / 大概 / probably / maybe / 也许` — the
   field is invalid and must be rewritten.
@@ -161,7 +166,7 @@ Score the node along the preset's 5 dimensions (each 0–3, integer).
 Sum = `score` (max 15). Map score → verdict via the preset's
 `verdict_enum` and the preset-specific rule (e.g. brainstorm:
 `score ≥ 11 ∧ no [NEEDS_VERIFICATION] → PROMISING`; attack:
-`score ≥ 11 ∧ paper_defense empty → CONFIRMED`).
+`score ≥ 11 ∧ artifact_defense empty → CONFIRMED`).
 
 Sibling merging (§5.4): any two siblings with cosine similarity ≥ 0.85
 on their idea / critique / option / finding statement → merge, keep
@@ -170,7 +175,7 @@ the higher-scored one, tag the other `MERGED_INTO=<id>`.
 ### Step 6 — §6 convergence check
 
 After every round, evaluate the 6 conditions in
-[`docs/ENGINE.md#6-convergence`](../../docs/ENGINE.md#6-convergence).
+[`docs/ENGINE.md §6`](../../docs/ENGINE.md#6-6-convergence).
 All 6 must hold simultaneously to declare `CONVERGED`. If any
 user-specified `--width / --depth / --rounds` cap trips first, report
 the appropriate `*_CAP_REACHED` / `ROUNDS_EXHAUSTED` status, but **all
@@ -195,7 +200,7 @@ Then emit a terminal-report block per
 
 ---
 
-## 3. Anti-patterns (see [`docs/ENGINE.md#9-anti-patterns`](../../docs/ENGINE.md#9-anti-patterns) for the full list)
+## 3. Anti-patterns (see [`docs/ENGINE.md §9`](../../docs/ENGINE.md#9-anti-patterns-full-list) for the full list)
 
 The five that most reliably degrade output quality:
 
@@ -232,6 +237,7 @@ The five that most reliably degrade output quality:
 ├── tree.json           # machine-readable, full 12 fields per node
 ├── <primary>.md        # preset's "advances" / top-recommendation file
 ├── <secondary>.md*     # preset's "marginal / pending / refuted" files
+├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # spilled when a node's evidence > 100 lines
 ```

@@ -20,6 +20,12 @@ from _frontmatter import parse_frontmatter
 REPO = Path(__file__).resolve().parent.parent
 
 _failures: list[str] = []
+# Counted at call time so the summary line can never drift from the
+# actual number of cases again (v0.2.0 shipped claiming "9 negative
+# cases" while only 8 expect_fail calls existed).
+_n_pass = 0
+_n_fail = 0
+_n_parser = 0
 
 
 def _validate_raises(name: str, text: str) -> bool:
@@ -37,13 +43,28 @@ def _validate_raises(name: str, text: str) -> bool:
 
 
 def expect_pass(label: str, text: str) -> None:
+    global _n_pass
+    _n_pass += 1
     if _validate_raises("test", text):
         _failures.append(f"EXPECTED PASS but was REJECTED: {label}")
 
 
 def expect_fail(label: str, text: str) -> None:
+    global _n_fail
+    _n_fail += 1
     if not _validate_raises("test", text):
         _failures.append(f"EXPECTED FAIL but was ACCEPTED: {label}")
+
+
+def expect_parsed(label: str, text: str, key: str, want) -> None:
+    """Parser-level regression case: frontmatter `text` must parse and
+    `key` must equal `want` exactly."""
+    global _n_parser
+    _n_parser += 1
+    fm = parse_frontmatter(text)
+    got = None if fm is None else fm.get(key)
+    if got != want:
+        _failures.append(f"PARSER: {label}: {key}={got!r}, want {want!r}")
 
 
 # A minimal, fully-valid preset frontmatter (name must be "test").
@@ -133,13 +154,65 @@ def main() -> int:
     expect_fail("name does not match file basename",
                 VALID.replace("name: test", "name: wrongname"))
 
+    # --- Parser regression cases (bugs fixed after v0.2.0) ---
+    # Quoted scalar values must be unquoted (was: name kept its quotes and
+    # spuriously failed the name==basename check).
+    expect_pass("quoted name scalar is unquoted before validation",
+                VALID.replace("name: test", 'name: "test"'))
+    expect_parsed("double-quoted scalar", '---\nname: "attack"\n---\nx\n',
+                  "name", "attack")
+    # A prose apostrophe must not swallow a trailing comment (was: the
+    # apostrophe toggled quote-tracking and the comment stayed in-value).
+    expect_parsed("apostrophe before # keeps comment stripped",
+                  "---\nsubject_label: reviewer's take  # note\n---\nx\n",
+                  "subject_label", "reviewer's take")
+    # A flow-map list item with a trailing comment must still parse (was:
+    # degenerated to {'_raw': ...} because the raw item no longer ended
+    # with '}').
+    expect_pass("flow-map score_dims entry tolerates trailing comment",
+                VALID.replace('  - {key: S, name: s, desc: "d"}',
+                              '  - {key: S, name: s, desc: "d"}  # dim S'))
+    # '#' inside a quoted flow-map value is content, not a comment.
+    expect_parsed("hash inside quoted desc survives",
+                  '---\ndims:\n  - {key: S, name: s, desc: "a # b"}\n---\nx\n',
+                  "dims", [{"key": "S", "name": "s", "desc": "a # b"}])
+    # Standard YAML block-map list items must parse to dicts (was: the
+    # continuation lines were silently dropped and each item degraded to
+    # the scalar string "key: S").
+    expect_parsed("block-map list items parse to dicts",
+                  "---\ndims:\n  - key: S\n    name: s\n    desc: d\n"
+                  "  - key: N\n    name: n\n    desc: d2\n---\nx\n",
+                  "dims", [{"key": "S", "name": "s", "desc": "d"},
+                           {"key": "N", "name": "n", "desc": "d2"}])
+    # End-to-end: a preset whose score_dims use block-map style passes
+    # full schema validation, same as the flow-map style.
+    BLOCK_DIMS = (
+        "score_dims:\n"
+        "  - key: S\n    name: s\n    desc: d\n"
+        "  - key: N\n    name: n\n    desc: d\n"
+        "  - key: F\n    name: f\n    desc: d\n"
+        "  - key: K\n    name: k\n    desc: d\n"
+        "  - key: B\n    name: b\n    desc: d\n"
+    )
+    FLOW_DIMS = (
+        'score_dims:\n'
+        '  - {key: S, name: s, desc: "d"}\n'
+        '  - {key: N, name: n, desc: "d"}\n'
+        '  - {key: F, name: f, desc: "d"}\n'
+        '  - {key: K, name: k, desc: "d"}\n'
+        '  - {key: B, name: b, desc: "d"}\n'
+    )
+    expect_pass("block-map score_dims validates like flow-map",
+                VALID.replace(FLOW_DIMS, BLOCK_DIMS))
+
     if _failures:
         print("test_validate: FAILED")
         for f in _failures:
             print(f"  - {f}")
         return 1
     print("test_validate: all schema tests passed "
-          f"({len(real)} shipped presets + 9 negative cases)")
+          f"({len(real)} shipped presets + {_n_pass} positive + "
+          f"{_n_fail} negative + {_n_parser} parser cases)")
     return 0
 
 

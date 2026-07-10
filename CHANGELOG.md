@@ -3,6 +3,71 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## v0.3.0 — 2026-07-09
+
+Debug sweep (26 confirmed defects fixed across 20 files) + the
+hardening features that turn the found drift classes into CI failures.
+
+### Fixed
+
+- **Frontmatter parser YAML-semantics defects** (`tools/_frontmatter.py`):
+  a prose apostrophe before `#` swallowed the trailing comment; quoted
+  scalars kept their quotes (`name: "x"` spuriously failed the
+  name==basename check); a flow-map list item with a trailing comment
+  degenerated to `{"_raw": ...}`. All three now parse per YAML
+  plain/quoted-scalar rules, with regression tests.
+- **`paper_defense` / `paper_position` naming drift** — the attack
+  preset's schema says `artifact_defense` / `artifact_position` since
+  v0.1, but ENGINE.md (×4), ENGINE.zh.md (×4), SKILL.md, framings
+  (both languages), docs/presets.md, and attack.md's own anti-pattern
+  list still used the old sci-paper names. Unified to `artifact_*`
+  (the code-audit example in docs/presets.md now correctly says
+  `mitigation_present`).
+- **Chaining contract contradictions** — tree-chain.md seeded *every*
+  later stage via `--seed-from` (making a design option enter attack
+  as a "CONFIRMED critique" — a category error), while chaining.md's
+  worked example passed the option as attack's root; and both files
+  claimed all primary deliverables are "sorted by score" (attack sorts
+  by severity, code-audit by severity × exploit-likelihood). Now:
+  topic/design-prompt stages take seeds, artifact/code stages take the
+  carried item as root; sort keys stated per preset.
+- **Example line-citation drift** — `examples/attack/expected-out/*`
+  carried a systematic +2 line offset against sample-claim.md
+  (including a citation past EOF). Regenerated (see Added) and now
+  CI-bounds-checked.
+- Dead ENGINE.md anchors in SKILL.md (4), `--focus` unregistered under
+  the "error on unknown flags" rule, `--field` missing from 4 command
+  argument-hints, `--field` docs omitting the §3.X/§4 evidence-bar
+  channel, REPORT.md missing from the §7.2 output layout (both
+  languages), ENGINE.zh.md banner placed above the H1, three zh gloss
+  divergences (逆共识 / 盲点自审 / 办公室时间 6 问), stale
+  "9 negative cases" test-count claim (was 8; counts are now computed
+  at runtime).
+
+### Added
+
+- **Cross-file consistency checks in CI**
+  (`tools/validate_plugin.py check_crossrefs`): markdown anchor
+  integrity (GitHub-slug aware), example `file:line` citation bounds,
+  bilingual heading-structure parity (docs/*.zh.md vs English),
+  command argument-hint flag registry (every advertised flag must be
+  documented by SKILL.md, the command body, or its preset), and field
+  profile schema (frontmatter + the 4 required sections).
+- **`field-profiles/physics.md`** — first shipped concrete profile:
+  ApJ/MNRAS/PRD reviewer weighting (unit/`h`-convention consistency,
+  error budgets with dominant systematics, Hartlap-corrected
+  covariances, look-elsewhere effects; weak-lensing/cosmology flavored
+  consensuses and failure modes).
+- **Block-map list items in the frontmatter parser** — standard YAML
+  list-of-maps style (`- key: S` + indented `name:` / `desc:` lines)
+  now parses identically to the inline flow-map style, closing the
+  biggest custom-preset authoring footgun (continuation lines were
+  silently dropped before).
+- **Regenerated `examples/attack/expected-out/`** as the abridged
+  output of a real capped run (`--width 3 --depth 1 --no-online
+  --no-grill`) instead of a hand-authored approximation.
+- **CI matrix**: Python 3.11 + 3.13.
+
 ## v0.2.0 — 2026-05-29
 
 Closes the v0.1 documentation/implementation drift and lands the
@@ -19,7 +84,7 @@ open questions). cc-tree is now self-contained and CLI-installable.
   `name`+`description`. New zero-dependency `tools/_frontmatter.py`
   parses the frontmatter subset; `tools/validate_plugin.py` enforces all
   eight rules; `tools/test_validate.py` proves it (4 shipped presets
-  pass + 9 negative cases rejected). Both run in CI.
+  pass + 8 negative cases rejected). Both run in CI.
 - **§3.X external-check is now preset-aware.** It searched
   brainstorm-flavored targets (claude-code-plugin / mcp / langchain) for
   every preset; now attack hunts errata/critiques, code-audit hunts
@@ -35,7 +100,8 @@ open questions). cc-tree is now self-contained and CLI-installable.
 ### Added (roadmap)
 
 - **`--field <name|path>`** — domain-aware reviewer weighting via
-  `field-profiles/<name>.md`; feeds §3.C / §3.D / §3.I / §3.J.
+  `field-profiles/<name>.md`; feeds §3.C / §3.D / §3.I / §3.J + the
+  §3.X / §4 evidence bar.
   Non-blocking if absent. Ships `field-profiles/_template.md` +
   `field-profiles/README.md` (domain-neutral). (`docs/ENGINE.md` §2.2)
 - **Cross-preset chaining** — new `/cc-tree:tree-chain` command +

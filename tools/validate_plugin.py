@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -207,6 +208,170 @@ def check_tools_syntax() -> str:
     return f"tools/*.py syntax OK ({len(py_files)} files)"
 
 
+# --- Cross-file consistency checks -----------------------------------------
+# Added after the 2026-07 audit: ~2/3 of the defects found were mechanical
+# drift between files (dead anchors, stale example line citations, bilingual
+# heading divergence, command hints advertising unregistered flags). Each
+# sub-check below turns one of those defect classes into a CI failure.
+
+_SKIP_DIR_PARTS = {".git", ".github", "memory", "__pycache__", "node_modules"}
+_LINK_RE = re.compile(r"\]\(([^)#\s]+)#([^)\s]+)\)")
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+_CITATION_RE = re.compile(r"([A-Za-z0-9_.\-/]+\.md):(\d+)(?:-(\d+))?")
+_FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
+
+
+def _content_md_files() -> list[Path]:
+    out = []
+    for p in sorted(REPO.rglob("*.md")):
+        rel_parts = p.relative_to(REPO).parts
+        if any(part in _SKIP_DIR_PARTS or part.endswith("-out")
+               for part in rel_parts[:-1]):
+            continue
+        out.append(p)
+    return out
+
+
+def _slugify(heading: str) -> str:
+    """GitHub-style heading slug: drop code ticks, lowercase, strip
+    punctuation (keep word chars / spaces / hyphens), spaces -> hyphens."""
+    text = heading.replace("`", "").lower()
+    text = re.sub(r"[^\w\- ]", "", text)
+    return text.replace(" ", "-")
+
+
+def _check_anchors(md_files: list[Path]) -> int:
+    """Every `](path#fragment)` link must point at a file that exists and
+    a heading whose slug equals the fragment. Pure-fragment links
+    (`](#L42)`) are skipped — the docs use those as illustrative
+    pseudo-references in framing examples."""
+    n = 0
+    slug_cache: dict[Path, set[str]] = {}
+    for src in md_files:
+        for target_rel, frag in _LINK_RE.findall(src.read_text(encoding="utf-8")):
+            if target_rel.startswith(("http://", "https://")):
+                continue
+            target = (src.parent / target_rel).resolve()
+            if not target.is_file():
+                fail(f"{src}: link target missing: {target_rel}")
+            if target.suffix != ".md":
+                continue
+            if target not in slug_cache:
+                text = target.read_text(encoding="utf-8")
+                slug_cache[target] = {
+                    _slugify(h) for _, h in _HEADING_RE.findall(text)}
+            if frag.lower() not in slug_cache[target]:
+                fail(f"{src}: dead anchor #{frag} -> {target_rel} "
+                     f"(no heading slugs match)")
+            n += 1
+    return n
+
+
+def _check_example_citations() -> int:
+    """Every `<file>.md:N[-M]` citation inside examples/ whose target file
+    exists must stay within the target's real line count (the +2 drift
+    class: expected-out written against an older sample-claim.md)."""
+    n = 0
+    for src in sorted((REPO / "examples").rglob("*.md")):
+        for target_rel, a, b in _CITATION_RE.findall(
+                src.read_text(encoding="utf-8")):
+            target = (src.parent / target_rel).resolve()
+            if not target.is_file():
+                continue  # prose mention, not a checkable citation
+            total = len(target.read_text(encoding="utf-8").splitlines())
+            lo, hi = int(a), int(b) if b else int(a)
+            if not (1 <= lo <= hi <= total):
+                fail(f"{src}: citation {target_rel}:{a}"
+                     f"{'-' + b if b else ''} out of bounds "
+                     f"(file has {total} lines)")
+            n += 1
+    return n
+
+
+def _check_bilingual_parity() -> int:
+    """docs/X.zh.md must mirror docs/X.md's heading structure: same number
+    of headings at every level (translations may rename, not restructure)."""
+    n = 0
+    for zh in sorted((REPO / "docs").glob("*.zh.md")):
+        en = zh.with_name(zh.name.replace(".zh.md", ".md"))
+        if not en.is_file():
+            fail(f"{zh} has no English counterpart {en.name}")
+        def _level_counts(p: Path) -> dict[int, int]:
+            counts: dict[int, int] = {}
+            for hashes, _ in _HEADING_RE.findall(p.read_text(encoding="utf-8")):
+                counts[len(hashes)] = counts.get(len(hashes), 0) + 1
+            return counts
+        zh_c, en_c = _level_counts(zh), _level_counts(en)
+        if zh_c != en_c:
+            fail(f"{zh.name} heading structure diverges from {en.name}: "
+                 f"zh={zh_c} en={en_c}")
+        n += 1
+    return n
+
+
+def _check_command_flags() -> int:
+    """Every --flag advertised in a command's argument-hint must be
+    documented somewhere authoritative: the tree skill (SKILL.md), the
+    command's own body, or its same-named preset. Catches hints
+    advertising flags nothing defines (and hints dropping flags is the
+    inverse drift the audit found with --field)."""
+    skill_text = (REPO / "skills" / "tree" / "SKILL.md").read_text(encoding="utf-8")
+    n = 0
+    for cmd in sorted((REPO / "commands").glob("*.md")):
+        text = cmd.read_text(encoding="utf-8")
+        fm = parse_frontmatter(text)
+        hint = (fm or {}).get("argument-hint", "")
+        preset = REPO / "presets" / cmd.name
+        sources = skill_text + text
+        if preset.is_file():
+            sources += preset.read_text(encoding="utf-8")
+        for flag in set(_FLAG_RE.findall(hint)):
+            if flag not in sources:
+                fail(f"{cmd}: argument-hint advertises {flag} but neither "
+                     f"SKILL.md, the command body, nor {preset.name} "
+                     f"documents it")
+            n += 1
+    return n
+
+
+def _check_field_profiles() -> int:
+    """Every selectable field profile (non-underscore, non-README) must
+    declare `field:` == basename + a description, and carry the four
+    template sections the engine consumes (ENGINE.md §2.2)."""
+    required_sections = ("## Reviewer concerns", "## Field consensuses",
+                         "## Common failure modes", "## Evidence bar")
+    n = 0
+    profiles_dir = REPO / "field-profiles"
+    for p in sorted(profiles_dir.glob("*.md")):
+        if p.name == "README.md" or p.name.startswith("_"):
+            continue
+        text = p.read_text(encoding="utf-8")
+        fm = parse_frontmatter(text)
+        if fm is None:
+            fail(f"{p} has no YAML frontmatter")
+        if fm.get("field") != p.stem:
+            fail(f"{p} frontmatter field={fm.get('field')!r} != {p.stem!r}")
+        if not str(fm.get("description", "")).strip():
+            fail(f"{p} frontmatter missing 'description:'")
+        for section in required_sections:
+            if section not in text:
+                fail(f"{p} missing required section '{section}'")
+        n += 1
+    return n
+
+
+def check_crossrefs() -> str:
+    md_files = _content_md_files()
+    anchors = _check_anchors(md_files)
+    citations = _check_example_citations()
+    pairs = _check_bilingual_parity()
+    flags = _check_command_flags()
+    profiles = _check_field_profiles()
+    return (f"cross-refs OK ({anchors} anchors, {citations} example "
+            f"citations, {pairs} bilingual pairs, {flags} command flags, "
+            f"{profiles} field profiles)")
+
+
 def main() -> int:
     for name, check in [
         ("manifests", check_manifests),
@@ -214,6 +379,7 @@ def main() -> int:
         ("presets", check_presets),
         ("commands", check_commands),
         ("tools", check_tools_syntax),
+        ("cross-refs", check_crossrefs),
     ]:
         msg = check()
         print(f"  [ok] {msg}")

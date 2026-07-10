@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Single-plugin marketplace for the cc-tree universal radial-tree exploration plugin.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "cc-tree",
       "source": "./",
       "description": "Universal radial-tree exploration engine for Claude Code. One `tree` skill + swappable presets (brainstorm / attack / design / code-audit) for divergent ideation, adversarial critique, and design-space exploration. 12 framings × hard-ban-on-incomplete-leaves × stable convergence. See CHANGELOG.md for per-version history.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "skymanbp",
         "email": "skyman.bp@gmail.com"
