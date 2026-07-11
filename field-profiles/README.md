@@ -1,5 +1,7 @@
 # Field profiles
 
+> Language: English (canonical). Chinese: [`field-profiles/README.zh.md`](README.zh.md).
+
 A **field profile** is an optional markdown file that gives the cc-tree
 engine domain-aware reviewer weighting. It makes the 12 framings attack
 and explore the way a senior practitioner in a specific field would —
@@ -36,7 +38,11 @@ profile is an enhancement, never a requirement.
 
 ## What a profile contains
 
-Four short, concrete lists (see [`_template.md`](_template.md)):
+Four short, concrete lists (see [`_template.md`](_template.md)). The required
+section headings remain the canonical English identifiers shown below so the
+engine and validator can find them deterministically; the list bodies,
+descriptions, citations, and quoted evidence may use any language. They do not
+change the run's `output_language` selected by `--lang`.
 
 | Section | Feeds | Purpose |
 |---|---|---|

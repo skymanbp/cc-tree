@@ -2,7 +2,7 @@
 name: tree
 description: Universal radial-tree exploration engine. Loads a preset, builds a §2 baseline, then recursively applies 12 framing passes per node until stable convergence (no new high-verdict branches over the last 2 rounds + all 12 framings exercised + all leaves complete). Width × depth × rounds default to ∞; resource caps are opt-in. Hard ban on `defer / future-work / TODO / NEEDS-MORE-INFO` leaves — every leaf must be fully derived before counting. Use when 用户说 "brainstorm" / "attack" / "design exploration" / "code audit" / "explore options" / "find what's wrong" / "what should we build" / "tree of thoughts" / 想做穷尽的发散探索 / 想做多角度审查 / 想对一个工件 adversarial critique / 想做设计空间探索. Prefer the per-preset commands (`/cc-tree:brainstorm`, `/cc-tree:attack`, `/cc-tree:design`, `/cc-tree:code-audit`) when the use-case matches; call this skill directly with `--preset <name|path>` to override or supply a custom preset.
 disable-model-invocation: false
-argument-hint: "<root> --preset <name|path> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--field <name|path>] [--seed-from <primary.md>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R] — `<root>` is a topic string, file path, problem statement, or design prompt; `--preset` is required (use `brainstorm` / `attack` / `design` / `code-audit` for shipped presets, or a path to your own .md)"
+argument-hint: "<root> --preset <name|path> [--lang <tag|auto>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--field <name|path>] [--seed-from <primary.md>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R] — `<root>` is a topic string, file path, problem statement, or design prompt; `--preset` is required (use `brainstorm` / `attack` / `design` / `code-audit` for shipped presets, or a path to your own .md)"
 ---
 
 # tree — universal radial-tree exploration engine
@@ -49,6 +49,7 @@ before producing the first node** (the engine spec is what defines
 
 | Flag | Default | Meaning |
 |---|---|---|
+| `--lang <tag\|auto>` | **en** | Output language for all localized prose (node statements, derivations, report narrative, warnings). Machine tokens — flag/command names, frontmatter & JSON keys, `root_kind` values, verdict labels, status tokens, filenames — always stay English. `<tag>` is a BCP-47-like code (`en`, `zh`, `zh-Hans`, `zh-Hant`, `fr-CA`); `zh` = Simplified Chinese, `zh-Hant` = Traditional. `auto` detects the dominant language of `<root>` and falls back to `en` for mixed / path-only / code-only input. Resolved **once before preset load**, recorded in run metadata (`language_request` / `output_language` / `language_source`), and never prompted mid-run. Full precedence, resume, and chain semantics: [`docs/ENGINE.md §1.0`](../../docs/ENGINE.md#10-output-language-resolution-and-schema-boundary). |
 | `--width N` | **∞** | Cap on final leaf count (the outer arc of the tree). `∞` / `inf` / unspecified all mean unlimited. |
 | `--depth N` | **∞** | Cap on tree depth from root. |
 | `--rounds N` | `conv` | Cap on expansion rounds. `conv` = no cap; terminate by §6 substantive convergence. |

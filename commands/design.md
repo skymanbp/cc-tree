@@ -1,6 +1,6 @@
 ---
-description: Design-space exploration tree. Wraps `/cc-tree:tree` with the design preset preselected — enumerates options × trade-offs × reversibility × cost × fit-with-constraints for an engineering / product / process decision. Produces a comparison table and a RECOMMENDED short-list.
-argument-hint: "<design-prompt-string|file.md> [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--field <name|path>] [--no-online]"
+description: Design-space exploration tree. Wraps `/cc-tree:tree` with the design preset preselected — enumerates options × trade-offs × reversibility × cost × fit-with-constraints for an engineering / product / process decision. Produces a comparison table and a RECOMMENDED short-list. 中文触发：设计空间探索、方案对比与取舍、给出推荐短名单。
+argument-hint: "<design-prompt-string|file.md> [--lang <tag|auto>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--glossary <path>] [--field <name|path>] [--no-online]"
 ---
 
 Invoke the `tree` skill with the design preset. The default output

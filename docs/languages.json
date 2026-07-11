@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "canonical_language": "en",
+  "default_output_language": "en",
+  "documentation_languages": [
+    "en",
+    "zh"
+  ],
+  "pairs": [
+    {
+      "canonical": "README.md",
+      "translations": {
+        "zh": "README.zh.md"
+      }
+    },
+    {
+      "canonical": "docs/ENGINE.md",
+      "translations": {
+        "zh": "docs/ENGINE.zh.md"
+      }
+    },
+    {
+      "canonical": "docs/framings.md",
+      "translations": {
+        "zh": "docs/framings.zh.md"
+      }
+    },
+    {
+      "canonical": "docs/presets.md",
+      "translations": {
+        "zh": "docs/presets.zh.md"
+      }
+    },
+    {
+      "canonical": "docs/chaining.md",
+      "translations": {
+        "zh": "docs/chaining.zh.md"
+      }
+    },
+    {
+      "canonical": "field-profiles/README.md",
+      "translations": {
+        "zh": "field-profiles/README.zh.md"
+      }
+    },
+    {
+      "canonical": "examples/attack/README.md",
+      "translations": {
+        "zh": "examples/attack/README.zh.md"
+      }
+    }
+  ],
+  "canonical_only": [
+    {
+      "path": "EVALUATION.md",
+      "reason": "Project evaluation and design-history record is maintained in canonical English only."
+    },
+    {
+      "path": "CHANGELOG.md",
+      "reason": "Release history is maintained in canonical English only."
+    },
+    {
+      "path": "LICENSE",
+      "reason": "The legal license text is not translated by this project."
+    },
+    {
+      "path": "skills/**/*.md",
+      "reason": "Runtime skill prompts use the canonical English machine skeleton."
+    },
+    {
+      "path": "commands/*.md",
+      "reason": "Slash-command wrappers use canonical English names, flags, and prompt contracts."
+    },
+    {
+      "path": "presets/*.md",
+      "reason": "Preset schemas and shipped runtime prompt bodies remain canonical-only."
+    },
+    {
+      "path": "field-profiles/_template.md",
+      "reason": "The field-profile schema template keeps fixed English section identifiers."
+    },
+    {
+      "path": "field-profiles/physics.md",
+      "reason": "Field-profile definitions may contain any language and are not documentation translations."
+    },
+    {
+      "path": "examples/attack/sample-claim.md",
+      "reason": "Example input fixtures are preserved as authored."
+    },
+    {
+      "path": "examples/attack/expected-out/*.md",
+      "reason": "Expected-output fixtures are canonical snapshots, not parallel documentation."
+    },
+    {
+      "path": ".claude-plugin/*.json",
+      "reason": "Plugin manifests use fixed machine-readable English keys and values."
+    },
+    {
+      "path": "docs/languages.json",
+      "reason": "The language-version manifest is itself a machine-readable source of truth."
+    }
+  ],
+  "required_runtime_flags": [
+    "--lang"
+  ],
+  "fixed_machine_tokens": [
+    "CONVERGED",
+    "WIDTH_CAP_REACHED",
+    "DEPTH_CAP_REACHED",
+    "ROUNDS_EXHAUSTED",
+    "EARLY_STOP",
+    "INCOMPLETE_FORBIDDEN",
+    "NEEDS_VERIFICATION",
+    "MERGED_INTO",
+    "root_unparseable",
+    "language_mismatch",
+    "en",
+    "zh",
+    "zh-Hans",
+    "zh-Hant",
+    "auto"
+  ]
+}

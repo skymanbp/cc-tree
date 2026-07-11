@@ -1,6 +1,6 @@
 # cc-tree ENGINE specification
 
-> 🌐 中文平行版：[`ENGINE.zh.md`](ENGINE.zh.md)（this English file is canonical).
+> Language: English (canonical). Chinese: [`docs/ENGINE.zh.md`](ENGINE.zh.md).
 
 > This document is the **engine contract**. The `/cc-tree:tree` skill
 > reads this file at session start (along with the active preset and
@@ -98,8 +98,11 @@ via `Read` / `Grep` / `Bash` / `WebFetch`. Unverifiable claims must be
 tagged `[NEEDS VERIFICATION]` and the node downgraded; they may **not**
 be used as a premise for any downstream node.
 
-Forbidden phrases anywhere outside an `assumptions` field (which is
-where guesses are *explicitly* documented as guesses):
+The ban is **semantic in every output language**, not a literal
+English/Chinese substring whitelist. Any equivalent wording that substitutes
+uncertainty, recollection, convention, or unsupported probability for verified
+evidence is forbidden outside an `assumptions` field (where guesses are
+*explicitly* documented as guesses). Examples include:
 
 > 应该 / 大概 / 我相信 / 通常 / 可能 / 也许 / 或许 / probably / maybe /
 > I recall / I believe / typically / usually / in my experience
@@ -161,6 +164,9 @@ information-densest branch** and proceeding. Stop only when:
   are complete,
 - §2 baseline cannot be built because the root is unparseable (report
   `EARLY_STOP=root_unparseable`),
+- a resumed run receives an explicit language tag that conflicts with its
+  persisted `output_language` (report `EARLY_STOP=language_mismatch` before
+  producing another node),
 - a tool DENY from cc-enslaver or sandbox policy blocks an essential
   read (report what's blocked; do not silently switch strategies).
 
@@ -174,8 +180,10 @@ status — the visible leaf set is **always complete**.
 
 ### F8. Hard ban on deferred / incomplete leaves
 
-Any node whose §4 fields contain any of the following phrasings has
-its status forced to `INCOMPLETE_FORBIDDEN`:
+The ban is **semantic in every output language**. Any wording that postpones,
+omits, externalizes, or leaves unresolved work as a terminal result forces
+`INCOMPLETE_FORBIDDEN`; translating a deferral does not bypass the rule. The
+following are examples, not an exhaustive phrase whitelist:
 
 > defer / deferred / 待定 / 留后 / 待确认
 > 因成本限制 / 因算力限制 / 因时间限制 / 时间不够 / 算力不够
@@ -203,6 +211,61 @@ left to future work."
 /cc-tree:tree <root> --preset <name|path> [flags]
 ```
 
+### 1.0 Output-language resolution and schema boundary
+
+Resolve the run language **before preset loading and §2 baseline**, without a
+mid-run prompt:
+
+1. An explicit BCP-47-like tag passed as `--lang <tag>` wins (examples: `en`,
+   `zh`, `zh-Hans`, `zh-Hant`, `fr-CA`). Tags are retained in their requested
+   form except that matching is case-insensitive for validation.
+2. `--lang auto` detects the dominant natural language of the primary
+   invocation/root content. Mixed, unrecognized, path-only, and code-only
+   inputs deterministically fall back to `en`.
+3. If `--lang` is omitted on a fresh run, use `en`.
+
+`zh` is the maintained Simplified Chinese convention. Traditional Chinese is
+not inferred from `zh`; request it explicitly as `zh-Hant`. A concrete
+`output_language` never changes within one run.
+
+Before writing the root node, persist these English metadata keys in both
+`tree.json` and the `tree.md` run header:
+
+- `language_request`: the explicit tag, `auto`, or `omitted`;
+- `output_language`: the resolved concrete tag;
+- `language_source`: `explicit`, `auto-detected`, `default`, `resume`, or
+  `legacy-default`.
+
+**Machine skeleton (always English and byte-stable where applicable):** command
+and flag names; frontmatter and JSON keys; `root_kind` values; verdict role
+keys **and labels**; score keys/names; `node_schema` field names; framing IDs;
+status/tag tokens; output filenames; paths; code; equations; and API
+identifiers. These tokens are never translated or aliased.
+
+**Localized prose (`output_language`):** node statements, derivations,
+evidence explanations, assumptions, predictions, risks, fixes, warnings,
+human-readable report headings/narrative, and terminal summaries.
+
+**Any-language input:** root text, artifacts, source-code comments, glossaries,
+field-profile bodies, custom-preset free-form prose, citations, and quoted
+evidence. Preserve quotations verbatim. When a quotation's language differs
+from `output_language`, retain the source quotation and add a localized
+explanation; do not replace the evidence with a translation.
+
+Resume is resolved against persisted metadata before any new node is produced:
+
+- omitted `--lang` or `--lang auto` reuses the recorded `output_language` and
+  sets `language_source=resume` (no re-detection);
+- an explicit tag equal to the recorded tag resumes normally;
+- a conflicting explicit tag exits with `EARLY_STOP=language_mismatch`;
+- legacy output without language metadata is treated as `en` with
+  `language_source=legacy-default`.
+
+`tree-chain` applies the same resolution once before stage 1 and forwards the
+concrete tag to every stage and item sub-run; see [`chaining.md`](chaining.md).
+Every framing sub-agent prompt receives the concrete `output_language` plus the
+machine/prose boundary above.
+
 ### 1.1 Root resolution
 
 `<root>` is interpreted per the preset's `root_kind`:
@@ -228,6 +291,9 @@ install directory. `--preset <path>` resolves to a literal file path
 Read in full before §2 baseline.
 
 ### 1.3 Flag table
+
+`--lang <tag|auto>` is a common flag with default `en`; its complete
+resolution, persistence, resume, and chain semantics are binding in §1.0.
 
 (See `skills/tree/SKILL.md` for the full table; same semantics
 applied here. The engine MUST raise errors on unknown flags rather

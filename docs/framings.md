@@ -1,6 +1,6 @@
 # The 12 framings
 
-> 🌐 中文平行版：[`framings.zh.md`](framings.zh.md)（this English file is canonical).
+> Language: English (canonical). Chinese: [`docs/framings.zh.md`](framings.zh.md).
 
 This document expands §3.A–§3.L from [`ENGINE.md`](ENGINE.md) into
 operational prompts with **per-preset examples**. The engine runs

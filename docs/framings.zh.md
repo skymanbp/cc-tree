@@ -1,6 +1,7 @@
 # The 12 framings（12 个框架视角）
 
-> 🌐 English (canonical): [framings.md](framings.md) · 本文是中文平行翻译，若有歧义以英文版为准。
+> 语言：中文。英文规范版：[`docs/framings.md`](framings.md)。如有歧义，以英文版为准。
+<!-- i18n-source-sha256: 3c2e40dda8782d06467b85bb01942f05b34dc481e24653121d550e071ff603a1 -->
 
 本文档把 [`ENGINE.md`](ENGINE.md) 中的 §3.A–§3.L 展开为可操作的
 prompt，并配有**按 preset 区分的示例**。引擎对每个节点、每一轮都会

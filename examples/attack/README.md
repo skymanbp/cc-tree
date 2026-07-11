@@ -1,5 +1,7 @@
 # Example — `attack` preset
 
+> Language: English (canonical). Chinese: [`examples/attack/README.zh.md`](README.zh.md).
+
 A minimal, **illustrative** example of the `attack` preset on a toy
 artifact.
 
@@ -21,7 +23,10 @@ artifact.
 > a full 12-field derivation per node, and may surface more critiques
 > than the three shown here. CI bounds-checks every `file:line`
 > citation in these files against `sample-claim.md`
-> (`tools/validate_plugin.py` cross-refs).
+> (`tools/validate_plugin.py` cross-refs). These fixtures are canonical English
+> snapshots; `--lang <tag|auto>` may localize a regenerated run's narrative
+> while machine keys, verdict labels, statuses, filenames, and citations remain
+> English.
 
 ## Regenerate it for real
 

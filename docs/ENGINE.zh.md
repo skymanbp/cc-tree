@@ -1,6 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
-> 🌐 English (canonical): [ENGINE.md](ENGINE.md) · 本文是中文平行翻译，若有歧义以英文版为准。
+> 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
+<!-- i18n-source-sha256: 98319ff6acfb7812ef6e6440ab1f05d5bd53147d45401f40ff1e94e19be040c2 -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -87,8 +88,10 @@
 `WebFetch` 验证。无法验证的断言必须标记为 `[NEEDS VERIFICATION]` 并降级该
 节点；它们**不得**被用作任何下游节点的前提。
 
-在 `assumptions` 字段之外的任何地方都禁止出现以下措辞（`assumptions` 字段
-正是把猜测*明确*记录为猜测的地方）：
+这条禁令在**每一种输出语言中都是语义性的**，而不是一份逐字的英文/中文子串
+白名单。任何用不确定、凭记忆、凭惯例或无根据的概率来替代已验证证据的等价
+措辞，在 `assumptions` 字段之外都被禁止（`assumptions` 字段正是把猜测*明确*
+记录为猜测的地方）。示例包括：
 
 > 应该 / 大概 / 我相信 / 通常 / 可能 / 也许 / 或许 / probably / maybe /
 > I recall / I believe / typically / usually / in my experience
@@ -142,6 +145,8 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 - 达到了某个 §0.7 用户指定的上限**且**所有在途节点均已完整，
 - 因为根无法解析而无法构建 §2 基线（报告
   `EARLY_STOP=root_unparseable`），
+- 一次被恢复的运行收到的显式语言标签与其持久化的 `output_language` 冲突
+  （在产生下一个节点之前报告 `EARLY_STOP=language_mismatch`），
 - 来自 cc-enslaver 或沙箱策略的工具 DENY 阻断了一次必要的读取（报告被
   阻断的内容；不得静默切换策略）。
 
@@ -154,8 +159,9 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 
 ### F8. Hard ban on deferred / incomplete leaves（对 deferred / 不完整叶节点的硬性禁令）
 
-任何节点，只要其 §4 字段包含以下任一措辞，其状态就被强制设为
-`INCOMPLETE_FORBIDDEN`：
+这条禁令在**每一种输出语言中都是语义性的**。任何把工作推迟、省略、外包，
+或把未解决的工作留作终端结果的措辞，都会强制 `INCOMPLETE_FORBIDDEN`；把一次
+搁置翻译成别的语言并不能绕过此规则。以下是示例，而非一份穷尽的措辞白名单：
 
 > defer / deferred / 待定 / 留后 / 待确认
 > 因成本限制 / 因算力限制 / 因时间限制 / 时间不够 / 算力不够
@@ -180,6 +186,53 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 /cc-tree:tree <root> --preset <name|path> [flags]
 ```
 
+### 1.0 输出语言解析与 schema 边界（Output-language resolution and schema boundary）
+
+在**预设加载与 §2 基线之前**解析本次运行的语言，其间不做任何中途征询：
+
+1. 通过 `--lang <tag>` 传入的显式 BCP-47 式标签胜出（示例：`en`、`zh`、
+   `zh-Hans`、`zh-Hant`、`fr-CA`）。标签按其请求的原样保留，只是校验时的
+   匹配对大小写不敏感。
+2. `--lang auto` 检测主调用/根内容的主导自然语言。混合、无法识别、纯路径
+   以及纯代码的输入会确定性地回退到 `en`。
+3. 如果一次全新运行省略了 `--lang`，则使用 `en`。
+
+`zh` 是受维护的简体中文惯例。繁体中文不会从 `zh` 推断；请用 `zh-Hant`
+显式请求。一个具体的 `output_language` 在一次运行内绝不改变。
+
+在写入根节点之前，把以下英文元数据键同时持久化到 `tree.json` 和
+`tree.md` 的运行头部：
+
+- `language_request`：显式标签、`auto` 或 `omitted`；
+- `output_language`：解析得到的具体标签；
+- `language_source`：`explicit`、`auto-detected`、`default`、`resume` 或
+  `legacy-default`。
+
+**机器骨架（始终为英文，并在适用处逐字节稳定）：** 命令与 flag 名称；
+frontmatter 与 JSON 键；`root_kind` 值；裁决角色键**及标签**；评分键/名称；
+`node_schema` 字段名；框架视角 ID；状态/标签 token；输出文件名；路径；代码；
+方程；以及 API 标识符。这些 token 绝不被翻译或起别名。
+
+**本地化散文（`output_language`）：** 节点陈述、推导、证据解释、假设、预测、
+风险、修复、警告、人类可读的报告标题/叙述，以及终端摘要。
+
+**任意语言输入：** 根文本、产物、源代码注释、术语表、领域画像正文、自定义
+预设的自由格式散文、引用，以及被引证据。逐字保留引文。当一段引文的语言与
+`output_language` 不同时，保留原文引文并补充一段本地化解释；不要用译文替换
+证据本身。
+
+在产生任何新节点之前，恢复（resume）会针对持久化的元数据来解析：
+
+- 省略 `--lang` 或 `--lang auto` 会复用记录下来的 `output_language` 并把
+  `language_source` 设为 `resume`（不重新检测）；
+- 与记录标签相等的显式标签正常恢复；
+- 相互冲突的显式标签以 `EARLY_STOP=language_mismatch` 退出；
+- 没有语言元数据的遗留输出被视为 `en`，`language_source=legacy-default`。
+
+`tree-chain` 在 stage 1 之前施加同一套解析恰好一次，并把具体标签转发给每个
+阶段和每个逐项子运行；见 [`chaining.md`](chaining.md)。每个框架视角子代理的
+提示都会收到具体的 `output_language` 以及上面的机器/散文边界。
+
 ### 1.1 Root resolution（根解析）
 
 `<root>` 按预设的 `root_kind` 来解释：
@@ -203,6 +256,9 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 CWD 的路径）。无论哪种方式，预设都在 §2 基线之前被完整 Read。
 
 ### 1.3 Flag table（flag 表）
+
+`--lang <tag|auto>` 是一个通用 flag，默认值为 `en`；它完整的解析、持久化、
+恢复与链式语义在 §1.0 中具有约束力。
 
 （完整表格见 `skills/tree/SKILL.md`；此处适用相同的语义。引擎对未知 flag
 必须报错，而不是静默忽略。预设及其 command wrapper 可以记录额外的预设
@@ -472,11 +528,14 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
 
 维度因预设而异；常见模式：
 
-- brainstorm：S=科学价值，N=新颖性，F=可行性，K=可证伪性，B=分支潜力
-- attack：S=严重度，P=具体性，R=可复现性，F=可修复性，B=子批判扇出
-- design：V=价值，R=可逆性，C=成本，F=与约束的契合度，E=证据强度
-- code-audit：S=严重度，P=位置具体性，R=可复现性，F=可修复性，
-  X=可利用性（exploit-likelihood）
+- brainstorm：S=scientific-value（科学价值），N=novelty（新颖性），
+  F=feasibility（可行性），K=falsifiability（可证伪性），B=branch-potential（分支潜力）
+- attack：S=severity（严重度），P=specificity（具体性），
+  R=reproducibility（可复现性），F=fixability（可修复性），B=sub-critique-fan-out（子批判扇出）
+- design：V=value（价值），R=reversibility（可逆性），C=cost（成本），
+  F=fit-with-constraints（与约束的契合度），E=evidence-strength（证据强度）
+- code-audit：S=severity（严重度），P=position-specificity（位置具体性），
+  R=reproducibility（可复现性），F=fixability（可修复性），X=exploit-likelihood（可利用性）
 
 ### 5.2 Verdict mapping（裁决映射）
 

@@ -19,6 +19,8 @@ Checks:
   5. Every commands/<name>.md starts with a YAML frontmatter block that
      declares `description:`.
   6. tools/*.py all parse as valid Python (ast.parse, no runtime imports).
+  7. docs/languages.json controls English-canonical / Chinese-parallel
+     documentation, source digests, structure, and machine-token parity.
 """
 
 from __future__ import annotations
@@ -29,7 +31,8 @@ import re
 import sys
 from pathlib import Path
 
-from _frontmatter import parse_frontmatter
+from _frontmatter import parse_frontmatter, split_frontmatter
+from _i18n import I18nError, SKIP_DIR_PARTS, load_manifest, validate_i18n
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -214,7 +217,6 @@ def check_tools_syntax() -> str:
 # heading divergence, command hints advertising unregistered flags). Each
 # sub-check below turns one of those defect classes into a CI failure.
 
-_SKIP_DIR_PARTS = {".git", ".github", "memory", "__pycache__", "node_modules"}
 _LINK_RE = re.compile(r"\]\(([^)#\s]+)#([^)\s]+)\)")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _CITATION_RE = re.compile(r"([A-Za-z0-9_.\-/]+\.md):(\d+)(?:-(\d+))?")
@@ -225,7 +227,7 @@ def _content_md_files() -> list[Path]:
     out = []
     for p in sorted(REPO.rglob("*.md")):
         rel_parts = p.relative_to(REPO).parts
-        if any(part in _SKIP_DIR_PARTS or part.endswith("-out")
+        if any(part in SKIP_DIR_PARTS or part.endswith("-out")
                for part in rel_parts[:-1]):
             continue
         out.append(p)
@@ -288,49 +290,62 @@ def _check_example_citations() -> int:
     return n
 
 
-def _check_bilingual_parity() -> int:
-    """docs/X.zh.md must mirror docs/X.md's heading structure: same number
-    of headings at every level (translations may rename, not restructure)."""
-    n = 0
-    for zh in sorted((REPO / "docs").glob("*.zh.md")):
-        en = zh.with_name(zh.name.replace(".zh.md", ".md"))
-        if not en.is_file():
-            fail(f"{zh} has no English counterpart {en.name}")
-        def _level_counts(p: Path) -> dict[int, int]:
-            counts: dict[int, int] = {}
-            for hashes, _ in _HEADING_RE.findall(p.read_text(encoding="utf-8")):
-                counts[len(hashes)] = counts.get(len(hashes), 0) + 1
-            return counts
-        zh_c, en_c = _level_counts(zh), _level_counts(en)
-        if zh_c != en_c:
-            fail(f"{zh.name} heading structure diverges from {en.name}: "
-                 f"zh={zh_c} en={en_c}")
-        n += 1
-    return n
+def _contains_flag(text: str, flag: str) -> bool:
+    pattern = rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])"
+    return re.search(pattern, text) is not None
 
 
-def _check_command_flags() -> int:
-    """Every --flag advertised in a command's argument-hint must be
-    documented somewhere authoritative: the tree skill (SKILL.md), the
-    command's own body, or its same-named preset. Catches hints
-    advertising flags nothing defines (and hints dropping flags is the
-    inverse drift the audit found with --field)."""
-    skill_text = (REPO / "skills" / "tree" / "SKILL.md").read_text(encoding="utf-8")
+def _check_command_flags(repo: Path = REPO) -> int:
+    """Validate command hints against authoritative Markdown bodies.
+
+    Frontmatter is excluded from the documentation sources so a flag cannot
+    validate itself merely by appearing in the same `argument-hint`. The
+    language manifest may also require a common flag in every wrapper.
+    """
+    # This runs during the cross-refs check, before check_i18n's guard, so a
+    # malformed manifest must be reported here rather than escaping as a
+    # traceback.
+    try:
+        manifest = load_manifest(repo)
+    except I18nError as exc:
+        fail(f"command-flags: {exc}")
+    required = tuple(str(flag) for flag in manifest["required_runtime_flags"])
+
+    skill_path = repo / "skills" / "tree" / "SKILL.md"
+    skill_fm, skill_body = split_frontmatter(
+        skill_path.read_text(encoding="utf-8")
+    )
+    skill_hint = str((skill_fm or {}).get("argument-hint", ""))
+    for flag in set(_FLAG_RE.findall(skill_hint)):
+        if not _contains_flag(skill_body, flag):
+            fail(f"{skill_path}: argument-hint advertises {flag} but the "
+                 "skill body does not document it")
+    for flag in required:
+        if (not _contains_flag(skill_hint, flag)
+                or not _contains_flag(skill_body, flag)):
+            fail(f"{skill_path}: required common flag {flag} must appear in "
+                 "both argument-hint and skill body")
+
     n = 0
-    for cmd in sorted((REPO / "commands").glob("*.md")):
-        text = cmd.read_text(encoding="utf-8")
-        fm = parse_frontmatter(text)
-        hint = (fm or {}).get("argument-hint", "")
-        preset = REPO / "presets" / cmd.name
-        sources = skill_text + text
+    for cmd in sorted((repo / "commands").glob("*.md")):
+        fm, body = split_frontmatter(cmd.read_text(encoding="utf-8"))
+        hint = str((fm or {}).get("argument-hint", ""))
+        preset = repo / "presets" / cmd.name
+        preset_body = ""
         if preset.is_file():
-            sources += preset.read_text(encoding="utf-8")
+            _, preset_body = split_frontmatter(
+                preset.read_text(encoding="utf-8")
+            )
+        sources = "\n".join((skill_body, body, preset_body))
         for flag in set(_FLAG_RE.findall(hint)):
-            if flag not in sources:
+            if not _contains_flag(sources, flag):
                 fail(f"{cmd}: argument-hint advertises {flag} but neither "
                      f"SKILL.md, the command body, nor {preset.name} "
-                     f"documents it")
+                     "documents it outside frontmatter")
             n += 1
+        for flag in required:
+            if not _contains_flag(hint, flag):
+                fail(f"{cmd}: argument-hint omits required common flag {flag}")
     return n
 
 
@@ -343,7 +358,11 @@ def _check_field_profiles() -> int:
     n = 0
     profiles_dir = REPO / "field-profiles"
     for p in sorted(profiles_dir.glob("*.md")):
-        if p.name == "README.md" or p.name.startswith("_"):
+        # README (canonical + `.zh.md` translations) and `_scaffold` files are
+        # documentation/templates, not selectable `--field` profiles. Translations
+        # follow the `X.zh.md` convention and are governed by docs/languages.json,
+        # not the field-profile schema, so they must be skipped here.
+        if p.name == "README.md" or p.name.startswith("_") or p.name.endswith(".zh.md"):
             continue
         text = p.read_text(encoding="utf-8")
         fm = parse_frontmatter(text)
@@ -364,12 +383,23 @@ def check_crossrefs() -> str:
     md_files = _content_md_files()
     anchors = _check_anchors(md_files)
     citations = _check_example_citations()
-    pairs = _check_bilingual_parity()
     flags = _check_command_flags()
     profiles = _check_field_profiles()
     return (f"cross-refs OK ({anchors} anchors, {citations} example "
-            f"citations, {pairs} bilingual pairs, {flags} command flags, "
-            f"{profiles} field profiles)")
+            f"citations, {flags} command flags, {profiles} field profiles)")
+
+
+def check_i18n() -> str:
+    try:
+        stats = validate_i18n(
+            REPO, PRESET_REQUIRED_KEYS, VERDICT_ROLES, ROOT_KINDS
+        )
+    except I18nError as exc:
+        fail(f"i18n: {exc}")
+    return (f"i18n OK ({stats.pairs} pairs, {stats.canonical_only} "
+            f"canonical-only docs, {stats.digests} digests, "
+            f"{stats.sections} aligned sections, "
+            f"{stats.machine_tokens} machine-token checks)")
 
 
 def main() -> int:
@@ -380,6 +410,7 @@ def main() -> int:
         ("commands", check_commands),
         ("tools", check_tools_syntax),
         ("cross-refs", check_crossrefs),
+        ("i18n", check_i18n),
     ]:
         msg = check()
         print(f"  [ok] {msg}")

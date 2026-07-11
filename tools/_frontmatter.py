@@ -282,14 +282,25 @@ def _parse_map(lines: list[str], i: int, base: int) -> tuple[dict, int]:
     return d, i
 
 
+def split_frontmatter(text: str) -> tuple[dict | None, str]:
+    """Return parsed frontmatter and the remaining Markdown body.
+
+    Keeping the body separate is important for validators: an
+    `argument-hint` must not count as documentation for the flags it
+    advertises. Files without frontmatter return ``(None, text)``.
+    """
+    m = FRONTMATTER_RE.match(text)
+    if not m:
+        return None, text
+    lines = m.group(1).split("\n")
+    result, _ = _parse_map(lines, 0, 0)
+    return result, text[m.end():]
+
+
 def parse_frontmatter(text: str) -> dict | None:
     """Parse the leading `--- ... ---` frontmatter block of `text`.
 
     Returns the parsed mapping, or None if there is no frontmatter block.
     """
-    m = FRONTMATTER_RE.match(text)
-    if not m:
-        return None
-    lines = m.group(1).split("\n")
-    result, _ = _parse_map(lines, 0, 0)
+    result, _ = split_frontmatter(text)
     return result

@@ -6,9 +6,14 @@
 ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-8e7cc3)
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
+> Language: English (canonical). Chinese: [`README.zh.md`](README.zh.md).
+
 A Claude Code plugin: **one universal radial-tree exploration engine, four
 swappable presets**. Use it for divergent ideation, adversarial critique,
 design-space exploration, or code audit — same engine, different vocabulary.
+English is the default output and machine-schema language; roots, evidence,
+quoted sources, and custom content may use any language, while `--lang`
+selects the run's human-readable output language.
 
 ```bash
 claude plugin marketplace add skymanbp/cc-tree
@@ -118,10 +123,41 @@ See also:
 - [`docs/framings.md`](docs/framings.md) — the 12 framings with per-preset
   examples (中文：[`docs/framings.zh.md`](docs/framings.zh.md))
 - [`docs/presets.md`](docs/presets.md) — how to author your own preset
-  (schema is CI-enforced by `tools/validate_plugin.py`)
+  (中文：[`docs/presets.zh.md`](docs/presets.zh.md); schema is CI-enforced by
+  `tools/validate_plugin.py`)
 - [`docs/chaining.md`](docs/chaining.md) — cross-preset chaining contract
+  (中文：[`docs/chaining.zh.md`](docs/chaining.zh.md))
 - [`field-profiles/README.md`](field-profiles/README.md) — domain-aware
-  reviewer weighting via `--field`
+  reviewer weighting via `--field` (中文：
+  [`field-profiles/README.zh.md`](field-profiles/README.zh.md))
+- [`examples/attack/README.md`](examples/attack/README.md) — attack-preset
+  example guide (中文：
+  [`examples/attack/README.zh.md`](examples/attack/README.zh.md))
+
+## Language contract
+
+English is canonical for documentation and is the default output language.
+Use `--lang <tag>` for an explicit BCP-47-like output tag (`en`, `zh`,
+`zh-Hans`, `zh-Hant`, `fr-CA`, …), or `--lang auto` to detect the dominant
+natural language of the primary invocation/root content. Mixed,
+unrecognized, path-only, and code-only auto inputs fall back to `en`.
+`zh` denotes the maintained Simplified Chinese convention; request
+Traditional Chinese explicitly with `zh-Hant`.
+
+The run keeps one language from start through resume and chaining. Human prose
+(node statements, derivations, evidence explanations, warnings, and report
+narrative) uses the resolved language. Machine identifiers remain English:
+commands and flags, frontmatter and JSON keys, `root_kind` values, verdict
+roles/labels, score keys, `node_schema` fields, framing IDs, status/tag tokens,
+filenames, paths, code, equations, and API identifiers. Input roots, artifacts,
+comments, glossaries, field-profile bodies, custom-preset prose, citations, and
+quoted evidence may use any language; quotations stay verbatim and receive a
+localized explanation when needed. See [`docs/ENGINE.md`](docs/ENGINE.md) §1.0
+for the binding resolution and resume rules.
+
+Documentation versioning follows [`docs/languages.json`](docs/languages.json):
+unsuffixed `X.md` files are canonical English, `X.zh.md` files are maintained
+Chinese parallels, and source digests make stale translations fail CI.
 
 ## Install
 
@@ -167,6 +203,12 @@ loaded at session start). Skills then appear namespaced: `/cc-tree:tree`,
 # Domain-aware reviewer weighting (physics ships built-in; author other
 # fields from field-profiles/_template.md)
 /cc-tree:attack ./paper.tex --field physics
+
+# Explicit Chinese human-readable output; machine keys/statuses stay English
+/cc-tree:attack ./paper.tex --lang zh
+
+# Detect the dominant natural language of the root; ambiguous inputs fall back to en
+/cc-tree:brainstorm "如何验证弱引力透镜中的暗物质子结构" --lang auto
 ```
 
 Each run writes incrementally to `<out>/<UTCdate>__<slug>/` (default

@@ -150,6 +150,33 @@ hit, the engine still drives every in-flight node to a complete state
 before reporting `WIDTH_CAP_REACHED` / `DEPTH_CAP_REACHED` /
 `ROUNDS_EXHAUSTED`.
 
+### Why English-canonical multilingual output?
+
+The engine needs a stable machine skeleton across presets, resumes, chained
+stages, validators, and downstream tooling. Translating flags, frontmatter or
+JSON keys, verdict labels, framing IDs, statuses, or filenames would create
+schema forks rather than language support. cc-tree therefore keeps those
+identifiers in canonical English while localizing human-readable node prose,
+derivations, evidence explanations, warnings, and report narrative through
+`--lang <tag|auto>`.
+
+English is the omitted-flag default. `auto` detects the dominant natural
+language of the primary invocation/root content and falls back to English for
+mixed, unrecognized, path-only, and code-only inputs. The concrete language is
+persisted before the root node and cannot change on resume or mid-chain. Input
+artifacts, comments, glossaries, profile bodies, custom-preset prose,
+citations, and quotations remain language-agnostic; quotations stay verbatim
+and receive a localized explanation instead of being silently rewritten.
+
+Documentation uses the same one-skeleton principle. Unsuffixed Markdown is
+canonical English, `.zh.md` is the maintained Chinese parallel, and
+`docs/languages.json` inventories every pair or canonical-only exception.
+Each Chinese file records the LF-normalized source SHA-256, so editing English
+makes CI fail until the translation is reviewed and refreshed. Deterministic
+checks cover banners, ordered fence-aware heading structure, fenced examples,
+Chinese body coverage, and preservation of machine tokens; semantic
+translation quality remains a human review responsibility.
+
 ### Why incremental write to disk?
 
 So the tree state survives any interruption (process kill, context
@@ -219,10 +246,13 @@ interruption.
    makes sub-agent dispatch **mandatory** at fan-out ≥ 5 (not optional),
    with a precise dispatch + re-verification contract.
 
-4. **Multi-language preset support.** **Resolved in v0.2.0**: full
-   bilingual engine docs ship as `docs/ENGINE.zh.md` +
-   `docs/framings.zh.md` (English remains canonical). Preset bodies stay
-   language-agnostic by design.
+4. **Multi-language preset support.** **Resolved in v0.4.0**: one
+   English machine skeleton now supports deterministic `--lang <tag|auto>`
+   output, run/resume/chain language persistence, arbitrary-language input and
+   custom prose, seven maintained English↔Chinese documentation pairs, and a
+   manifest + source-digest + structural/token validator. Translation quality
+   remains a human review responsibility; freshness and schema preservation
+   are CI-enforced.
 
 ## Decision
 
@@ -230,6 +260,11 @@ Shipped v0.1.0 as: one skill + four presets + four commands + full
 `ENGINE.md` + `framings.md` + `presets.md` + CI + validator.
 
 v0.2.0 closes the v0.1 doc/impl drift (the validator now enforces what
-the docs promise) and lands the four roadmap items above — chaining,
-mandatory parallel dispatch, `--field` weighting, and bilingual docs —
-making the plugin self-contained and CLI-installable.
+the docs promise) and lands chaining, mandatory parallel dispatch,
+`--field` weighting, and the first two bilingual docs, making the plugin
+self-contained and CLI-installable.
+
+v0.4.0 completes the language architecture: English is the canonical/default
+machine skeleton, human-readable output is selected per run, arbitrary-language
+content remains valid input, Chinese public documentation is maintained as
+seven explicit pairs, and CI fails closed on version or schema drift.

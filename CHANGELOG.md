@@ -3,6 +3,57 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## v0.4.0 — 2026-07-11
+
+English-canonical multilingual runtime and documentation version control.
+Existing omitted-flag behavior remains English, while runs can now select a
+stable human-readable output language without forking machine schemas.
+
+### Added
+
+- **`--lang <tag|auto>` common flag** across the universal skill and every
+  command wrapper. Explicit BCP-47-like tags win; `auto` detects the dominant
+  natural language of primary root/invocation content and falls back to `en`
+  for mixed, unrecognized, path-only, or code-only input. `zh` is maintained
+  Simplified Chinese; Traditional Chinese is explicit via `zh-Hant`.
+- **Run-level language persistence** through `language_request`,
+  `output_language`, and `language_source`. Resume reuses the recorded tag;
+  conflicting explicit tags fail with `EARLY_STOP=language_mismatch`; legacy
+  output is treated as English. `tree-chain` resolves once and propagates the
+  concrete tag to every stage, item sub-run, and framing sub-agent.
+- **Arbitrary-language content contract**: roots, artifacts, code comments,
+  glossaries, field-profile bodies, custom-preset prose, citations, and quoted
+  evidence may use any language. Quotations remain verbatim with localized
+  explanation when needed.
+- **Five new Chinese public guides** (`README.zh.md`, `docs/presets.zh.md`,
+  `docs/chaining.zh.md`, `field-profiles/README.zh.md`, and
+  `examples/attack/README.zh.md`) plus normalized ENGINE and framings pairs.
+- **`docs/languages.json` language-version manifest** defining canonical/default
+  language, maintained pairs, canonical-only exceptions, required runtime
+  flags, and fixed machine tokens. Chinese files carry an LF-normalized source
+  SHA-256 so stale translations fail CI.
+- **`tools/test_i18n.py`** with positive and negative fixtures for manifests,
+  banners, digests, ordered headings, fence handling, Chinese coverage,
+  machine tokens, and body-only command-flag validation; runs on Python 3.11
+  and 3.13 in CI.
+
+### Changed
+
+- **English machine-schema boundary is explicit and enforced**: command/flag
+  names, frontmatter and JSON keys, `root_kind` values, verdict roles/labels,
+  score keys/names, `node_schema` fields, framing IDs, statuses/tags, output
+  filenames, paths, code, equations, and API identifiers never translate.
+  Human-readable statements, derivations, evidence explanations, risks, fixes,
+  warnings, headings, and summaries follow the resolved output language.
+- **Hedge/defer bans are semantic across languages.** Existing English and
+  Chinese phrase lists are examples, not an exhaustive bypassable whitelist.
+- **I18n validation is manifest-driven and fence-aware**: reciprocal banners,
+  source freshness, ordered heading levels/markers, aligned fenced examples,
+  minimum Chinese body coverage, and derived load-bearing token preservation.
+- **Command flag validation now excludes frontmatter**, fixing the prior
+  self-documenting `argument-hint` flaw; required common flags must appear in
+  the skill body and every command hint.
+
 ## v0.3.0 — 2026-07-09
 
 Debug sweep (26 confirmed defects fixed across 20 files) + the

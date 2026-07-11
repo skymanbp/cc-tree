@@ -1,6 +1,6 @@
 ---
-description: Adversarial radial-tree critique. Wraps `/cc-tree:tree` with the attack preset preselected — finds the strongest reviewer-style attacks against a finished artifact (document / argument / proposal). Every leaf resolves to CONFIRMED / MARGINAL / REFUTED with `file:line` evidence; hard-banned against NEEDS-MORE-INFO deferrals.
-argument-hint: "<file_path> [--focus <section|claim|equation>] [--from-prior <report.md>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--field <name|path>] [--no-online]"
+description: Adversarial radial-tree critique. Wraps `/cc-tree:tree` with the attack preset preselected — finds the strongest reviewer-style attacks against a finished artifact (document / argument / proposal). Every leaf resolves to CONFIRMED / MARGINAL / REFUTED with `file:line` evidence; hard-banned against NEEDS-MORE-INFO deferrals. 中文触发：审稿式攻击、找最强反驳、对成稿做对抗性批判。
+argument-hint: "<file_path> [--lang <tag|auto>] [--focus <section|claim|equation>] [--from-prior <report.md>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--out <dir>] [--field <name|path>] [--no-online]"
 ---
 
 Invoke the `tree` skill with the attack preset. The default output

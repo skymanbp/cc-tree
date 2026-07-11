@@ -1,5 +1,7 @@
 # Cross-preset chaining
 
+> Language: English (canonical). Chinese: [`docs/chaining.zh.md`](chaining.zh.md).
+
 A natural workflow runs several presets in sequence, piping each stage's
 best output into the next:
 
@@ -42,6 +44,23 @@ into the next stage. Because each deliverable is sorted by its
 declared key, "top-K" is just the first K items. The dropped tail is
 reported (never silently truncated — `docs/ENGINE.md` §F7 spirit):
 the chain log states "seeded 3 of 11; dropped 8 below the cut".
+
+### Language propagation
+
+`tree-chain` resolves `--lang <tag|auto>` exactly once before stage 1. It then
+passes the resulting concrete `output_language` tag—not `auto`—to every stage,
+per-item sub-run, and framing sub-agent. Omitted `--lang` resolves to `en`;
+`auto` uses the first stage's primary invocation/root content and follows the
+fallback rules in [`ENGINE.md`](ENGINE.md) §1.0. Later artifacts never trigger a
+second detection pass, so one chain cannot drift between languages.
+
+`CHAIN_REPORT.md` records `language_request`, `output_language`, and
+`language_source` alongside per-stage status. A resumed chain reuses the
+recorded concrete tag. A conflicting explicit tag stops before another stage
+runs with `EARLY_STOP=language_mismatch`; legacy chain output without language
+metadata is treated as English. Machine keys, statuses, verdict labels,
+filenames, paths, and code remain canonical English even when human-readable
+stage reports use another language.
 
 ### Root vs seeds in the next stage
 
@@ -91,5 +110,7 @@ the chain log states "seeded 3 of 11; dropped 8 below the cut".
 - **Not** automatic convergence across stages. Each stage converges
   independently (§6); `tree-chain` just sequences them and applies the
   top-K cut between stages.
+- **Not** per-stage language detection. The chain resolves once, propagates one
+  concrete tag, and records it in `CHAIN_REPORT.md`.
 - **Not** lossless. The top-K cut deliberately drops low-score tail
   items. The cut is always logged so the loss is visible.

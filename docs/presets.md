@@ -1,5 +1,7 @@
 # Authoring a cc-tree preset
 
+> Language: English (canonical). Chinese: [`docs/presets.zh.md`](presets.zh.md).
+
 A preset is a single `.md` file that customizes the universal
 engine ([`ENGINE.md`](ENGINE.md)) for one use-case. It supplies six
 overridable slots (vocabulary + recipe) without weakening any of
@@ -122,6 +124,28 @@ glossary_paths:
 
 CI runs the validator on every push; broken presets block the
 merge.
+
+### 1.1 Language boundary
+
+A custom preset may describe its baseline recipe, framing flavors,
+anti-patterns, citations, and examples in any language. Its schema remains the
+English machine skeleton consumed by the engine and validator. Keep these in
+English and do not translate them:
+
+- frontmatter keys and the `root_kind` values;
+- `verdict_enum` role keys **and their labels**;
+- `convergence_metric`, `score_dims[].key`, and `score_dims[].name`;
+- every `node_schema` field name;
+- `output_artifacts` keys and filenames;
+- framing IDs, status/tag tokens, paths, code, equations, and API identifiers.
+
+Free-form values such as `description`, `use-when`, `score_dims[].desc`, the
+preset body, and cited or quoted source material may use any language. They do
+not override the run's `output_language`: generated node prose and report
+narrative still follow `--lang`, while quotations remain verbatim and receive a
+localized explanation when their language differs from the output language.
+The engine rejects a preset that translates or aliases a load-bearing schema
+identifier instead of using the canonical English token.
 
 ---
 
@@ -302,6 +326,8 @@ Before submitting a preset:
       `pruned` / `blocked`).
 - [ ] `convergence_metric` matches one of the `verdict_enum` keys
       (verbatim, no aliases).
+- [ ] Machine identifiers listed in §1.1 remain canonical English tokens;
+      free-form prose may use any language.
 - [ ] Preset body's §2 baseline has no "TBD" / "TODO" placeholders.
 - [ ] Preset body's framing flavors (if supplied) don't contradict
       [`framings.md`](framings.md) universal semantics.
