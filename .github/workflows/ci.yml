@@ -13,8 +13,10 @@ jobs:
       matrix:
         python-version: ["3.11", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # v4/v5 target Node 20, which GitHub deprecated and now force-migrates
+      # to Node 24 with a warning on every run. v7 targets Node 24 natively.
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Validate manifests / skills / presets / commands / tools syntax / cross-refs
