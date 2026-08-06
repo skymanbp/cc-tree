@@ -28,11 +28,22 @@ _DIGEST_RE = re.compile(r"<!--\s*i18n-source-sha256:\s*([0-9a-f]{64})\s*-->")
 _HAN_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 _INLINE_CODE_RE = re.compile(r"`[^`]*`")
 _URL_RE = re.compile(r"https?://\S+")
-_FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
+FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
 _FRAMING_RE = re.compile(r"§3\.[A-LX]")
 # Directory names never scanned for documents (shared with validate_plugin.py
 # so the two skip lists cannot drift apart).
 SKIP_DIR_PARTS = {".git", ".github", "memory", "__pycache__", "node_modules"}
+
+
+def is_skipped(rel_parts: tuple[str, ...]) -> bool:
+    """True when a repo-relative path sits under a directory documents are
+    never scanned from: infrastructure (`SKIP_DIR_PARTS`) or a run-output dir
+    (`tree-out/`, `attack-out/`, …). Shared with validate_plugin.py for the
+    same reason as `SKIP_DIR_PARTS` — three copies of this predicate could
+    drift apart silently.
+    """
+    return any(part in SKIP_DIR_PARTS or part.endswith("-out")
+               for part in rel_parts[:-1])
 
 
 class I18nError(ValueError):
@@ -249,37 +260,30 @@ def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]]
                 raise I18nError(f"path is both paired and canonical-only: {rel}")
             canonical_only_paths.add(rel)
 
-    registered_zh = {translation for _, translation in pairs}
-    actual_zh: set[str] = set()
-    for path in repo.rglob("*.zh.md"):
-        parts = path.relative_to(repo).parts
-        if any(part in SKIP_DIR_PARTS or part.endswith("-out") for part in parts[:-1]):
-            continue
-        actual_zh.add(path.relative_to(repo).as_posix())
-    unregistered = sorted(actual_zh - registered_zh - canonical_only_paths)
-    if unregistered:
-        raise I18nError(f"unregistered Chinese documents: {', '.join(unregistered)}")
-
-    # Reverse coverage: every canonical English document in scope must be
-    # registered as a pair canonical or as canonical_only. Without this the
-    # manifest fails open — a new English doc could ship untranslated and
-    # unreviewed, silently escaping the freshness contract.
-    registered_canonical = {canonical for canonical, _ in pairs}
-    covered = registered_canonical | canonical_only_paths
-    unregistered_en = []
+    # Coverage runs both ways in one pass over the tree: no Chinese file may
+    # be unregistered, and no canonical English file may be either. Without
+    # the reverse half the manifest fails open — a new English doc could ship
+    # untranslated and unreviewed, escaping the freshness contract.
+    registered_zh = {translation for _, translation in pairs} | canonical_only_paths
+    registered_en = {canonical for canonical, _ in pairs} | canonical_only_paths
+    stray_zh: list[str] = []
+    stray_en: list[str] = []
     for path in repo.rglob("*.md"):
-        parts = path.relative_to(repo).parts
-        if any(part in SKIP_DIR_PARTS or part.endswith("-out") for part in parts[:-1]):
+        relative = path.relative_to(repo)
+        if is_skipped(relative.parts):
             continue
-        rel = path.relative_to(repo).as_posix()
+        rel = relative.as_posix()
         if rel.endswith(".zh.md"):
-            continue
-        if rel not in covered:
-            unregistered_en.append(rel)
-    if unregistered_en:
+            if rel not in registered_zh:
+                stray_zh.append(rel)
+        elif rel not in registered_en:
+            stray_en.append(rel)
+    if stray_zh:
+        raise I18nError(f"unregistered Chinese documents: {', '.join(sorted(stray_zh))}")
+    if stray_en:
         raise I18nError(
             "unregistered canonical documents (add to pairs or canonical_only): "
-            + ", ".join(sorted(unregistered_en))
+            + ", ".join(sorted(stray_en))
         )
 
     return pairs, len(canonical_only_paths)
@@ -288,14 +292,13 @@ def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]]
 def _is_enforceable_token(token: str) -> bool:
     """True when a token is a *distinctive* machine identifier whose bare
     presence anywhere in a document can be enforced without colliding with
-    ordinary prose (see `build_machine_tokens`).
+    ordinary prose. Splits the harvest in `build_token_sets`.
 
     The whole-document parity check must never flag a plain lowercase
     dictionary word — `derivation`, `evidence`, `value`, `topic`, `zh` — that
     doubles as narrative text: those are legitimately localized in prose. Such
-    bare identifiers are instead enforced *inside code context* by
-    `build_inline_tokens` / `_validate_pair`, where a prose occurrence cannot
-    trigger a false positive.
+    bare identifiers land in the inline-only set instead, where `_validate_pair`
+    checks them inside code spans and a prose occurrence cannot false-positive.
 
     Distinctive shape (safe for whole-document matching) = any of: an uppercase
     letter or digit (status/verdict tokens like `CONVERGED`), an underscore /
@@ -317,6 +320,37 @@ def _is_enforceable_token(token: str) -> bool:
     return False
 
 
+def _preset_tokens(fm: dict) -> set[str]:
+    """Machine identifiers contributed by one preset's frontmatter.
+
+    `subject_label` is deliberately excluded: its value (idea / critique /
+    option / finding) is a human-facing node label, which docs/ENGINE.md §1.0
+    classes as localizable prose, not part of the machine skeleton.
+    """
+    tokens: set[str] = set()
+
+    def add(value: object) -> None:
+        """Collect every string reachable from `value` — scalars, list items,
+        and nested maps such as `output_artifacts.secondary`."""
+        if isinstance(value, str):
+            tokens.add(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                add(item)
+        elif isinstance(value, list):
+            for item in value:
+                add(item)
+
+    for key in ("name", "root_kind", "convergence_metric",
+                "verdict_enum", "node_schema", "output_artifacts"):
+        add(fm.get(key))
+    for dim in fm.get("score_dims") or []:
+        if isinstance(dim, dict):
+            add(dim.get("key"))
+            add(dim.get("name"))
+    return {token for token in tokens if token}
+
+
 def _harvest_tokens(repo: Path, manifest: dict,
                     required_keys: tuple[str, ...],
                     verdict_roles: tuple[str, ...],
@@ -324,10 +358,8 @@ def _harvest_tokens(repo: Path, manifest: dict,
     """Collect every candidate machine token from the manifest, validator
     constants, command/skill flags, preset frontmatter, and ENGINE framing IDs.
 
-    This is the raw, unfiltered vocabulary. Callers decide how each token is
-    enforced: `build_machine_tokens` keeps only the distinctive ones (matched
-    anywhere), and `build_inline_tokens` keeps the bare-word remainder (matched
-    only inside code context).
+    This is the raw, unfiltered vocabulary; `build_token_sets` splits it into
+    the whole-document and inline-only enforcement classes.
     """
     tokens = set(required_keys) | set(verdict_roles) | set(root_kinds)
     tokens.update(str(token) for token in manifest["fixed_machine_tokens"])
@@ -339,84 +371,49 @@ def _harvest_tokens(repo: Path, manifest: dict,
                  *sorted((repo / "commands").glob("*.md"))]:
         if path.name == "README.md":
             continue
-        tokens.update(_FLAG_RE.findall(path.read_text(encoding="utf-8")))
+        tokens.update(FLAG_RE.findall(path.read_text(encoding="utf-8")))
 
     for path in sorted((repo / "presets").glob("*.md")):
         if path.name == "README.md":
             continue
-        fm = parse_frontmatter(path.read_text(encoding="utf-8")) or {}
-        # `subject_label` is deliberately excluded: its value (idea / critique /
-        # option / finding) is a human-facing node label, which docs/ENGINE.md
-        # §1.0 classes as localizable prose, not part of the machine skeleton.
-        for key in ("name", "root_kind", "convergence_metric"):
-            value = fm.get(key)
-            if isinstance(value, str) and value:
-                tokens.add(value)
-        verdicts = fm.get("verdict_enum", {})
-        if isinstance(verdicts, dict):
-            tokens.update(str(value) for value in verdicts.values())
-        for field in fm.get("node_schema", []):
-            if isinstance(field, str):
-                tokens.add(field)
-        for dim in fm.get("score_dims", []):
-            if isinstance(dim, dict):
-                for key in ("key", "name"):
-                    value = dim.get(key)
-                    if isinstance(value, str) and value:
-                        tokens.add(value)
-        artifacts = fm.get("output_artifacts", {})
-        if isinstance(artifacts, dict):
-            stack = list(artifacts.values())
-            while stack:
-                value = stack.pop()
-                if isinstance(value, dict):
-                    stack.extend(value.values())
-                elif isinstance(value, str) and value:
-                    tokens.add(value)
+        tokens |= _preset_tokens(parse_frontmatter(path.read_text(encoding="utf-8")) or {})
 
     engine = (repo / "docs" / "ENGINE.md").read_text(encoding="utf-8")
     tokens.update(_FRAMING_RE.findall(engine))
     return {token for token in tokens if token}
 
 
-def build_machine_tokens(repo: Path, manifest: dict,
-                         required_keys: tuple[str, ...],
-                         verdict_roles: tuple[str, ...],
-                         root_kinds: tuple[str, ...]) -> set[str]:
-    """Tokens enforced by *whole-document* presence: only distinctive
-    identifiers (see `_is_enforceable_token`) that cannot collide with prose.
-    """
-    return {token for token in _harvest_tokens(
-                repo, manifest, required_keys, verdict_roles, root_kinds)
-            if _is_enforceable_token(token)}
+def build_token_sets(repo: Path, manifest: dict,
+                     required_keys: tuple[str, ...],
+                     verdict_roles: tuple[str, ...],
+                     root_kinds: tuple[str, ...]) -> tuple[set[str], set[str]]:
+    """Split one harvest into the two enforcement classes.
 
+    Returns `(whole_document, inline_only)`. Both derive from the same
+    `_harvest_tokens` call — computing them separately meant re-reading
+    SKILL.md, every command, every preset, and ENGINE.md a second time for an
+    identical result.
 
-def build_inline_tokens(repo: Path, manifest: dict,
-                        required_keys: tuple[str, ...],
-                        verdict_roles: tuple[str, ...],
-                        root_kinds: tuple[str, ...]) -> set[str]:
-    """Tokens enforced only *inside inline code spans*: the bare lowercase
-    machine identifiers that `build_machine_tokens` drops — `root_kind` values
+    **whole_document** — distinctive identifiers (see `_is_enforceable_token`)
+    that cannot collide with prose, so their bare presence anywhere in the
+    translation can be required.
+
+    **inline_only** — the bare lowercase remainder: `root_kind` values
     (`topic`), verdict roles (`advances`), preset names (`brainstorm`),
     `node_schema` fields, `score_dims` names, and the language tags `en` / `zh`.
-    They double as prose words, so whole-document matching would false-positive;
-    but wherever the English source uses one *as an identifier* in a backtick
-    span, the translation must keep it verbatim there. Prose occurrences never
-    enter an inline code span, so no false positives. (Fenced examples need no
-    token check here — `_validate_pair` already forces them byte-identical, and
-    counting their contents would let a fence rescue a localized inline use;
-    see `_inline_code_atoms`.)
-
-    Enforcement is exact-atom, not substring (see `_inline_code_atoms`), so a
-    short tag like `zh` is required from a standalone `` `zh` `` span but is not
-    spuriously demanded by the `zh` inside a `` `README.zh.md` `` filename —
-    which is why `en` / `zh` can now be enforced instead of skipped. Single
-    characters stay excluded: a lone score key (`S`, `E`) is too ambiguous to
-    enforce even inside code.
+    They double as prose words, so whole-document matching would
+    false-positive; but wherever the English source uses one *as an identifier*
+    in a backtick span, the translation must keep it verbatim there. Prose
+    occurrences never enter an inline code span, so no false positives.
+    Matching is exact-atom, not substring (see `_inline_code_atoms`), so `zh` is
+    required from a standalone `` `zh` `` span but not spuriously demanded by
+    the `zh` inside `` `README.zh.md` ``. Single characters stay excluded: a
+    lone score key (`S`, `E`) is too ambiguous to enforce even inside code.
     """
     full = _harvest_tokens(repo, manifest, required_keys, verdict_roles, root_kinds)
-    distinctive = {token for token in full if _is_enforceable_token(token)}
-    return {token for token in (full - distinctive) if len(token) >= 2}
+    whole_document = {token for token in full if _is_enforceable_token(token)}
+    inline_only = {token for token in (full - whole_document) if len(token) >= 2}
+    return whole_document, inline_only
 
 
 def _inline_code_atoms(text: str) -> set[str]:
@@ -461,6 +458,62 @@ def _token_present(text: str, token: str) -> bool:
     return re.search(pattern, text) is not None
 
 
+def _check_shape(canonical: str, translation: str,
+                 en_shape: MarkdownShape, zh_shape: MarkdownShape) -> None:
+    """Ordered headings must match and every fence must be byte-identical.
+
+    Fence identity is deliberately stricter than translation: fenced examples
+    are machine content, so they carry over verbatim rather than being
+    localized.
+    """
+    if en_shape.headings != zh_shape.headings:
+        raise I18nError(
+            f"{translation}: ordered heading structure diverges from {canonical}: "
+            f"zh={zh_shape.headings} en={en_shape.headings}"
+        )
+    if len(en_shape.fences) != len(zh_shape.fences):
+        raise I18nError(
+            f"{translation}: code-fence count {len(zh_shape.fences)} != "
+            f"{canonical} count {len(en_shape.fences)}"
+        )
+    for index, (en_fence, zh_fence) in enumerate(zip(en_shape.fences, zh_shape.fences)):
+        if en_fence != zh_fence:
+            raise I18nError(
+                f"{translation}: fenced code block {index + 1} differs from {canonical}"
+            )
+
+
+def _check_section_coverage(translation: str, en_shape: MarkdownShape,
+                            zh_shape: MarkdownShape) -> None:
+    """Every substantive English section must have real Chinese prose opposite.
+
+    Sections under 80 prose letters are skipped as too short to judge. The rest
+    must contain Han characters, reach 20% of the English letter count, and not
+    be a byte copy of the English — the three ways an "untranslated" section
+    slips through a heading-only structural check.
+    """
+    for index, (en_section, zh_section) in enumerate(
+            zip(en_shape.sections, zh_shape.sections)):
+        en_letters = _prose_letters(en_section)
+        if len(en_letters) < 80:
+            continue
+        if not _HAN_RE.search(zh_section):
+            raise I18nError(
+                f"{translation}: substantive section {index + 1} has no Chinese prose"
+            )
+        zh_letters = _prose_letters(zh_section)
+        minimum = max(20, int(len(en_letters) * 0.20))
+        if len(zh_letters) < minimum:
+            raise I18nError(
+                f"{translation}: section {index + 1} is too thin "
+                f"({len(zh_letters)} letters; need {minimum})"
+            )
+        if normalize_newlines(en_section).strip() == normalize_newlines(zh_section).strip():
+            raise I18nError(
+                f"{translation}: substantive section {index + 1} is an English copy"
+            )
+
+
 def _validate_pair(repo: Path, canonical: str, translation: str,
                    machine_tokens: set[str],
                    inline_tokens: set[str]) -> tuple[int, int]:
@@ -488,42 +541,8 @@ def _validate_pair(repo: Path, canonical: str, translation: str,
 
     en_shape = scan_markdown(en_text)
     zh_shape = scan_markdown(zh_text)
-    if en_shape.headings != zh_shape.headings:
-        raise I18nError(
-            f"{translation}: ordered heading structure diverges from {canonical}: "
-            f"zh={zh_shape.headings} en={en_shape.headings}"
-        )
-    if len(en_shape.fences) != len(zh_shape.fences):
-        raise I18nError(
-            f"{translation}: code-fence count {len(zh_shape.fences)} != "
-            f"{canonical} count {len(en_shape.fences)}"
-        )
-    for index, (en_fence, zh_fence) in enumerate(zip(en_shape.fences, zh_shape.fences)):
-        if en_fence != zh_fence:
-            raise I18nError(
-                f"{translation}: fenced code block {index + 1} differs from {canonical}"
-            )
-
-    for index, (en_section, zh_section) in enumerate(
-            zip(en_shape.sections, zh_shape.sections)):
-        en_letters = _prose_letters(en_section)
-        if len(en_letters) < 80:
-            continue
-        zh_letters = _prose_letters(zh_section)
-        if not _HAN_RE.search(zh_section):
-            raise I18nError(
-                f"{translation}: substantive section {index + 1} has no Chinese prose"
-            )
-        minimum = max(20, int(len(en_letters) * 0.20))
-        if len(zh_letters) < minimum:
-            raise I18nError(
-                f"{translation}: section {index + 1} is too thin "
-                f"({len(zh_letters)} letters; need {minimum})"
-            )
-        if normalize_newlines(en_section).strip() == normalize_newlines(zh_section).strip():
-            raise I18nError(
-                f"{translation}: substantive section {index + 1} is an English copy"
-            )
+    _check_shape(canonical, translation, en_shape, zh_shape)
+    _check_section_coverage(translation, en_shape, zh_shape)
 
     compared = 0
     for token in machine_tokens:
@@ -536,13 +555,11 @@ def _validate_pair(repo: Path, canonical: str, translation: str,
                 )
 
     # Bare-word machine identifiers (root_kind values, verdict roles, preset
-    # names, schema/score names, language tags) are enforced where the English
-    # source uses them inside an inline `code` span: a translator may localize
-    # the same word in prose, but must keep `topic`, `advances`, `zh`, ...
-    # verbatim in backticks. Matching is exact-atom on inline spans only —
-    # fences are already forced byte-identical above, so counting their contents
-    # here would let an incidental English word in a required-identical fence
-    # rescue a token whose inline uses were localized away.
+    # names, schema/score names, language tags) are enforced only where the
+    # English source uses them inside an inline `code` span: a translator may
+    # localize the same word in prose, but must keep `topic`, `advances`,
+    # `zh`, ... verbatim in backticks. `_inline_code_atoms` documents why
+    # fences are excluded from this check.
     en_atoms = _inline_code_atoms(en_text)
     zh_atoms = _inline_code_atoms(zh_text)
     for token in inline_tokens:
@@ -562,10 +579,7 @@ def validate_i18n(repo: Path, required_keys: tuple[str, ...],
                   root_kinds: tuple[str, ...]) -> I18nStats:
     manifest = load_manifest(repo)
     pairs, canonical_only = validate_manifest(repo, manifest)
-    tokens = build_machine_tokens(
-        repo, manifest, required_keys, verdict_roles, root_kinds
-    )
-    inline_tokens = build_inline_tokens(
+    tokens, inline_tokens = build_token_sets(
         repo, manifest, required_keys, verdict_roles, root_kinds
     )
     sections = 0

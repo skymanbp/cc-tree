@@ -3,7 +3,60 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## v0.5.0 — 2026-08-06
+## Unreleased
+
+Internal cleanup of `tools/`. No behaviour change: an old-vs-new harness
+proves nine surfaces byte-identical (manifest pairs, canonical-only set,
+all 154 raw tokens, both enforcement sets, `I18nStats`, the scanned
+Markdown file list, flow-map parses, frontmatter parses), and six
+negative cases produce identical error messages. Production logic is 26
+executable lines smaller; file totals are flat because the extracted
+helpers carry docstrings.
+
+### Removed (dead code)
+
+- `_parse_flow_map`'s `startswith("{")` guard was unreachable: with no
+  `{`, `_find_flow_map_end` already returns -1 and the `close == -1` path
+  returns the same `{"_raw": …}` value.
+- `_split_top_level(s, sep)` was only ever called with `","`. Now
+  `_split_commas(s)`.
+- `test_i18n.py` imported `validate_manifest` and never used it.
+
+### Removed (duplication)
+
+- The skip predicate `part in SKIP_DIR_PARTS or part.endswith("-out")`
+  existed in three places. Now one shared `_i18n.is_skipped`, for the
+  same reason `SKIP_DIR_PARTS` is shared: three copies could drift apart.
+- `_FLAG_RE` was byte-identical in `_i18n.py` and `validate_plugin.py`.
+  Now one exported `FLAG_RE`.
+- `build_machine_tokens` / `build_inline_tokens` each ran a full
+  `_harvest_tokens` pass for the same result — re-reading SKILL.md, every
+  command, every preset, and ENGINE.md a second time. Merged into
+  `build_token_sets`, which returns both. Validation file reads: 128 → 117.
+- `validate_manifest` walked the tree twice (`*.zh.md`, then `*.md`). One
+  pass now; cyclomatic complexity 29 → 24, its worst-in-repo ranking gone.
+- The fence-rescue rationale was argued at length both in `_validate_pair`
+  and in `_inline_code_atoms`'s docstring. `_inline_code_atoms` owns it.
+
+### Changed (structure)
+
+- `_harvest_tokens` nested five deep over five extraction shapes; the
+  preset-frontmatter walk is now `_preset_tokens` with one recursive
+  string collector. Off the complexity top-10 entirely.
+- `_validate_pair` was 94 lines covering six concerns. The structural and
+  prose-coverage checks are now `_check_shape` and
+  `_check_section_coverage`. Off the length top-8.
+- `_content_md_files`: 9 lines → 3.
+- Dropped bug-archaeology from comments that the changelog already
+  records; kept every "why this shape" note.
+
+### Added (test coverage)
+
+- Two branches of the section-coverage check had **no** test in the
+  28-case suite: a substantive section with no Chinese prose, and one
+  answered with a token stub below the 20% letter floor. Only the
+  byte-for-byte "English copy" case was covered. Now 30 cases, and
+  neutering the check makes all three fail.
 
 Second debug sweep, done line-by-line over every shipped file: **24
 defects across 18 files**, all in classes the existing gates could not

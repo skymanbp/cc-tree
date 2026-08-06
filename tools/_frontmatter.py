@@ -40,10 +40,8 @@ from __future__ import annotations
 
 import re
 
-# The closing `---` may be the last line of the file: `(?:\n|\Z)` accepts a
-# terminating newline *or* end-of-input. Requiring the newline made a file
-# whose frontmatter runs to EOF parse as "no frontmatter at all", which the
-# validator then reported as a missing block rather than what it is.
+# `(?:\n|\Z)`: the closing `---` may be the file's last byte, with no
+# trailing newline after it.
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*(?:\n|\Z)", re.DOTALL)
 
 _BLOCK_SCALAR_MARKERS = {"|", ">", "|-", ">-", "|+", ">+"}
@@ -56,21 +54,18 @@ def _indent(line: str) -> int:
 def _strip_comment(s: str) -> str:
     """Drop a trailing `# comment` per YAML scalar rules.
 
-    YAML semantics: in a *plain* (unquoted) scalar, quote characters are
-    literal — an apostrophe in prose (`reviewer's take`) does NOT open a
-    quoted span, so the first whitespace-preceded `#` starts the comment.
-    Only when the value *starts* with a quote is the span up to the
-    matching closing quote protected; the comment scan resumes after it.
-    (The old toggle-on-any-quote logic swallowed comments after prose
-    apostrophes and mis-split quoted values.)
+    In a *plain* (unquoted) scalar, quote characters are literal — an
+    apostrophe in prose (`reviewer's take`) does NOT open a quoted span, so
+    the first whitespace-preceded `#` starts the comment. Only when the value
+    *starts* with a quote is the span up to the matching closing quote
+    protected; the comment scan resumes after it.
     """
     s = s.rstrip()
     if not s:
         return s
     start = 0
-    # `s[0]`, not `s[:1]`: `"" in "\"'"` is True (empty-substring semantics),
-    # so the old slice form let an empty value fall through to `s[0]` and
-    # raise IndexError. A bare `-` list entry reaches here with s == "".
+    # `s[0]` after the empty guard, never `s[:1]`: `"" in "\"'"` is True
+    # (substring semantics), so the slice form lets "" reach `s[0]`.
     if s[0] in "\"'":
         close = s.find(s[0], 1)
         if close == -1:
@@ -89,9 +84,9 @@ def _unquote(v: str) -> str:
     return v
 
 
-def _split_top_level(s: str, sep: str) -> list[str]:
-    """Split on `sep` at brace/bracket depth 0, ignoring separators inside
-    quotes or nested `{}` / `[]`."""
+def _split_commas(s: str) -> list[str]:
+    """Split a flow-map body on commas at brace/bracket depth 0, ignoring
+    commas inside quotes or nested `{}` / `[]`."""
     parts: list[str] = []
     buf: list[str] = []
     in_single = in_double = False
@@ -106,7 +101,7 @@ def _split_top_level(s: str, sep: str) -> list[str]:
                 depth += 1
             elif c in "}]":
                 depth -= 1
-            elif c == sep and depth == 0:
+            elif c == "," and depth == 0:
                 parts.append("".join(buf))
                 buf = []
                 continue
@@ -144,17 +139,16 @@ def _parse_flow_map(s: str) -> dict[str, str]:
     Anything after the matching closing `}` (e.g. a trailing `# comment`)
     is ignored — cutting at the matched brace, not requiring endswith("}"),
     keeps a commented flow-map item from degenerating to `{"_raw": ...}`.
+    A malformed body (unbalanced braces, or no `{` at all) yields
+    `{"_raw": <value>}`.
     """
     s = s.strip()
-    if not s.startswith("{"):
-        # Not a flow map after all; return as a degenerate single value.
-        return {"_raw": _unquote(s)}
     close = _find_flow_map_end(s)
     if close == -1:
         return {"_raw": _unquote(s)}
     inner = s[1:close]
     out: dict[str, str] = {}
-    for part in _split_top_level(inner, ","):
+    for part in _split_commas(inner):
         if ":" not in part:
             continue
         k, _, v = part.partition(":")

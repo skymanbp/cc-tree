@@ -25,7 +25,6 @@ from _i18n import (
     scan_markdown,
     source_digest,
     validate_i18n,
-    validate_manifest,
 )
 
 REPO = Path(__file__).resolve().parent.parent
@@ -299,6 +298,43 @@ def main() -> int:
                 "`topic` 根类型在此处行内出现，并与下方逐字节一致的代码块中的取值保持一致。",
                 "The `topic` root kind is named inline here and also appears verbatim "
                 "inside the byte-identical fence below.",
+            ),
+        ),
+    )
+    # The other two branches of the section-coverage check. Both were
+    # unexercised: "English-copy" above only catches a byte-for-byte copy, so a
+    # section rewritten into non-identical English, or answered with a token
+    # stub, would have slipped through untested.
+    _fixture_case(
+        "substantive section with no Chinese prose fails",
+        lambda repo: _rewrite_translation(
+            repo,
+            lambda text: text.replace(
+                "root_kind 架构字段与 --lang 标志始终保留英文机器标记。完整运行会报告 "
+                "CONVERGED 并写入 tree.md。本段提供足够的中文说明，用于验证逐节翻译覆盖，"
+                "而不是仅凭标题通过检查。",
+                "root_kind --lang CONVERGED tree.md are English machine tokens "
+                "and this replacement paragraph is long enough to be judged.",
+            ).replace(
+                "`topic` 根类型在此处行内出现，并与下方逐字节一致的代码块中的取值保持一致。",
+                "The `topic` root kind is named inline here as well.",
+            ),
+        ),
+    )
+    _fixture_case(
+        "substantive section answered with a token stub fails",
+        # Keeps Han and every machine token, but far below the 20%-of-English
+        # letter floor — the "translated the identifiers, dropped the prose" case.
+        lambda repo: _rewrite_translation(
+            repo,
+            lambda text: text.replace(
+                "root_kind 架构字段与 --lang 标志始终保留英文机器标记。完整运行会报告 "
+                "CONVERGED 并写入 tree.md。本段提供足够的中文说明，用于验证逐节翻译覆盖，"
+                "而不是仅凭标题通过检查。",
+                "root_kind --lang CONVERGED tree.md 见英文。",
+            ).replace(
+                "`topic` 根类型在此处行内出现，并与下方逐字节一致的代码块中的取值保持一致。",
+                "`topic` 见上。",
             ),
         ),
     )

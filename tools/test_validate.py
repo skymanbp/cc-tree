@@ -20,9 +20,8 @@ from _frontmatter import parse_frontmatter
 REPO = Path(__file__).resolve().parent.parent
 
 _failures: list[str] = []
-# Counted at call time so the summary line can never drift from the
-# actual number of cases again (v0.2.0 shipped claiming "9 negative
-# cases" while only 8 expect_fail calls existed).
+# Counted at call time, never hard-coded, so the summary line cannot claim
+# more cases than the file actually runs.
 _n_pass = 0
 _n_fail = 0
 _n_parser = 0
@@ -154,7 +153,7 @@ def main() -> int:
     expect_fail("name does not match file basename",
                 VALID.replace("name: test", "name: wrongname"))
 
-    # --- Parser regression cases (bugs fixed after v0.2.0) ---
+    # --- Parser regression cases ---
     # Quoted scalar values must be unquoted (was: name kept its quotes and
     # spuriously failed the name==basename check).
     expect_pass("quoted name scalar is unquoted before validation",

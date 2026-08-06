@@ -37,7 +37,7 @@ import sys
 from pathlib import Path
 
 from _frontmatter import parse_frontmatter, split_frontmatter
-from _i18n import I18nError, SKIP_DIR_PARTS, load_manifest, validate_i18n
+from _i18n import FLAG_RE, I18nError, is_skipped, load_manifest, validate_i18n
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -217,15 +217,16 @@ def check_tools_syntax() -> str:
 
 
 # --- Cross-file consistency checks -----------------------------------------
-# Added after the 2026-07 audit: ~2/3 of the defects found were mechanical
-# drift between files (dead anchors, stale example line citations, bilingual
-# heading divergence, command hints advertising unregistered flags). Each
-# sub-check below turns one of those defect classes into a CI failure.
+# Most defects this repo has shipped were mechanical drift between files, not
+# logic errors. Each sub-check below turns one such class — dead anchors,
+# out-of-bounds example citations, undocumented command flags, malformed field
+# profiles, dead §-references — into a CI failure.
 
 _LINK_RE = re.compile(r"\]\(([^)#\s]+)#([^)\s]+)\)")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _CITATION_RE = re.compile(r"([A-Za-z0-9_.\-/]+\.md):(\d+)(?:-(\d+))?")
-_FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
+# Deliberately stricter than _i18n's inline-code pattern: this one must not
+# span lines, so one stray backtick cannot blank out half a document.
 _INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
 
@@ -242,14 +243,8 @@ def _strip_inline_code(text: str) -> str:
 
 
 def _content_md_files() -> list[Path]:
-    out = []
-    for p in sorted(REPO.rglob("*.md")):
-        rel_parts = p.relative_to(REPO).parts
-        if any(part in SKIP_DIR_PARTS or part.endswith("-out")
-               for part in rel_parts[:-1]):
-            continue
-        out.append(p)
-    return out
+    return [p for p in sorted(REPO.rglob("*.md"))
+            if not is_skipped(p.relative_to(REPO).parts)]
 
 
 def _slugify(heading: str) -> str:
@@ -335,7 +330,7 @@ def _check_command_flags(repo: Path = REPO) -> int:
         skill_path.read_text(encoding="utf-8")
     )
     skill_hint = str((skill_fm or {}).get("argument-hint", ""))
-    for flag in set(_FLAG_RE.findall(skill_hint)):
+    for flag in set(FLAG_RE.findall(skill_hint)):
         if not _contains_flag(skill_body, flag):
             fail(f"{skill_path}: argument-hint advertises {flag} but the "
                  "skill body does not document it")
@@ -356,7 +351,7 @@ def _check_command_flags(repo: Path = REPO) -> int:
                 preset.read_text(encoding="utf-8")
             )
         sources = "\n".join((skill_body, body, preset_body))
-        for flag in set(_FLAG_RE.findall(hint)):
+        for flag in set(FLAG_RE.findall(hint)):
             if not _contains_flag(sources, flag):
                 fail(f"{cmd}: argument-hint advertises {flag} but neither "
                      f"SKILL.md, the command body, nor {preset.name} "
@@ -382,19 +377,16 @@ def _section_id_sources() -> list[Path]:
 def _check_section_refs(md_files: list[Path]) -> int:
     """Every `§N` / `§N.M` / `§FN` prose reference must name a real heading.
 
-    The 2026-08 sweep found six dead pointers (`§0.4` / `§0.7` / `§0.8` left
-    behind when §0.x was renumbered to F1–F8, plus invented `§2.4` / `§6.6`)
-    spread over five files. `_check_anchors` cannot catch them: they are prose
-    tokens, not Markdown links, so nothing tied them to a heading.
+    `_check_anchors` cannot cover these: they are prose tokens, not Markdown
+    links, so nothing ties them to a heading. Renumbering a section therefore
+    used to leave dangling pointers silently.
 
     The valid namespace is harvested from the headings that define it — the
     engine spec, the skill, and the presets (which add their own `§2.A` /
     `§2.B` baseline modes).
 
-    `CHANGELOG.md` is exempt: recording *which* dead pointer was removed is
-    the file's job, so it must be able to name identifiers that no longer
-    resolve. It is a historical record, not a runtime contract — nothing
-    dereferences a changelog.
+    `CHANGELOG.md` is exempt: naming a pointer it removed is that file's job.
+    It is a historical record, not a runtime contract.
     """
     valid: set[str] = set()
     for src in _section_id_sources():
