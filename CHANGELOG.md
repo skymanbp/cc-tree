@@ -3,7 +3,18 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## Unreleased
+## v0.5.1 — 2026-08-06
+
+Maintenance release. Nothing that ships with the plugin changed — no
+skill, preset, command, or doc differs from v0.5.0. This is the CI
+toolchain and the validator's own internals.
+
+### Changed (CI)
+
+- `actions/checkout` v4 → v7 and `actions/setup-python` v5 → v7. Both
+  older majors target Node 20, which GitHub deprecated and now
+  force-migrates to Node 24 with a warning on every run; v7 targets
+  Node 24 natively, so the pinned version is the version that runs.
 
 Internal cleanup of `tools/`. No behaviour change: an old-vs-new harness
 proves nine surfaces byte-identical (manifest pairs, canonical-only set,
