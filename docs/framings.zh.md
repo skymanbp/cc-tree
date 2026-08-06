@@ -1,7 +1,7 @@
 # The 12 framings（12 个框架视角）
 
 > 语言：中文。英文规范版：[`docs/framings.md`](framings.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 3c2e40dda8782d06467b85bb01942f05b34dc481e24653121d550e071ff603a1 -->
+<!-- i18n-source-sha256: a90610d31d436ce6228213ebf32462c477cdd72859f839122645b2105c6332c0 -->
 
 本文档把 [`ENGINE.md`](ENGINE.md) 中的 §3.A–§3.L 展开为可操作的
 prompt，并配有**按 preset 区分的示例**。引擎对每个节点、每一轮都会
@@ -331,7 +331,8 @@ X 失效的边界。
 的小概率所主导。挑出最具体的一个并完整推导它。
 
 **Prompt.** 哪 3 个分支若成功，将代表节点的一次质的跃迁（而非增量
-胜利）？多数在完整推导后将是 `DEAD-END`，但价值在于已经探索过。
+胜利）？多数在完整推导后会落到当前 preset 的 `pruned` 裁决
+（`DEAD-END` / `REFUTED` / `NOT-RECOMMENDED`），但价值在于已经探索过。
 跳过此框架视角是被禁止的（引擎 §F4）。
 
 **Per-preset flavor:**
@@ -418,9 +419,10 @@ verdict 落在 `DEAD-END` / `REFUTED` / `NOT-RECOMMENDED`。为合规而
    在其之上叠加该 preset 的专门查询。
 2. 对每个有希望的命中，`WebFetch` 实际页面（而非 snippet）以确认
    内容与搜索描述相符——`WebSearch` snippet 本身永远不够（§F1）。
-3. 把发现追加到节点的 §4 external 字段（brainstorm/design 用
-   `external_resources`，attack/code-audit 用 `external_check` /
-   `related_findings`），附 URL + 一行描述。
+3. 把发现追加到节点的 §4 external 字段——字段名取自当前 preset 的
+   `node_schema`：brainstorm 用 `external_resources`，design 用
+   `external_dependencies`，attack 用 `external_check`，code-audit 用
+   `related_findings`——附 URL + 一行描述。
 
 **Per-preset flavor:**
 
@@ -453,12 +455,14 @@ verdict 落在 `DEAD-END` / `REFUTED` / `NOT-RECOMMENDED`。为合规而
 
 ### Sequence vs parallelism（顺序 vs 并行）
 
-- 对于预期宽度 ≥ 5 个子节点的节点（在根节点以及热叶节点处常见），
-  可以通过把每个框架视角派发给一个 `Agent(Explore)` 子代理来并行
-  运行这 12 个框架视角。每个子代理拿到节点的 §4 字段 + 框架视角
-  prompt + 该 preset 的 flavor 示例。主代理合并结果并完成 §4 + §5。
-- 对于较小的宽度（在树的深处、多数叶节点都边缘的地方），顺序运行
-  即可——框架视角本身很廉价；成本在于其后的 §4 推导。
+- 对于预期扇出 ≥ 5 个子节点的节点（在根节点处永远成立，在热叶节点处
+  也成立），这 12 个框架视角**必须**通过把每个派发给一个
+  `Agent(Explore)` 子代理来并行运行 —— [`ENGINE.md`](ENGINE.md) §8.1
+  规定这是强制的，在那种扇出下串行执行是一个缺陷，而非风格选择。每个
+  子代理拿到节点的 §4 字段 + 框架视角 prompt + 该 preset 的 flavor
+  示例。主代理合并结果、重新验证返回的每一处引用，并完成 §4 + §5。
+- 对于较小的扇出（在树的深处、多数叶节点都边缘的地方），允许顺序
+  运行——框架视角本身很廉价；成本在于其后的 §4 推导。
 
 ### Per-framing failure modes（各框架视角的失效模式）
 
@@ -471,7 +475,8 @@ verdict 落在 `DEAD-END` / `REFUTED` / `NOT-RECOMMENDED`。为合规而
 - **D** "最强的反驳很弱" → 暗示节点稳健；这本身就是有用的证据，
   但在声明前再尝试 ≥ 2 个反驳立场来核实。
 - **K** "想不出 high-risk 分支" → 被禁止的结论（§F4）。逼自己来；
-  价值在于*尝试*，即便所有 3 个候选在完整推导后都落到 DEAD-END。
+  价值在于*尝试*，即便所有 3 个候选在完整推导后都落到该 preset 的
+  `pruned` 裁决。
 - **L** "自审什么也没显示" → 被禁止的结论。自审本就该让人不适；
   若不让人不适，你就是在走过场。用更狠的问题重做。
 

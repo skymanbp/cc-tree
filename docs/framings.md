@@ -402,9 +402,10 @@ expected value is dominated by a small probability of *paradigm-level*
 success. Pick the most-concrete and derive it fully.
 
 **Prompt.** What 3 branches, if successful, would represent a
-qualitative jump (not an incremental win) for the node? Most will
-be `DEAD-END` after full derivation, but the value is in having
-explored. Skipping this framing is forbidden (engine §F4).
+qualitative jump (not an incremental win) for the node? Most will end
+at the active preset's `pruned` verdict after full derivation
+(`DEAD-END` / `REFUTED` / `NOT-RECOMMENDED`), but the value is in
+having explored. Skipping this framing is forbidden (engine §F4).
 
 **Per-preset flavor:**
 
@@ -516,9 +517,10 @@ auditing a paper) wastes the pass.
 2. For each promising hit, `WebFetch` the actual page (not the
    snippet) to confirm the content matches the search description —
    a `WebSearch` snippet is never sufficient on its own (§F1).
-3. Append findings to the node's §4 external field
-   (`external_resources` for brainstorm/design, `external_check` /
-   `related_findings` for attack/code-audit) with URL + one-line
+3. Append findings to the node's §4 external field — the name comes
+   from the active preset's `node_schema`: `external_resources`
+   (brainstorm), `external_dependencies` (design), `external_check`
+   (attack), `related_findings` (code-audit) — with URL + one-line
    description.
 
 **Per-preset flavor:**
@@ -554,13 +556,16 @@ the tag — it's not a free pass).
 
 ### Sequence vs parallelism
 
-- For nodes with expected width ≥ 5 children (common at the root
-  and for hot leaves), the 12 framings can be run in parallel by
-  dispatching each to an `Agent(Explore)` sub-agent. Each sub-agent
-  gets the node's §4 fields + the framing prompt + the preset's
-  flavor examples. Main agent merges results and does §4 + §5.
-- For smaller widths (deep in the tree where most leaves are
-  marginal), sequential is fine — the framings themselves are
+- For nodes with expected fan-out ≥ 5 children (always true at the
+  root, and true for hot leaves), the 12 framings **must** be run in
+  parallel by dispatching each to an `Agent(Explore)` sub-agent —
+  [`ENGINE.md`](ENGINE.md) §8.1 makes this mandatory, and sequential
+  execution at that fan-out is a defect, not a stylistic choice. Each
+  sub-agent gets the node's §4 fields + the framing prompt + the
+  preset's flavor examples. Main agent merges results, re-verifies
+  every returned citation, and does §4 + §5.
+- For smaller fan-outs (deep in the tree where most leaves are
+  marginal), sequential is allowed — the framings themselves are
   cheap; the cost is in the §4 derivation that follows.
 
 ### Per-framing failure modes
@@ -579,7 +584,8 @@ the tag — it's not a free pass).
   more counter-stances before declaring.
 - **K** "can't think of a high-risk branch" → forbidden conclusion
   (§F4). Force yourself; the value is in *trying*, even if all 3
-  candidates land DEAD-END after full derivation.
+  candidates land on the preset's `pruned` verdict after full
+  derivation.
 - **L** "self-audit shows nothing" → forbidden conclusion. The
   audit is meant to be uncomfortable; if it isn't, you're going
   through the motions. Re-do with harder questions.

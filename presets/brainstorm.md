@@ -117,10 +117,10 @@ preset.
 
 ## Verdict mapping detail
 
-- `score ≥ 11` AND no `[NEEDS VERIFICATION]` dominating → **PROMISING**
+- `score ≥ 11` AND no `[NEEDS_VERIFICATION]` dominating → **PROMISING**
 - `8 ≤ score ≤ 10` → **MARGINAL** (kept, no re-expand)
-- `score ≤ 7` → **DEAD-END** (pruned)
-- Any `[NEEDS VERIFICATION]` or `unverified` blocks dominate →
+- `score ≤ 7` → **DEAD-END** (this preset's `pruned` role)
+- Any `[NEEDS_VERIFICATION]` or `unverified` blocks dominate →
   **NEEDS-MORE-INFO** (= `INCOMPLETE_FORBIDDEN`; engine must
   drive to one of the above before §6 convergence)
 

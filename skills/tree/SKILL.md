@@ -56,7 +56,7 @@ before producing the first node** (the engine spec is what defines
 | `--max-branches N` | **∞** | Cap on new branches per node per round. **Floor is 12** because §3 requires all 12 framings to fire; this flag only raises the ceiling. |
 | `--out <dir>` | `tree-out/<UTCdate>__<slug>/` | Output directory. Per-preset commands override (e.g. `brainstorm-out/`). |
 | `--glossary <path>` | (preset-determined) | Path to a glossary / FACTS.md / glossary section in a dossier; used by §2.0 grill prelude. |
-| `--field <name\|path>` | (none) | Field profile for domain-aware reviewer weighting. `<name>` → `field-profiles/<name>.md` in this plugin; `<path>` → a literal file. Feeds §3.C / §3.D / §3.I / §3.J + the §3.X / §4 evidence bar. Missing profile → warn + continue (non-blocking). See [`docs/ENGINE.md#22-field-profile`](../../docs/ENGINE.md). |
+| `--field <name\|path>` | (none) | Field profile for domain-aware reviewer weighting. `<name>` → `field-profiles/<name>.md` in this plugin; `<path>` → a literal file. Feeds §3.C / §3.D / §3.I / §3.J + the §3.X / §4 evidence bar. Missing profile → warn + continue (non-blocking). See [`docs/ENGINE.md` §2.2](../../docs/ENGINE.md#22-field-profile-optional---field-namepath). |
 | `--seed-from <primary.md>` | (none) | Seed the tree from a prior run's primary deliverable (`shortlist.md` / `options.md` / `confirmed.md`): each listed item enters as a depth-1 seed node and is re-expanded. The substrate for cross-preset chaining ([`docs/chaining.md`](../../docs/chaining.md)). Alias: `--from-prior`. |
 | `--no-grill` | off | Skip §2.0 glossary grill prelude. Marks root-node terms as `unverified`; §6 convergence adds a warning. |
 | `--no-online` | off | Disable `WebSearch` / `WebFetch`. Local + already-Read references only. |
@@ -94,8 +94,11 @@ Open the preset file. Extract from its YAML frontmatter:
 - `subject_label` — what each tree node is called (`idea`, `critique`,
   `option`, `audit-finding`, …)
 - `verdict_enum` — 4-tuple: `advances / kept / pruned / blocked`
-- `convergence_metric` — which verdict's ratio counts toward §6.2
-  (`novelty_ratio`, `confirmed_ratio`, `recommended_ratio`, …)
+- `convergence_metric` — which verdict *role* counts toward §6.2.
+  It must be one of the four `verdict_enum` role keys verbatim
+  (`advances` / `kept` / `pruned` / `blocked`); alias spellings like
+  `novelty_ratio` are rejected by the validator. All four shipped
+  presets use `advances` ([`docs/presets.md`](../../docs/presets.md))
 - `score_dims` — list of 5 scoring dimensions (key + name + desc)
 - `node_schema` — list of 12 node-field names
 - `output_artifacts` — file names for the per-verdict final reports
@@ -132,9 +135,9 @@ framing, including domain-specific examples per preset.
 **Parallelize when fan-out ≥ 5** (always true for the root and hot
 leaves): dispatch the 12 framings across `Agent(Explore)` sub-agents per
 the mandatory protocol in
-[`docs/ENGINE.md#81-sub-agent-dispatch`](../../docs/ENGINE.md). Running
-them sequentially at that fan-out is a defect. Deep marginal leaves
-(< 5 expected children) may run sequentially.
+[`docs/ENGINE.md` §8.1](../../docs/ENGINE.md#81-sub-agent-dispatch-mandatory-when-a-nodes-expected-fan-out--5).
+Running them sequentially at that fan-out is a defect. Deep marginal
+leaves (< 5 expected children) may run sequentially.
 
 §3.X (if `--no-online` is off): per node, do 1 round of `WebSearch` +
 `WebFetch`. **The query set is preset-determined** (brainstorm/design →
@@ -211,7 +214,7 @@ The five that most reliably degrade output quality:
    resource profile. Otherwise: merge.
 
 2. ❌ **Defer-as-output.** "This direction is promising but requires
-   detailed analysis beyond scope." Forbidden by §0.8. The engine must
+   detailed analysis beyond scope." Forbidden by §F8. The engine must
    actually do the analysis (Read / WebFetch / Bash) or route to a
    sibling via §3.E constraint-variation.
 
@@ -220,7 +223,7 @@ The five that most reliably degrade output quality:
    valves and trip ≠ converge.
 
 4. ❌ **Skipping §3.K.** "High-risk branches feel speculative, I'll
-   focus on safe ones." §0.4 + §3.K force ≥ 1 fully-explored
+   focus on safe ones." §F4 + §3.K force ≥ 1 fully-explored
    high-risk branch per pass; absent it the pass is invalid.
 
 5. ❌ **WebSearch snippet → conclusion.** Snippets are search results,

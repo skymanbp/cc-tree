@@ -175,8 +175,11 @@ The 12 framings translate to security/perf/correctness contexts:
   `exploit_likelihood (X) ≥ 1` → **CONFIRMED**
 - `8 ≤ score ≤ 10` OR `X = 0` (only theoretical) → **MARGINAL**
   (context-dependent)
-- `score ≤ 7` → DEAD-END
-- Any field with `[NEEDS VERIFICATION]` →
+- `score ≤ 7` → **REFUTED** (this preset's `pruned` role; `DEAD-END`
+  is `brainstorm`'s label and is not in this `verdict_enum`). Kept in
+  `tree.md`; only findings the code was actually shown to mitigate go
+  in `refuted.md`.
+- Any field with `[NEEDS_VERIFICATION]` →
   **INCOMPLETE_FORBIDDEN** (engine must drive to a terminal
   verdict before §6 convergence; cannot leave NEEDS-MORE-INFO)
 

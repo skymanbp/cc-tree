@@ -96,7 +96,7 @@ never "ran out of patience".
 
 | Skill | What it does |
 |---|---|
-| `/cc-tree:tree` | Universal radial-tree engine. Loads a preset, builds the §2 baseline, then recursively applies 12 framing passes per node until **stable convergence** (no new high-verdict branches over the last 2 rounds + all 12 framings exercised + all leaves complete). Width × depth default to ∞; resource caps are opt-in. Hard ban on `defer / future-work / TODO / NEEDS-MORE-INFO` leaves. |
+| `/cc-tree:tree` | Universal radial-tree engine. Loads a preset, builds the §2 baseline, then recursively applies 12 framing passes per node until **stable convergence** (no new high-verdict branches over the last 2 rounds + all 12 framings exercised + all leaves complete). Width × depth × rounds default to ∞; resource caps are opt-in. Hard ban on `defer / future-work / TODO / NEEDS-MORE-INFO` leaves. |
 
 ### 4 presets (`presets/<name>.md`)
 
@@ -256,9 +256,9 @@ and parameterizing the rest beats writing four near-duplicate skills.
 do has the same lazy-equilibrium attractors: defer to future-work,
 generate near-duplicate branches with synonym swapping, skip the
 high-risk/contrarian framings, declare convergence at the first slow
-round. The engine encodes hard bans on all of these (§0 forbidden
-patterns), and they apply equally well to brainstorming a research
-direction and to auditing a Python file.
+round. The engine encodes hard bans on all of these (§0.5 forbidden
+patterns, F1–F8), and they apply equally well to brainstorming a
+research direction and to auditing a Python file.
 
 See [`EVALUATION.md`](EVALUATION.md) for the full design rationale.
 

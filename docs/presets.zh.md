@@ -1,7 +1,7 @@
 # 撰写一个 cc-tree preset
 
 > 语言：中文。英文规范版：[`docs/presets.md`](presets.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 761ef4e6f8e3e9c14a3cb1c42ee460e708ec8f74999d385349d498a9c45ef9f1 -->
+<!-- i18n-source-sha256: abcabb8ec94a9372b8d140ae520093fdca852dbc6448b7e957ca1cdc36fbfa8e -->
 
 一个 preset 是单个 `.md` 文件，它为一个用例定制那台通用引擎
 （[`ENGINE.md`](ENGINE.md)）。它提供六个可覆盖的槽位（词汇 + 配方），
@@ -110,17 +110,22 @@ glossary_paths:
 
 ### 引擎强制的合规
 
-`tools/validate_plugin.py` 会拒绝以下情形的 preset：
+`tools/validate_plugin.py` 强制执行八条规则，违反任意一条的 preset
+都会被拒绝：
 
-- `node_schema.length != 12`
-- `score_dims.length != 5`
-- `verdict_enum` 缺少 4 个必需角色中的任意一个
-- 引用了一个不属于 `verdict_enum` 键的 `convergence_metric`
-- 有一个未知的 `root_kind`
-- `name` 或 `description` 为空
-- 文件基名与 `name:` 不匹配
+1. 上面清单里的任一必需键缺失或为空（这涵盖 `subject_label` 与
+   `output_artifacts`，不只是那几个显眼的键）。
+2. 文件基名与 `name:` 不匹配。
+3. 未知的 `root_kind`。
+4. `verdict_enum` 不是恰好含 4 个必需角色的映射，或某个角色的标签为空。
+5. `convergence_metric` 不是 `verdict_enum` 角色键之一。
+6. `score_dims.length != 5`，或任一条目不是含非空 `key`、`name`、
+   `desc` 的映射。
+7. `node_schema.length != 12`，或任一条目为空。
+8. `output_artifacts` 没有非空的 `primary`。
 
 CI 在每次推送时运行验证器；损坏的 preset 会阻止合并。
+`tools/test_validate.py` 用负例逐条证明这些拒绝确实生效。
 
 ### 1.1 语言边界
 

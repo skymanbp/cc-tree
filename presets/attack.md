@@ -126,10 +126,14 @@ Notable preset-specific notes:
     **CONFIRMED**
   - `8 ≤ score ≤ 10` AND `artifact_defense` partially addresses →
     **MARGINAL** (author-judgment list)
-  - `score ≤ 7` → effectively DEAD-END; greyed; not in `refuted.md`
-    (since the artifact's "defense" wasn't even tested) but kept in
-    `tree.md` for non-duplication.
-- Any field with `[NEEDS VERIFICATION]` dominating →
+  - `score ≤ 7` → **REFUTED** (this preset's `pruned` role — the only
+    label the engine has for a low-score prune; `DEAD-END` belongs to
+    `brainstorm`'s `verdict_enum`, not this one). Greyed and kept in
+    `tree.md` for non-duplication. Note the reporting split:
+    `refuted.md` lists only critiques the artifact was actually shown
+    to defend against, so a low-score prune stays in `tree.md` and out
+    of `refuted.md` — its "defense" was never tested.
+- Any field with `[NEEDS_VERIFICATION]` dominating →
   **INCOMPLETE_FORBIDDEN** (engine must drive to one of the above).
   NEEDS-MORE-INFO is NOT a permitted terminal state for attack
   (differs from brainstorm).
@@ -179,5 +183,5 @@ an actionable item; "author should reconsider this" is not actionable.
 - `<out>/marginal.md` — author-judgment list.
 - `<out>/refuted.md` — positive record (rebuttal-prep gold).
 - `<out>/tree.md` / `tree.json` — full evidence trail.
-- `REPORT.md` final-report block (with §0.8 self-audit confirming
-  zero `INCOMPLETE_FORBIDDEN` nodes).
+- `REPORT.md` final-report block (with the §F8 completion self-audit
+  confirming zero `INCOMPLETE_FORBIDDEN` nodes).

@@ -40,7 +40,11 @@ from __future__ import annotations
 
 import re
 
-FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+# The closing `---` may be the last line of the file: `(?:\n|\Z)` accepts a
+# terminating newline *or* end-of-input. Requiring the newline made a file
+# whose frontmatter runs to EOF parse as "no frontmatter at all", which the
+# validator then reported as a missing block rather than what it is.
+FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*(?:\n|\Z)", re.DOTALL)
 
 _BLOCK_SCALAR_MARKERS = {"|", ">", "|-", ">-", "|+", ">+"}
 
@@ -61,8 +65,13 @@ def _strip_comment(s: str) -> str:
     apostrophes and mis-split quoted values.)
     """
     s = s.rstrip()
+    if not s:
+        return s
     start = 0
-    if s[:1] in "\"'":
+    # `s[0]`, not `s[:1]`: `"" in "\"'"` is True (empty-substring semantics),
+    # so the old slice form let an empty value fall through to `s[0]` and
+    # raise IndexError. A bare `-` list entry reaches here with s == "".
+    if s[0] in "\"'":
         close = s.find(s[0], 1)
         if close == -1:
             return s  # unterminated quote; keep verbatim

@@ -96,7 +96,8 @@ file with structured goals / constraints / context):
    - **current_state_summary**: 1 paragraph with file:line
      evidence of relevant existing code / docs
    - **prior_art_observed**: list of related implementations
-     found in §2.4, with URLs
+     found in baseline step 4 above (the industry / prior-art
+     `WebSearch` + `WebFetch` sweep), with URLs
 
 If `goal_statement` or `hard_constraints` are empty, **stop** with
 `EARLY_STOP=root_underspecified`. A design exploration without
@@ -133,9 +134,9 @@ design-specific notes:
   **RECOMMENDED**
 - `8 ≤ score ≤ 10` AND no violated hard constraint → **VIABLE**
 - `score ≤ 7` OR any violated hard constraint → **NOT-RECOMMENDED**
-  (record reason in `proposed_fix` slot of the verdict — what
-  would need to change to lift this to VIABLE)
-- Any field marked `[NEEDS VERIFICATION]` dominating →
+  (this preset's `pruned` role; record the reason in the verdict —
+  what would need to change to lift this to VIABLE)
+- Any field marked `[NEEDS_VERIFICATION]` dominating →
   **NEEDS-MORE-INFO**; the engine must obtain the missing info
   (WebFetch / Read / Bash benchmark / clarify with stakeholder)
   before §6 convergence

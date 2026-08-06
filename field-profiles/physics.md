@@ -7,10 +7,11 @@ description: Senior ApJ/MNRAS/PRD reviewer weighting for physics & astrophysics,
 
 > A field profile gives the engine domain-aware reviewer weighting
 > (loaded via `--field physics`, see
-> [`docs/ENGINE.md#22-field-profile`](../docs/ENGINE.md)). It does **not**
-> relax any universal rule — it only re-prioritizes which branches the
-> 12 framings explore first. Every list stays short and concrete; a
-> physics reviewer weighs unit consistency and error budgets, not vibes.
+> [`docs/ENGINE.md` §2.2](../docs/ENGINE.md#22-field-profile-optional---field-namepath)).
+> It does **not** relax any universal rule — it only re-prioritizes
+> which branches the 12 framings explore first. Every list stays short
+> and concrete; a physics reviewer weighs unit consistency and error
+> budgets, not vibes.
 
 ## Reviewer concerns — feeds §3.C (cross-disciplinary) + §3.D (red team)
 

@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 98319ff6acfb7812ef6e6440ab1f05d5bd53147d45401f40ff1e94e19be040c2 -->
+<!-- i18n-source-sha256: da428cbb515973285a41ff036d7fd52ea9536a0c1bb4a33ea19309e44c06fba9 -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -85,8 +85,10 @@
 
 每一个外部断言（文件内容、API 签名、库特性、既有工作、数据集属性、版本号、
 错误信息、定理表述）**都必须在同一轮内通过** `Read` / `Grep` / `Bash` /
-`WebFetch` 验证。无法验证的断言必须标记为 `[NEEDS VERIFICATION]` 并降级该
-节点；它们**不得**被用作任何下游节点的前提。
+`WebFetch` 验证。无法验证的断言必须标记为 `[NEEDS_VERIFICATION]` 并降级该
+节点；它们**不得**被用作任何下游节点的前提。该标签是一个机器 token
+（见 `docs/languages.json`）：必须写成带下划线的形式，绝不能拆成两个词，
+这样 `--lang` 翻译与 §5.2 的裁决规则才能匹配到它。
 
 这条禁令在**每一种输出语言中都是语义性的**，而不是一份逐字的英文/中文子串
 白名单。任何用不确定、凭记忆、凭惯例或无根据的概率来替代已验证证据的等价
@@ -142,13 +144,19 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 一旦 `/cc-tree:tree` 以一个解析好的根和一个加载好的预设被调用，引擎就
 运行至收敛（或触顶上限），其间不再进一步征询用户。歧义通过**选择信息密度
 最高的分支**来解决并继续推进。仅在以下情况停止：
-- 达到了某个 §0.7 用户指定的上限**且**所有在途节点均已完整，
+- 达到了某个 §F7 用户指定的上限**且**所有在途节点均已完整，
 - 因为根无法解析而无法构建 §2 基线（报告
-  `EARLY_STOP=root_unparseable`），
+  `EARLY_STOP=root_unparseable`），或预设要求的根字段无法填满（报告
+  `EARLY_STOP=root_underspecified`，见 §2.1），
 - 一次被恢复的运行收到的显式语言标签与其持久化的 `output_language` 冲突
   （在产生下一个节点之前报告 `EARLY_STOP=language_mismatch`），
 - 来自 cc-enslaver 或沙箱策略的工具 DENY 阻断了一次必要的读取（报告被
   阻断的内容；不得静默切换策略）。
+
+唯一的征询例外是 §2.0 术语表 grill，它运行在**根节点存在之前**：一个未解决
+的 MISSING 或 AMBIGUOUS 术语会被问一次，术语表 CONFLICT 则停下来等待裁定。
+在那里敲定的术语此后不再重新讨论——从 §2.1 写下根节点的那一刻起，本条规则
+无任何例外地生效。
 
 ### F7. Resource caps default to ∞; can only narrow via flags（资源上限默认为 ∞，只能通过 flag 收窄）
 
@@ -471,9 +479,10 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
    `<subject> github` + 预设的专用查询）。
 2. `WebFetch` 每个有希望的 URL 以确认其实际内容——一个 `WebSearch`
    片段本身永远不够（§F1）。
-3. 把发现记录到该节点的外部字段（brainstorm/design 用
-   `external_resources`；attack/code-audit 用 `external_check` /
-   `related_findings`）。
+3. 把发现记录到该节点的外部字段——字段名由当前预设的 `node_schema` 决定：
+   brainstorm 用 `external_resources`，design 用 `external_dependencies`，
+   attack 用 `external_check`，code-audit 用 `related_findings`。写进该预设
+   自己的字段名，不要另造第 13 个字段。
 
 `--no-online` 跳过 §3.X；节点被标记 `external_resources_unchecked=true`。
 
@@ -499,9 +508,13 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
 | 7 | 应答 / 反防御 | `falsifiability`（brainstorm/design）/ `artifact_defense`（attack）/ `mitigation_present`（code-audit） |
 | 8 | 与既有工作 / 现状的比较 | `novelty_vs_literature` / `alternative_interpretations` |
 | 9 | 成本 / 可修复性 / 可行性 | `feasibility` / `proposed_fix` / `cost_of_change` |
-| 10 | 风险 / 陷阱 | 始终为 `risks` |
+| 10 | 风险 / 陷阱（预设可选） | brainstorm 用 `risks`，design 用 `operational_risks`；attack 与 code-audit 把风险放进 `artifact_defense` / `threat_model_context` |
 | 11 | 分支潜力 | `branch_potential` / `sub_critique_potential` |
 | 12 | 临时裁决 | 始终为 `verdict_provisional` |
+
+**槽位**列是一个类别索引，不是 `node_schema` 中的位置。预设提供恰好 12 个
+具名字段并可自由排序；只有类别是通用的，而标注为*预设可选*的类别在预设把
+该字段用于领域专属关注点时可以缺席。
 
 适用于每个字段的严格要求：
 
@@ -545,8 +558,10 @@ blocked)`。映射规则为：
 - `score ≥ 11`（外加任何预设特定的额外关卡，例如 attack 的
   "未发现 artifact_defense"）→ `advances`
 - `8 ≤ score ≤ 10` → `kept`（留在树中但不重新展开）
-- `score ≤ 7` → `pruned`（置灰，推导保留以供参考）
-- 任何字段被标记 `[NEEDS VERIFICATION]` 且占主导 → `blocked`
+- `score ≤ 7` → `pruned`（置灰，推导保留以供参考）。标签取该预设映射到
+  `pruned` 角色上的那个——对 `attack` 与 `code-audit` 是 REFUTED，
+  而不是 brainstorm 的 DEAD-END。
+- 任何字段被标记 `[NEEDS_VERIFICATION]` 且占主导 → `blocked`
   （= `INCOMPLETE_FORBIDDEN`；不能计入终端宽度）
 
 四个裁决标签由预设提供：
@@ -619,8 +634,9 @@ blocked)`。映射规则为：
 | `--width N` 上限触及 + 所有叶节点完整 | `WIDTH_CAP_REACHED` | 每个可见叶节点上 §4 + §5 均完整 |
 | `--depth N` 上限触及 + 所有叶节点完整 | `DEPTH_CAP_REACHED` | 同上 |
 | `--rounds N` 上限触及 + 所有叶节点完整 | `ROUNDS_EXHAUSTED` | 同上 |
-| 任何上限触及但仍有 `INCOMPLETE_FORBIDDEN` 叶节点 | **引擎不得停止**；先把它们补完 |
+| 任何上限触及但仍有 `INCOMPLETE_FORBIDDEN` 叶节点 | *（无状态——**引擎不得停止**）* | 先把这些叶节点补完，然后重新评估本表 |
 | §2 基线中根无法解析 | `EARLY_STOP=root_unparseable` | 仅在 §3 开始前有效 |
+| 预设要求的根字段无法填满（§2.1） | `EARLY_STOP=root_underspecified` | 仅在 §3 开始前有效；允许推断的预设改为标注 `[INFERRED — verify with user]` |
 | 沙箱 / 工具 DENY 阻断必要读取 | `EARLY_STOP=tool_blocked` | 报告被阻断的内容 |
 
 当 `CONVERGED` / `*_CAP_REACHED` / `ROUNDS_EXHAUSTED` 中任何一个达到时，

@@ -95,8 +95,10 @@ Every external assertion (file contents, API signatures, library
 features, prior work, dataset properties, version numbers, error
 messages, theorem statements) **must be verified in the same turn**
 via `Read` / `Grep` / `Bash` / `WebFetch`. Unverifiable claims must be
-tagged `[NEEDS VERIFICATION]` and the node downgraded; they may **not**
-be used as a premise for any downstream node.
+tagged `[NEEDS_VERIFICATION]` and the node downgraded; they may **not**
+be used as a premise for any downstream node. The tag is a machine
+token (`docs/languages.json`): spell it with the underscore, never as
+two words, so `--lang` translations and the §5.2 verdict rule match it.
 
 The ban is **semantic in every output language**, not a literal
 English/Chinese substring whitelist. Any equivalent wording that substitutes
@@ -160,15 +162,22 @@ Once `/cc-tree:tree` is invoked with a parsed root and a loaded
 preset, the engine runs to convergence (or cap-trip) without further
 user prompting. Ambiguity is resolved by **picking the
 information-densest branch** and proceeding. Stop only when:
-- a §0.7 user-specified cap is reached **and** all in-flight nodes
+- a §F7 user-specified cap is reached **and** all in-flight nodes
   are complete,
 - §2 baseline cannot be built because the root is unparseable (report
-  `EARLY_STOP=root_unparseable`),
+  `EARLY_STOP=root_unparseable`) or its preset-required root fields
+  cannot be filled (report `EARLY_STOP=root_underspecified`; see §2.1),
 - a resumed run receives an explicit language tag that conflicts with its
   persisted `output_language` (report `EARLY_STOP=language_mismatch` before
   producing another node),
 - a tool DENY from cc-enslaver or sandbox policy blocks an essential
   read (report what's blocked; do not silently switch strategies).
+
+The single prompting carve-out is the §2.0 glossary grill, which runs
+**before the root node exists**: an unresolved MISSING or AMBIGUOUS
+term is asked once, and a glossary CONFLICT halts for adjudication.
+Terminology settled there is not re-litigated later — from the moment
+§2.1 writes the root, this rule binds with no exceptions.
 
 ### F7. Resource caps default to ∞; can only narrow via flags
 
@@ -535,9 +544,11 @@ Universal steps:
    arxiv` / `<subject> github` + the preset's specialized queries).
 2. `WebFetch` each promising URL to confirm its actual contents — a
    `WebSearch` snippet is never sufficient on its own (§F1).
-3. Record findings in the node's external field (`external_resources`
-   for brainstorm/design; `external_check` / `related_findings` for
-   attack/code-audit).
+3. Record findings in the node's external field, which is named by the
+   active preset's `node_schema` — `external_resources` for brainstorm,
+   `external_dependencies` for design, `external_check` for attack, and
+   `related_findings` for code-audit. Write to that preset's own field
+   name; do not invent a 13th field.
 
 `--no-online` skips §3.X; node tagged `external_resources_unchecked=true`.
 
@@ -564,9 +575,15 @@ Universal field categories:
 | 7 | Defense / counter-defense | `falsifiability` (brainstorm/design) / `artifact_defense` (attack) / `mitigation_present` (code-audit) |
 | 8 | Comparison to prior work / state | `novelty_vs_literature` / `alternative_interpretations` |
 | 9 | Cost / fixability / feasibility | `feasibility` / `proposed_fix` / `cost_of_change` |
-| 10 | Risks / pitfalls | always `risks` |
+| 10 | Risks / pitfalls (preset-optional) | `risks` (brainstorm) / `operational_risks` (design); `attack` and `code-audit` carry risk inside `artifact_defense` / `threat_model_context` instead |
 | 11 | Branch potential | `branch_potential` / `sub_critique_potential` |
 | 12 | Provisional verdict | always `verdict_provisional` |
+
+The **Slot** column is a category index, not a position in
+`node_schema`. A preset supplies exactly 12 named fields and orders
+them freely; only the categories are universal, and a category marked
+*preset-optional* may be absent when the preset spends that field on a
+domain-specific concern instead.
 
 Strict requirements applying to every field:
 
@@ -614,8 +631,10 @@ pruned, blocked)`. The mapping rule is:
 - `score ≥ 11` (and any preset-specific extra gates, e.g. attack's
   "no artifact_defense found") → `advances`
 - `8 ≤ score ≤ 10` → `kept` (stays in tree but not re-expanded)
-- `score ≤ 7` → `pruned` (greyed, derivation kept for reference)
-- any field tagged `[NEEDS VERIFICATION]` dominating → `blocked`
+- `score ≤ 7` → `pruned` (greyed, derivation kept for reference). The
+  label is whatever the preset mapped onto its `pruned` role — for
+  `attack` and `code-audit` that is REFUTED, not brainstorm's DEAD-END.
+- any field tagged `[NEEDS_VERIFICATION]` dominating → `blocked`
   (= `INCOMPLETE_FORBIDDEN`; cannot count toward terminal width)
 
 The 4 verdict labels are preset-supplied:
@@ -697,8 +716,9 @@ Evaluated top-to-bottom each round; first matching row wins:
 | `--width N` cap reached + all leaves complete | `WIDTH_CAP_REACHED` | §4 + §5 complete on every visible leaf |
 | `--depth N` cap reached + all leaves complete | `DEPTH_CAP_REACHED` | same |
 | `--rounds N` cap reached + all leaves complete | `ROUNDS_EXHAUSTED` | same |
-| Any cap reached but `INCOMPLETE_FORBIDDEN` leaves remain | **engine must NOT stop**; complete them first |
+| Any cap reached but `INCOMPLETE_FORBIDDEN` leaves remain | *(no status — **engine must NOT stop**)* | complete those leaves, then re-evaluate this table |
 | Root unparseable in §2 baseline | `EARLY_STOP=root_unparseable` | only valid before §3 starts |
+| Preset-required root fields unfillable (§2.1) | `EARLY_STOP=root_underspecified` | only valid before §3 starts; presets that allow inference flag `[INFERRED — verify with user]` instead |
 | Sandbox / tool DENY blocking essential reads | `EARLY_STOP=tool_blocked` | report what's blocked |
 
 When any of `CONVERGED` / `*_CAP_REACHED` / `ROUNDS_EXHAUSTED` is
@@ -933,7 +953,7 @@ A preset may NOT:
 - reduce `--min-frameworks` below 12;
 - weaken §F8 (defer / future-work / TODO ban);
 - change the §6 six-condition convergence test;
-- replace § 5's "score ≥ 11 → advances" mapping (it can add extra
+- replace §5's "score ≥ 11 → advances" mapping (it can add extra
   gates ABOVE 11, but not lower the floor).
 
 If a preset's frontmatter declares a field count != 12, the engine

@@ -204,6 +204,45 @@ def main() -> int:
     )
     expect_pass("block-map score_dims validates like flow-map",
                 VALID.replace(FLOW_DIMS, BLOCK_DIMS))
+    # An empty list entry must parse to "" rather than raising IndexError:
+    # `_strip_comment` used `s[:1] in "\"'"`, and `"" in "\"'"` is True, so a
+    # bare `-` crashed the whole validator with a traceback instead of the
+    # clean "node_schema[i] is empty" failure below.
+    expect_parsed("bare `-` list entry parses to an empty string",
+                  "---\nl:\n  -\n  - real\n---\nx\n", "l", ["", "real"])
+    expect_fail("empty node_schema entry is rejected, not a crash",
+                VALID.replace("  - f12\n", "  -\n"))
+    # Frontmatter whose closing `---` is the last byte of the file (no
+    # trailing newline) is still frontmatter.
+    expect_parsed("closing --- at EOF without trailing newline",
+                  "---\nname: test\n---", "name", "test")
+
+    # --- Section-reference namespace (guards _check_section_refs) ---
+    # The check is only as good as its harvest: if the heading style of
+    # ENGINE.md/presets ever changes, `valid` silently shrinks and dead
+    # refs stop being caught. Pin the shapes that must stay harvestable
+    # and the reference shapes that must stay matchable.
+    valid = set()
+    for src in vp._section_id_sources():
+        for _, heading in vp._HEADING_RE.findall(src.read_text(encoding="utf-8")):
+            m = vp._SECTION_ID_RE.match(heading.strip())
+            if m:
+                valid.add(m.group(1).upper())
+    for expected in ("0.5", "1.0", "2.0", "2.A", "2.B", "3.A", "3.L", "3.X",
+                     "5.2", "6.2", "7.4", "8.1", "F1", "F4", "F7", "F8",
+                     "9", "10", "11"):
+        if expected not in valid:
+            _failures.append(
+                f"SECTION-IDS: §{expected} is no longer harvestable from "
+                "headings; _check_section_refs would stop catching it")
+    for dead in ("0.4", "0.7", "0.8", "2.4", "6.6"):
+        if dead in valid:
+            _failures.append(
+                f"SECTION-IDS: §{dead} unexpectedly resolves; the 2026-08 "
+                "renumbering sweep assumed it does not exist")
+    refs = set(vp._SECTION_REF_RE.findall("see §F8, §3.A, § 6.2 and §10 now"))
+    if refs != {"F8", "3.A", "6.2", "10"}:
+        _failures.append(f"SECTION-REFS: reference scan returned {sorted(refs)}")
 
     if _failures:
         print("test_validate: FAILED")

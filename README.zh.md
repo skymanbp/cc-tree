@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: ced3dccaa4312aa03b351e8d279b70aba5f249f555473c4b11bd5f7e5a9a5779 -->
+<!-- i18n-source-sha256: 07362d3ee1a11bb099e9a5bd1fedcdd179bf18d13db8c04809d55084b4cbc197 -->
 
 一个 Claude Code 插件：**一台通用的放射状树探索引擎，四个可替换的
 preset**。用它来做发散式构思、对抗式批评、设计空间探索，或代码审计
@@ -93,7 +93,7 @@ NEEDS-MORE-INFO` 叶子有一条硬性禁令（§0.5）；**(2)** 终止依据�
 
 | 技能 | 它做什么 |
 |---|---|
-| `/cc-tree:tree` | 通用放射状树引擎。加载一个 preset，构建 §2 基线，然后对每个节点递归施加 12 个 framing 过程，直到**稳定收敛**（最近 2 轮没有新的高判定分支 + 全部 12 个 framing 都被执行 + 全部叶子完整）。宽度 × 深度默认为 ∞；资源上限是可选的。对 `defer / future-work / TODO / NEEDS-MORE-INFO` 叶子有硬性禁令。 |
+| `/cc-tree:tree` | 通用放射状树引擎。加载一个 preset，构建 §2 基线，然后对每个节点递归施加 12 个 framing 过程，直到**稳定收敛**（最近 2 轮没有新的高判定分支 + 全部 12 个 framing 都被执行 + 全部叶子完整）。宽度 × 深度 × 轮数默认为 ∞；资源上限是可选的。对 `defer / future-work / TODO / NEEDS-MORE-INFO` 叶子有硬性禁令。 |
 
 ### 4 presets（`presets/<name>.md`）
 
@@ -245,8 +245,8 @@ claude plugin list
 **理由 2：失败模式也在重复。** LLM 做的每一个发散任务都有同样的
 懒惰均衡吸引子：推给未来工作、用同义词替换生成近乎重复的分支、跳过
 高风险/唱反调的 framing、在第一个变慢的回合就宣布收敛。引擎对这些
-全部编码了硬性禁令（§0 forbidden patterns），它们对头脑风暴一个研究
-方向和审计一个 Python 文件同样适用。
+全部编码了硬性禁令（§0.5 forbidden patterns，F1–F8），它们对头脑风暴
+一个研究方向和审计一个 Python 文件同样适用。
 
 完整的设计理据见 [`EVALUATION.md`](EVALUATION.md)。
 

@@ -7,10 +7,10 @@ description: Domain-neutral starting point for a cc-tree field profile. Copy to 
 
 > A field profile gives the engine domain-aware reviewer weighting
 > (loaded via `--field <name|path>`, see
-> [`docs/ENGINE.md#22-field-profile`](../docs/ENGINE.md)). It does **not**
-> relax any universal rule — it only re-prioritizes which branches the
-> 12 framings explore first. Keep every list short and concrete; vague
-> entries ("be rigorous") add no weighting signal.
+> [`docs/ENGINE.md` §2.2](../docs/ENGINE.md#22-field-profile-optional---field-namepath)).
+> It does **not** relax any universal rule — it only re-prioritizes
+> which branches the 12 framings explore first. Keep every list short
+> and concrete; vague entries ("be rigorous") add no weighting signal.
 
 ## Reviewer concerns — feeds §3.C (cross-disciplinary) + §3.D (red team)
 

@@ -44,7 +44,7 @@ This is what `sci-paper` did initially: `brainstorm.md` and
 overlap and the remaining 15% being domain-specific schema and
 vocabulary. The duplication created two pain points:
 
-- Bug fixes (e.g. the §6.6 "user-cap-reached + incomplete leaves not
+- Bug fixes (e.g. the §6.2 "user-cap-reached + incomplete leaves not
   allowed" tightening) had to be applied twice.
 - New presets (`design`, `code-audit`) would each be another ~450-line
   near-duplicate of the same engine.
@@ -126,7 +126,7 @@ producing branches like:
 > existing literature beyond the scope of this analysis. Defer to
 > future work."
 
-That's a non-result dressed as a result. The hard ban in §0.8 forces
+That's a non-result dressed as a result. The hard ban in §F8 forces
 the engine to either (a) actually do the lookup (`WebFetch` / `Read` /
 `Bash`) until the branch can be evaluated, or (b) re-route via §3.E
 constraint-variation to a related branch that *can* be evaluated with
@@ -264,7 +264,22 @@ the docs promise) and lands chaining, mandatory parallel dispatch,
 `--field` weighting, and the first two bilingual docs, making the plugin
 self-contained and CLI-installable.
 
+v0.3.0 is a 26-fix debug sweep plus drift-class hardening: the
+frontmatter parser learned block-map list items, and five cross-file
+consistency checks (dead anchors, example line bounds, bilingual title
+parity, command-flag registry, field-profile schema) turned the defect
+classes that sweep found into CI failures.
+
 v0.4.0 completes the language architecture: English is the canonical/default
 machine skeleton, human-readable output is selected per run, arbitrary-language
 content remains valid input, Chinese public documentation is maintained as
 seven explicit pairs, and CI fails closed on version or schema drift.
+
+v0.5.0 is the second debug sweep, done line-by-line over every shipped
+file. Two parser defects (a crash on an empty list entry, a misparse of
+frontmatter ending at EOF) and 22 contract-drift defects were fixed —
+mostly places where the runtime prompt, the engine spec, and a preset's
+own declared schema disagreed about a field name, a verdict label, or a
+section number. Two more drift classes became CI failures: `§N` prose
+references must resolve to a real heading, and anchors must live in the
+link href where the validator can check them.

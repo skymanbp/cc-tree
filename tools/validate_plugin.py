@@ -19,7 +19,12 @@ Checks:
   5. Every commands/<name>.md starts with a YAML frontmatter block that
      declares `description:`.
   6. tools/*.py all parse as valid Python (ast.parse, no runtime imports).
-  7. docs/languages.json controls English-canonical / Chinese-parallel
+  7. Cross-file consistency: `](path#anchor)` links resolve to a real
+     heading, `examples/` line citations stay in bounds, command
+     `argument-hint` flags are documented outside frontmatter, field
+     profiles match the schema, and every `§N` / `§FN` prose reference
+     names a real section.
+  8. docs/languages.json controls English-canonical / Chinese-parallel
      documentation, source digests, structure, and machine-token parity.
 """
 
@@ -221,6 +226,19 @@ _LINK_RE = re.compile(r"\]\(([^)#\s]+)#([^)\s]+)\)")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _CITATION_RE = re.compile(r"([A-Za-z0-9_.\-/]+\.md):(\d+)(?:-(\d+))?")
 _FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
+_INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+
+
+def _strip_inline_code(text: str) -> str:
+    """Blank out single-backtick spans before link/citation scanning.
+
+    Prose that *documents* link syntax writes the pattern literally — e.g.
+    the changelog entry explaining that a fragment belongs in ``](path#frag)``
+    rather than in the label. Those are quoted examples, not links, and
+    resolving `path` as a file is a false positive. Fenced blocks are left
+    intact: they carry real worked examples whose links should still resolve.
+    """
+    return _INLINE_CODE_RE.sub(lambda m: " " * len(m.group(0)), text)
 
 
 def _content_md_files() -> list[Path]:
@@ -250,7 +268,8 @@ def _check_anchors(md_files: list[Path]) -> int:
     n = 0
     slug_cache: dict[Path, set[str]] = {}
     for src in md_files:
-        for target_rel, frag in _LINK_RE.findall(src.read_text(encoding="utf-8")):
+        text = _strip_inline_code(src.read_text(encoding="utf-8"))
+        for target_rel, frag in _LINK_RE.findall(text):
             if target_rel.startswith(("http://", "https://")):
                 continue
             target = (src.parent / target_rel).resolve()
@@ -349,6 +368,57 @@ def _check_command_flags(repo: Path = REPO) -> int:
     return n
 
 
+_SECTION_REF_RE = re.compile(r"§\s?(F\d+|\d+(?:\.[0-9A-Za-z]+)?)")
+_SECTION_ID_RE = re.compile(r"^§?(F\d+|\d+(?:\.[0-9A-Za-z]+)?)[.\s—-]")
+
+
+def _section_id_sources() -> list[Path]:
+    """Files whose headings define the engine's §-section namespace."""
+    return [REPO / "docs" / "ENGINE.md", REPO / "docs" / "ENGINE.zh.md",
+            REPO / "skills" / "tree" / "SKILL.md",
+            *sorted((REPO / "presets").glob("*.md"))]
+
+
+def _check_section_refs(md_files: list[Path]) -> int:
+    """Every `§N` / `§N.M` / `§FN` prose reference must name a real heading.
+
+    The 2026-08 sweep found six dead pointers (`§0.4` / `§0.7` / `§0.8` left
+    behind when §0.x was renumbered to F1–F8, plus invented `§2.4` / `§6.6`)
+    spread over five files. `_check_anchors` cannot catch them: they are prose
+    tokens, not Markdown links, so nothing tied them to a heading.
+
+    The valid namespace is harvested from the headings that define it — the
+    engine spec, the skill, and the presets (which add their own `§2.A` /
+    `§2.B` baseline modes).
+
+    `CHANGELOG.md` is exempt: recording *which* dead pointer was removed is
+    the file's job, so it must be able to name identifiers that no longer
+    resolve. It is a historical record, not a runtime contract — nothing
+    dereferences a changelog.
+    """
+    valid: set[str] = set()
+    for src in _section_id_sources():
+        if not src.is_file():
+            continue
+        for _, heading in _HEADING_RE.findall(src.read_text(encoding="utf-8")):
+            m = _SECTION_ID_RE.match(heading.strip())
+            if m:
+                valid.add(m.group(1).upper())
+    if not valid:  # pragma: no cover - the spec always has headings
+        fail("section-refs: no section IDs harvested; heading format changed?")
+
+    n = 0
+    for src in md_files:
+        if src.name == "CHANGELOG.md":
+            continue
+        for ref in set(_SECTION_REF_RE.findall(src.read_text(encoding="utf-8"))):
+            if ref.upper() not in valid:
+                fail(f"{src}: dead section reference §{ref} "
+                     "(no heading defines it)")
+            n += 1
+    return n
+
+
 def _check_field_profiles() -> int:
     """Every selectable field profile (non-underscore, non-README) must
     declare `field:` == basename + a description, and carry the four
@@ -385,8 +455,10 @@ def check_crossrefs() -> str:
     citations = _check_example_citations()
     flags = _check_command_flags()
     profiles = _check_field_profiles()
+    sections = _check_section_refs(md_files)
     return (f"cross-refs OK ({anchors} anchors, {citations} example "
-            f"citations, {flags} command flags, {profiles} field profiles)")
+            f"citations, {flags} command flags, {profiles} field profiles, "
+            f"{sections} section refs)")
 
 
 def check_i18n() -> str:

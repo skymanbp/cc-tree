@@ -113,6 +113,8 @@
     "NEEDS_VERIFICATION",
     "MERGED_INTO",
     "root_unparseable",
+    "root_underspecified",
+    "tool_blocked",
     "language_mismatch",
     "en",
     "zh",

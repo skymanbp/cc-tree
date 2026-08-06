@@ -3,6 +3,114 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## v0.5.0 — 2026-08-06
+
+Second debug sweep, done line-by-line over every shipped file: **24
+defects across 18 files**, all in classes the existing gates could not
+see. Two were runtime crashes/misparses in the frontmatter parser; the
+rest were contract drift — places where the runtime prompt, the engine
+spec, and a preset's own declared schema disagreed about a field name, a
+verdict label, or a section number. Three drift classes became CI
+failures.
+
+### Fixed (parser)
+
+- **A bare `-` list entry crashed the validator** with
+  `IndexError: string index out of range` instead of failing cleanly.
+  `_strip_comment` tested `s[:1] in "\"'"`, and `"" in "\"'"` is True
+  (empty-substring semantics), so an empty value fell through to `s[0]`.
+  Now a malformed entry reports `node_schema[i] is empty`.
+- **Frontmatter whose closing `---` was the last byte of the file** (no
+  trailing newline) parsed as "no frontmatter at all". `FRONTMATTER_RE`
+  now accepts `\Z` as well as a terminating newline.
+
+### Fixed (contract drift)
+
+- **`skills/tree/SKILL.md` documented `convergence_metric` with the exact
+  alias values the validator rejects** (`novelty_ratio`,
+  `confirmed_ratio`, …). v0.2.0 fixed this in `docs/presets.md` but not
+  in the runtime prompt, so authoring a preset by following SKILL.md
+  produced a CI failure.
+- **§3.X named a field `design` does not have.** `docs/ENGINE.md` and
+  `docs/framings.md` (+ zh) told the engine to record design's external
+  findings in `external_resources`; design's `node_schema` declares
+  `external_dependencies`. Each preset's own field name is now listed.
+- **`docs/ENGINE.md` §4 slot 10 claimed "always `risks`"** — true for
+  brainstorm only. `design` uses `operational_risks`; `attack` and
+  `code-audit` have no risk field. The Slot column is now documented as
+  a category index, not a `node_schema` position.
+- **`attack` and `code-audit` mapped `score ≤ 7` to `DEAD-END`**, a label
+  in neither preset's `verdict_enum` (their `pruned` role is REFUTED).
+- **`design` referenced a `proposed_fix` slot** it does not declare.
+- **`[NEEDS VERIFICATION]` vs `NEEDS_VERIFICATION`.** Every doc spelled
+  the tag with a space while `docs/languages.json` registered the
+  underscore form, so the registered machine token matched nothing and
+  its i18n parity check never ran. Normalized to `[NEEDS_VERIFICATION]`.
+- **Six dead `§` pointers** left by the §0.x → F1–F8 renumbering
+  (`§0.4` / `§0.7` / `§0.8`) plus two invented ones (`§2.4`, `§6.6`),
+  across ENGINE.md, ENGINE.zh.md, SKILL.md, EVALUATION.md, and the
+  attack / design presets.
+- **§2.0's glossary prompts contradicted §F6's full-auto contract**,
+  whose "Stop only when" list was exhaustive and did not include them.
+  F6 now carries an explicit pre-root carve-out.
+- **A malformed row in the §6.2 termination table** (2 cells in a
+  3-column table), and `EARLY_STOP=root_underspecified` missing from
+  that table despite being specified in §2.1 and used by 3 presets.
+- **`validate_plugin.py`'s own module docstring** enumerated checks 1–7
+  and skipped the cross-file consistency check entirely.
+
+### Fixed (found in the line-by-line pass)
+
+- **`docs/framings.md` said the 12 framings "can be run in parallel"**
+  at fan-out ≥ 5, while `docs/ENGINE.md` §8.1 makes dispatch
+  **mandatory** there and §9 lists sequential execution as an
+  anti-pattern. A MUST had been restated as a MAY.
+- **Four `#anchor` fragments lived in the link *text* instead of the
+  href** (`docs/ENGINE.md#22-field-profile`,
+  `#81-sub-agent-dispatch`), so they rendered as navigable anchors,
+  did not resolve, and were invisible to `_check_anchors` — which only
+  inspects `](path#frag)`. Moved into the href with their real slugs;
+  the anchor check now covers 12 links instead of 8.
+- **`framings.md` used brainstorm's `DEAD-END` label generically** in a
+  preset-agnostic document (two places), where the same file elsewhere
+  correctly spells all three `pruned` labels. Now names the role.
+- **`README.md` misquoted the skill's own description**: "Width × depth
+  default to ∞" drops `× rounds`.
+- **`README.md` cited "§0 forbidden patterns"** where the same file
+  elsewhere cites §0.5 — the patterns are §0.5 / F1–F8.
+- **`docs/presets.md`'s "validator rejects presets that…" list was
+  incomplete** — it read as exhaustive but omitted empty
+  `subject_label`, missing `output_artifacts.primary`, `score_dims`
+  entries missing `key`/`name`/`desc`, empty `node_schema` entries, and
+  blank verdict labels. Now enumerates all eight enforced rules.
+- **`EVALUATION.md`'s decision log skipped v0.3.0** entirely.
+- `docs/ENGINE.md` wrote `§ 5's` with a stray space.
+
+### Added
+
+- **`_check_section_refs`** — every `§N` / `§N.M` / `§FN` prose reference
+  must resolve to a real heading. `_check_anchors` could not catch these:
+  they are prose tokens, not Markdown links. 304 refs now checked.
+  `CHANGELOG.md` is exempt: naming a pointer it removed is its job.
+- **`_check_anchors` now blanks single-backtick spans before scanning.**
+  Prose that documents link syntax quotes the pattern literally, and
+  resolving the quoted placeholder as a real file was a false positive.
+  Fenced blocks stay in scope — they hold real worked examples.
+- `root_underspecified` and `tool_blocked` registered as fixed machine
+  tokens. Newly enforced across translations: `NEEDS_VERIFICATION`,
+  `operational_risks`, `threat_model_context` (289 → 298 token checks).
+- Parser regression cases for the two crash/misparse bugs, plus tests
+  pinning the heading shapes `_check_section_refs` harvests.
+
+### Verification
+
+`validate_plugin.py` + `test_validate.py` + `test_i18n.py` all pass on
+py3.11 / py3.13. Eight fail-closed probes on a throwaway clone confirm
+each gate rejects rather than crashes: dead `§` reference, stale i18n
+digest, machine token dropped in a translation, bare `-` list entry,
+`convergence_metric` alias, newly-registered token dropped, dead
+`](path#frag)` anchor, and a required flag missing from a wrapper.
+
 ## v0.4.0 — 2026-07-11
 
 English-canonical multilingual runtime and documentation version control.

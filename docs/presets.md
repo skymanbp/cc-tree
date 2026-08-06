@@ -111,19 +111,25 @@ glossary_paths:
 
 ### Engine-enforced compliance
 
-`tools/validate_plugin.py` rejects presets that:
+`tools/validate_plugin.py` enforces eight rules and rejects a preset
+that breaks any of them:
 
-- Have `node_schema.length != 12`
-- Have `score_dims.length != 5`
-- Have `verdict_enum` missing any of the 4 required roles
-- Reference a `convergence_metric` that isn't one of the
-  `verdict_enum` keys
-- Have an unknown `root_kind`
-- Have empty `name` or `description`
-- File basename doesn't match `name:`
+1. Any required key from the list above is missing or empty (this
+   covers `subject_label` and `output_artifacts`, not just the
+   headline ones).
+2. File basename doesn't match `name:`.
+3. Unknown `root_kind`.
+4. `verdict_enum` is not a mapping of exactly the 4 required roles,
+   or any role's label is blank.
+5. `convergence_metric` isn't one of the `verdict_enum` role keys.
+6. `score_dims.length != 5`, or any entry is not a mapping with a
+   non-empty `key`, `name`, and `desc`.
+7. `node_schema.length != 12`, or any entry is empty.
+8. `output_artifacts` has no non-empty `primary`.
 
 CI runs the validator on every push; broken presets block the
-merge.
+merge. `tools/test_validate.py` proves each rejection with a
+negative test case.
 
 ### 1.1 Language boundary
 
