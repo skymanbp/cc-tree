@@ -3,6 +3,18 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## Unreleased
+
+### Added (CI)
+
+- `workflow_dispatch` trigger. The 2026-08-06 Actions outage wedged run
+  31120377768 into a state no API call could clear — the run reported
+  `queued` while its re-run was never dispatched, so `rerun` answered
+  "already running", `cancel` answered "already completed", and
+  `force-cancel` answered "re-run that has not yet queued". With only
+  `push` and `pull_request` triggers, no verdict was reachable for that
+  commit without pushing another one. `gh workflow run ci.yml` now is.
+
 ## v0.5.1 — 2026-08-06
 
 Maintenance release. Nothing that ships with the plugin changed — no

@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual re-trigger. On 2026-08-06 an Actions outage left run 31120377768
+  # wedged: the run object reported `queued` while its re-run was never
+  # dispatched, so `rerun` refused ("already running"), `cancel` refused
+  # ("already completed"), and `force-cancel` refused ("re-run that has not
+  # yet queued"). With only push/pull_request triggers there was no way to
+  # get a verdict for that commit short of pushing another one.
+  workflow_dispatch:
 
 jobs:
   validate:
