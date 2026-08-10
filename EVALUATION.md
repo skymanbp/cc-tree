@@ -283,3 +283,21 @@ own declared schema disagreed about a field name, a verdict label, or a
 section number. Two more drift classes became CI failures: `§N` prose
 references must resolve to a real heading, and anchors must live in the
 link href where the validator can check them.
+
+v0.6.0 is the third sweep, and the first run adversarially by a second
+model family: three parallel read-only `gpt-5.6-sol` reviews (55
+findings, each acted-on claim reproduced by execution before any fix).
+Where the earlier sweeps fixed drift *between* files, this one fixed
+the gates themselves: the frontmatter parser stopped silently
+recovering from malformed input, the preset validator stopped accepting
+non-string values / duplicate identifiers / path-escaping artifact
+names, and the i18n checker closed its laundering channels (comments
+counted as Chinese prose, exception lists registering translations,
+fences rescuing localized inline identifiers). One genuine engine-
+contract bug surfaced: ENGINE.md §0.1's terminal-leaf definition
+contradicted §5.3/§7.4 on whether `kept`/`pruned` tips count toward
+`width`; terminality is now defined by verdict role. Structurally,
+`sys.exit` left the check helpers (a typed `ValidationError` boundary
+replaces it) — the refactor the complexity scan and both review lenses
+independently converged on — while the parser and i18n algorithms were
+deliberately left intact.

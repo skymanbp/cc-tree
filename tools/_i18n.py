@@ -54,7 +54,11 @@ class I18nError(ValueError):
 class MarkdownShape:
     headings: tuple[tuple[int, str], ...]
     sections: tuple[str, ...]
-    fences: tuple[tuple[str, str], ...]
+    # Each fence is (opening marker, info string, body, owning section
+    # index). Marker and section index are part of parity: without them a
+    # translation could swap ``` for ~~~ or move an identical fence into a
+    # different section and still count as "byte-identical".
+    fences: tuple[tuple[str, str, str, int], ...]
     heading_titles: tuple[str, ...] = ()
 
 
@@ -94,9 +98,10 @@ def scan_markdown(text: str) -> MarkdownShape:
     """
     headings: list[tuple[int, str]] = []
     sections: list[str] = []
-    fences: list[tuple[str, str]] = []
+    fences: list[tuple[str, str, str, int]] = []
     titles: list[str] = []
     body: list[str] = []
+    fence_marker = ""
     fence_char = ""
     fence_len = 0
     fence_info = ""
@@ -109,7 +114,9 @@ def scan_markdown(text: str) -> MarkdownShape:
                 line,
             )
             if close:
-                fences.append((fence_info, "\n".join(fence_body)))
+                fences.append((fence_marker, fence_info,
+                               "\n".join(fence_body), len(headings)))
+                fence_marker = ""
                 fence_char = ""
                 fence_len = 0
                 fence_info = ""
@@ -120,9 +127,9 @@ def scan_markdown(text: str) -> MarkdownShape:
 
         fence = _FENCE_OPEN_RE.match(line)
         if fence:
-            marker = fence.group(1)
-            fence_char = marker[0]
-            fence_len = len(marker)
+            fence_marker = fence.group(1)
+            fence_char = fence_marker[0]
+            fence_len = len(fence_marker)
             fence_info = fence.group(2).strip()
             continue
 
@@ -143,14 +150,21 @@ def scan_markdown(text: str) -> MarkdownShape:
                          tuple(fences), tuple(titles))
 
 
-def _prose_letters(text: str) -> list[str]:
+def _visible_prose(text: str) -> str:
+    """Prose with inline code, URLs, link targets, and HTML comments removed
+    — the text a reader actually sees. Both the letter counts and the Han
+    detection run on this: judging raw text let a Han character hidden in an
+    HTML comment satisfy the has-Chinese check."""
     text = _INLINE_CODE_RE.sub("", text)
     text = _URL_RE.sub("", text)
     # Keep the human-readable anchor text; drop only the URL target. Stripping
     # the whole [text](url) span would hide untranslated link labels.
     text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
-    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
-    return [char for char in text if char.isalpha()]
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+
+
+def _prose_letters(text: str) -> list[str]:
+    return [char for char in _visible_prose(text) if char.isalpha()]
 
 
 def _first_nonempty_lines(text: str, limit: int = 12) -> list[str]:
@@ -176,11 +190,28 @@ def chinese_banner(canonical: str, translation: str) -> str:
             "如有歧义，以英文版为准。")
 
 
-def _expand_manifest_path(repo: Path, entry: dict) -> list[Path]:
-    raw = entry.get("path")
+def _clean_manifest_path(raw: object, what: str) -> str:
+    """Require a repo-relative POSIX path (or glob) with no traversal.
+
+    Backslashes, absolute paths, drive letters, and `.`/`..` segments are
+    rejected: they alias real paths past the duplicate check and can reach
+    outside the repository entirely.
+    """
+    if not isinstance(raw, str) or not raw.strip():
+        raise I18nError(f"{what} must be a non-empty string path")
+    if ("\\" in raw or raw.startswith("/")
+            or ":" in raw.split("/", 1)[0]
+            or any(part in ("", ".", "..") for part in raw.split("/"))):
+        raise I18nError(
+            f"{what} must be a clean repo-relative POSIX path: {raw!r}")
+    return raw
+
+
+def _expand_manifest_path(repo: Path, entry: object) -> list[Path]:
+    if not isinstance(entry, dict):
+        raise I18nError(f"canonical_only entries must be objects, got {entry!r}")
+    raw = _clean_manifest_path(entry.get("path"), "canonical_only path")
     reason = entry.get("reason")
-    if not isinstance(raw, str) or not raw:
-        raise I18nError("canonical_only entry missing path")
     if not isinstance(reason, str) or not reason.strip():
         raise I18nError(f"canonical_only entry {raw!r} missing reason")
     if any(char in raw for char in "*?["):
@@ -203,7 +234,12 @@ def load_manifest(repo: Path) -> dict:
     except json.JSONDecodeError as exc:
         raise I18nError(f"docs/languages.json is not valid JSON: {exc}") from exc
 
-    if manifest.get("schema_version") != 1:
+    if not isinstance(manifest, dict):
+        raise I18nError("languages.json top level must be a JSON object")
+    version = manifest.get("schema_version")
+    # `isinstance(True, int)` holds, so `True == 1` would pass a bare
+    # equality; the bool exclusion keeps the version an actual integer.
+    if isinstance(version, bool) or version != 1:
         raise I18nError("languages.json schema_version must be 1")
     if manifest.get("canonical_language") != "en":
         raise I18nError("languages.json canonical_language must be 'en'")
@@ -216,17 +252,23 @@ def load_manifest(repo: Path) -> dict:
         raise I18nError("languages.json pairs must be a non-empty list")
     if not isinstance(manifest.get("canonical_only"), list):
         raise I18nError("languages.json canonical_only must be a list")
-    if not isinstance(manifest.get("required_runtime_flags"), list):
-        raise I18nError("languages.json required_runtime_flags must be a list")
-    if not isinstance(manifest.get("fixed_machine_tokens"), list):
-        raise I18nError("languages.json fixed_machine_tokens must be a list")
+    for field in ("required_runtime_flags", "fixed_machine_tokens"):
+        values = manifest.get(field)
+        if not isinstance(values, list):
+            raise I18nError(f"languages.json {field} must be a list")
+        for token in values:
+            if not isinstance(token, str) or not token.strip():
+                raise I18nError(
+                    f"languages.json {field} entries must be non-empty "
+                    f"strings, got {token!r}")
     return manifest
 
 
-def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]], int]:
+def _validate_pairs(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]], set[str]]:
+    """Validate the `pairs` schema and path existence; return the pair
+    list plus the set of every path a pair claims."""
     pairs: list[tuple[str, str]] = []
     used: set[str] = set()
-
     for entry in manifest["pairs"]:
         if not isinstance(entry, dict):
             raise I18nError("languages.json pair entries must be objects")
@@ -236,6 +278,7 @@ def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]]
             raise I18nError("pair canonical path must be an unsuffixed .md file")
         if canonical.endswith(".zh.md"):
             raise I18nError(f"canonical path must not have a language suffix: {canonical}")
+        _clean_manifest_path(canonical, "pair canonical path")
         if not isinstance(translations, dict) or set(translations) != {"zh"}:
             raise I18nError(f"pair {canonical} must declare exactly one zh translation")
         translation = translations["zh"]
@@ -251,20 +294,35 @@ def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]]
             if not (repo / raw).is_file():
                 raise I18nError(f"language-manifest path missing: {raw}")
         pairs.append((canonical, translation))
+    return pairs, used
 
+
+def _collect_canonical_only(repo: Path, manifest: dict,
+                            used: set[str]) -> set[str]:
+    """Expand `canonical_only` entries into concrete repo-relative paths,
+    rejecting overlap with pairs and any `.zh.md` — an exception list for
+    ENGLISH-only documents that could name a translation would quietly
+    whitelist an orphan Chinese file."""
     canonical_only_paths: set[str] = set()
     for entry in manifest["canonical_only"]:
         for path in _expand_manifest_path(repo, entry):
             rel = path.relative_to(repo).as_posix()
+            if rel.endswith(".zh.md"):
+                raise I18nError(
+                    f"canonical_only cannot register a translation: {rel}")
             if rel in used:
                 raise I18nError(f"path is both paired and canonical-only: {rel}")
             canonical_only_paths.add(rel)
+    return canonical_only_paths
 
-    # Coverage runs both ways in one pass over the tree: no Chinese file may
-    # be unregistered, and no canonical English file may be either. Without
-    # the reverse half the manifest fails open — a new English doc could ship
-    # untranslated and unreviewed, escaping the freshness contract.
-    registered_zh = {translation for _, translation in pairs} | canonical_only_paths
+
+def _check_coverage(repo: Path, pairs: list[tuple[str, str]],
+                    canonical_only_paths: set[str]) -> None:
+    """Coverage runs both ways in one pass over the tree: no Chinese file may
+    be unregistered, and no canonical English file may be either. Without
+    the reverse half the manifest fails open — a new English doc could ship
+    untranslated and unreviewed, escaping the freshness contract."""
+    registered_zh = {translation for _, translation in pairs}
     registered_en = {canonical for canonical, _ in pairs} | canonical_only_paths
     stray_zh: list[str] = []
     stray_en: list[str] = []
@@ -286,6 +344,11 @@ def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]]
             + ", ".join(sorted(stray_en))
         )
 
+
+def validate_manifest(repo: Path, manifest: dict) -> tuple[list[tuple[str, str]], int]:
+    pairs, used = _validate_pairs(repo, manifest)
+    canonical_only_paths = _collect_canonical_only(repo, manifest, used)
+    _check_coverage(repo, pairs, canonical_only_paths)
     return pairs, len(canonical_only_paths)
 
 
@@ -331,11 +394,15 @@ def _preset_tokens(fm: dict) -> set[str]:
 
     def add(value: object) -> None:
         """Collect every string reachable from `value` — scalars, list items,
-        and nested maps such as `output_artifacts.secondary`."""
+        and nested maps such as `output_artifacts.secondary`. Map KEYS are
+        identifiers too (`secondary.rejected: rejected.md` makes `rejected`
+        part of the machine vocabulary a translation must preserve)."""
         if isinstance(value, str):
             tokens.add(value)
         elif isinstance(value, dict):
-            for item in value.values():
+            for key, item in value.items():
+                if isinstance(key, str):
+                    tokens.add(key)
                 add(item)
         elif isinstance(value, list):
             for item in value:
@@ -367,7 +434,9 @@ def _harvest_tokens(repo: Path, manifest: dict,
     tokens.update({"primary", "secondary", "language_request",
                    "output_language", "language_source"})
 
-    for path in [repo / "skills" / "tree" / "SKILL.md",
+    # Every runtime skill, not a hard-coded single path: a second skill's
+    # flags would otherwise never enter the vocabulary.
+    for path in [*sorted((repo / "skills").glob("*/SKILL.md")),
                  *sorted((repo / "commands").glob("*.md"))]:
         if path.name == "README.md":
             continue
@@ -479,29 +548,43 @@ def _check_shape(canonical: str, translation: str,
     for index, (en_fence, zh_fence) in enumerate(zip(en_shape.fences, zh_shape.fences)):
         if en_fence != zh_fence:
             raise I18nError(
-                f"{translation}: fenced code block {index + 1} differs from {canonical}"
+                f"{translation}: fenced code block {index + 1} differs from "
+                f"{canonical} (marker, info, body, and owning section must "
+                "all match)"
             )
+
+
+# Han floor: shipped pairs' worst section measures 0.21 Han chars per
+# English prose letter (7-pair sweep, 2026-08-10); half that is a safe
+# lower bound that still rejects a section whose only Chinese is a stray
+# character or a Han comment.
+_HAN_FLOOR_RATIO = 0.10
 
 
 def _check_section_coverage(translation: str, en_shape: MarkdownShape,
                             zh_shape: MarkdownShape) -> None:
     """Every substantive English section must have real Chinese prose opposite.
 
-    Sections under 80 prose letters are skipped as too short to judge. The rest
-    must contain Han characters, reach 20% of the English letter count, and not
-    be a byte copy of the English — the three ways an "untranslated" section
-    slips through a heading-only structural check.
+    Sections under 80 prose letters are skipped as too short to judge. The
+    rest must contain *visible* Han prose (comments/code stripped first — a
+    Han character hidden in an HTML comment used to satisfy this) at ≥ 10%
+    of the English letter count, reach 20% of it in total letters, and not
+    be a byte copy of the English.
     """
     for index, (en_section, zh_section) in enumerate(
             zip(en_shape.sections, zh_shape.sections)):
         en_letters = _prose_letters(en_section)
         if len(en_letters) < 80:
             continue
-        if not _HAN_RE.search(zh_section):
+        zh_visible = _visible_prose(zh_section)
+        han = len(_HAN_RE.findall(zh_visible))
+        han_minimum = max(20, int(len(en_letters) * _HAN_FLOOR_RATIO))
+        if han < han_minimum:
             raise I18nError(
-                f"{translation}: substantive section {index + 1} has no Chinese prose"
+                f"{translation}: substantive section {index + 1} has too "
+                f"little Chinese prose ({han} Han chars; need {han_minimum})"
             )
-        zh_letters = _prose_letters(zh_section)
+        zh_letters = [c for c in zh_visible if c.isalpha()]
         minimum = max(20, int(len(en_letters) * 0.20))
         if len(zh_letters) < minimum:
             raise I18nError(
@@ -529,10 +612,23 @@ def _validate_pair(repo: Path, canonical: str, translation: str,
     if expected_zh_banner not in zh_lead:
         raise I18nError(f"{translation}: missing standard Chinese canonical-reference banner")
 
-    digest_match = _DIGEST_RE.search(zh_text)
+    digest_matches = list(_DIGEST_RE.finditer(zh_text))
     expected_digest = source_digest(en_text)
-    if digest_match is None:
+    if not digest_matches:
         raise I18nError(f"{translation}: missing i18n-source-sha256; expected {expected_digest}")
+    if len(digest_matches) > 1:
+        # First-match-wins would let a correct digest shadow a stale second
+        # one (or an example in prose shadow the real declaration).
+        raise I18nError(
+            f"{translation}: {len(digest_matches)} i18n-source-sha256 "
+            "comments; exactly one is allowed")
+    digest_match = digest_matches[0]
+    # Same positional window as the banner check: the digest is lead-block
+    # metadata, not something to bury (or quote) mid-document.
+    if not any(_DIGEST_RE.search(line) for line in zh_lead):
+        raise I18nError(
+            f"{translation}: i18n-source-sha256 must sit in the lead block "
+            f"(first {len(zh_lead)} non-empty lines)")
     if digest_match.group(1) != expected_digest:
         raise I18nError(
             f"{translation}: stale i18n-source-sha256 {digest_match.group(1)}; "
@@ -554,15 +650,16 @@ def _validate_pair(repo: Path, canonical: str, translation: str,
                     f"used by {canonical}"
                 )
 
-    # Bare-word machine identifiers (root_kind values, verdict roles, preset
-    # names, schema/score names, language tags) are enforced only where the
-    # English source uses them inside an inline `code` span: a translator may
-    # localize the same word in prose, but must keep `topic`, `advances`,
-    # `zh`, ... verbatim in backticks. `_inline_code_atoms` documents why
-    # fences are excluded from this check.
+    # Inline-code parity applies to EVERY harvested identifier, not only
+    # the bare-word class: a distinctive token (`root_kind`) that passed
+    # the whole-document check via a byte-identical fence could still be
+    # localized in its inline `code` uses — the fence must not rescue it.
+    # Wherever the English source uses an identifier as an inline-code
+    # atom, the translation must keep that atom verbatim.
+    # `_inline_code_atoms` documents why fences are excluded here.
     en_atoms = _inline_code_atoms(en_text)
     zh_atoms = _inline_code_atoms(zh_text)
-    for token in inline_tokens:
+    for token in machine_tokens | inline_tokens:
         if token in en_atoms:
             compared += 1
             if token not in zh_atoms:

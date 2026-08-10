@@ -3,7 +3,195 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## Unreleased
+## v0.6.0 — 2026-08-10
+
+Adversarial multi-model review sweep. Three parallel read-only
+`gpt-5.6-sol` (xhigh reasoning) reviews — parser+validator, i18n
+subsystem, whole-repo architecture — returned 55 numbered findings; 26
+selected claims were reproduced by execution before any fix (26/26
+confirmed), the rest verified or rejected by reading. The theme of what
+they found: the *gates themselves* had false-pass channels. Nothing that
+ships in the runtime prompt changed except one ENGINE contract
+clarification; this release is the validator, the parser, the i18n
+checker, and their tests.
+
+### Fixed (validator false-passes)
+
+- **Nested collections passed where the schema requires scalars.**
+  `str()`-coercion made a parsed dict truthy, so
+  `subject_label:\n  nested: idea`, a flow-map `node_schema` entry, a
+  nested `output_artifacts.primary`, and a nested verdict label all
+  validated; a mapping-valued `convergence_metric` crashed with
+  `TypeError: unhashable type` instead of failing. Every scalar field
+  now must BE a non-empty string.
+- **Identifier discipline was unenforced.** 12 identical `node_schema`
+  fields, duplicate `score_dims` keys, duplicate verdict labels, and a
+  `TOOLONG` score key all passed. Now: node fields / score keys /
+  verdict labels must be distinct, and score keys must match the 1–3
+  letters `docs/presets.md` §1 has always promised.
+- **`output_artifacts` paths were not confined.** `../../escape.md` and
+  `C:/absolute.md` validated although every artifact is written under
+  the run's `<out>/`; `secondary` values were not validated at all. Both
+  now require a bare `*.md` filename.
+- **Field-profile sections were substring-matched**, so `###
+  Reviewer concerns` (wrong level) — and even a commented-out heading —
+  satisfied `"## Reviewer concerns" in text`. Now parsed as headings and
+  matched as level-2 titles (annotation suffixes still allowed).
+- **A wrapper-specific flag could be "documented" by an unrelated
+  preset's mention in the skill body** (e.g. `--focus` added to the
+  design command validated via SKILL.md's attack-flag docs). Common
+  flags (the skill's own `argument-hint` namespace) may ride on skill
+  docs; wrapper-specific flags now need the command body or its own
+  preset body.
+- **Duplicate headings broke anchor checking**: GitHub serves
+  `#repeat-1` for the second `## Repeat`, but the slug cache only held
+  `repeat`, so a valid link was reported dead.
+- **`check_manifests` accepted empty strings** for name/version/
+  description, non-object `plugins[]` entries — and a *missing*
+  plugin.json escaped as a raw `FileNotFoundError` traceback.
+- **Preset↔command wrapper parity is now enforced**: deleting a shipped
+  wrapper command previously left a validator-approved package that
+  contradicted README's advertised pairing.
+
+### Fixed (parser — strict subset, no silent recovery)
+
+The frontmatter parser feeds the validator, so silently guessing at
+malformed input converted authoring mistakes into validated presets.
+Out-of-subset constructs now raise `FrontmatterError` (which the
+validator reports as a clean per-file failure):
+
+- junk non-mapping lines and **duplicate keys** (last-wins let
+  `name: wrong` be shadowed) — now errors;
+- misindented orphan lines (silently skipped before) — now errors;
+- `-one` without the YAML-required space after `-` — was accepted as a
+  list item, now an error;
+- text after a flow map (`- {key: S} GARBAGE`) and flow-map entries
+  without `key: value` — were discarded, now errors.
+
+Constructs that are *valid* YAML the parser previously mangled now parse
+correctly:
+
+- `key: # comment` kept its children (was: parsed as the scalar `""`
+  and silently dropped the nested block); `key: | # comment` starts a
+  block scalar (was: the literal string `"|"`);
+- a one-key block-map list item (`- key: S` with no continuation) is a
+  mapping (was: the scalar string `"key: S"`);
+- an inline flow map as a value (`verdict_enum: {advances: A, …}`)
+  parses to a dict and validates like the block form (was: one string,
+  falsely rejected);
+- a UTF-8 BOM before `---` no longer hides the frontmatter, and the
+  returned Markdown body keeps its leading blank lines (`\s*` in the
+  delimiter regex ate them).
+
+Deliberately NOT implemented (documented subset limits in the module
+docstring): double-quoted `\"` escapes and doubled `''` decoding, and
+literal/folded block-scalar indentation + chomping semantics — the
+shipped presets use none of these, and a false *rejection* is loud
+while the above false *acceptances* were silent.
+
+### Fixed (i18n gates)
+
+- **`canonical_only` could whitelist an orphan Chinese file**: its paths
+  fed the translation registry, so declaring `docs/orphan.zh.md` an
+  "English-only exception" laundered it past coverage. `.zh.md` entries
+  are now rejected and the registry is built from pair translations
+  only.
+- **Han characters hidden in comments counted as Chinese prose.** The
+  has-Chinese check ran on raw text, so an English copy plus
+  `<!-- 中 -->` passed. Prose checks now strip comments/code/URLs
+  first, and a Han floor (≥ 10 % of the English letter count; shipped
+  pairs' measured minimum is 21 %) replaces mere Han presence.
+- **Distinctive tokens escaped the inline-code check.** `root_kind`
+  (whole-document class) could be localized in its inline `` `code` ``
+  uses as long as a byte-identical fence still contained the word.
+  Inline-code parity now applies to every harvested token.
+- **Harvesting missed map keys and non-tree skills.** A preset's
+  `output_artifacts.secondary.rejected: rejected.md` never contributed
+  `rejected`; a second `skills/*/SKILL.md` would contribute nothing.
+  Both harvested now (298 → 439 machine-token checks across the 7
+  shipped pairs, all already faithful).
+- **Fence parity ignored the delimiter and the owning section**: a
+  tilde fence swapped in for a backtick fence with the same body, or an
+  identical fence moved to a different section, passed
+  "byte-identical". Fences now carry (marker, info, body, section
+  index).
+- **`load_manifest` robustness**: a JSON array root crashed with
+  `AttributeError`; `"schema_version": true` passed because
+  `True == 1`; null token/flag entries were coerced to `"None"`. All
+  clean `I18nError`s now. Manifest paths (pairs and `canonical_only`)
+  must be clean repo-relative POSIX paths — backslashes, absolute
+  paths, drive letters, and `.`/`..` segments are rejected.
+- **Digest declarations**: first-match-wins allowed a correct digest to
+  shadow a stale second one, anywhere in the file. Now exactly one
+  `i18n-source-sha256` comment, inside the lead block (same 12-line
+  window as the banner).
+
+### Fixed (contract)
+
+- **ENGINE.md §0.1 contradicted §5.3 / §7.4 on what counts toward
+  `width`.** §0.1 required every terminal leaf to have had §3 run on it
+  and score ≥ the pruning threshold — under which `kept`/`pruned` tips
+  (never re-expanded, per §5.3) could never be terminal leaves, while
+  §7.4's report template counts `leaf_count` across the full verdict
+  distribution. §0.1 now defines terminality by verdict role:
+  `kept`/`pruned` are tips the moment they are scored (and count);
+  `advances` is terminal only after its re-expansion produced no
+  surviving children; `blocked` never counts. (+ zh mirror)
+- **The README diagram is labeled an illustrative mid-run snapshot** —
+  it shows live `advances` frontier tips and `blocked` leaves, both of
+  which §0.1/§6 forbid in a *converged* tree, so claiming it as a final
+  state contradicted the contract it illustrates.
+- The validator's summary line now says `frontmatter schema` instead of
+  `full schema` — body-level compliance (§11's checklist) is explicitly
+  a maintainer audit, not a CI claim.
+
+### Changed (structure)
+
+- **`ValidationError` replaces `sys.exit` in every check helper**;
+  only `main()` prints and exits (`FAIL(<check>): …`), so the checks
+  are importable and the tests stopped redirecting stderr to catch
+  `SystemExit`. `FrontmatterError` is converted to the same clean
+  failure at each parse site.
+- **`validate_manifest` split** into `_validate_pairs` /
+  `_collect_canonical_only` / `_check_coverage` — the one function the
+  complexity scan flagged as genuinely decomposable (three independent
+  failure domains). `validate_preset_schema` likewise became five
+  rule-cluster helpers; `_check_command_flags` split into skill-side
+  and wrapper-side halves. radon: two D-grade functions (CC 25 / 24)
+  → zero at D, worst now C(19); MI all A.
+- **`gen_radial_tree.py` no longer renders at import time**: the
+  imperative body moved into `build()` + `main()`, all text is
+  XML-escaped, the hard-coded model is validated before rendering
+  (depth vs ring table, non-empty trees, known verdict codes, wedge
+  bounds — previously a deep tree raised `KeyError: 5` mid-render),
+  and the emitted SVG must pass `ElementTree.fromstring` before being
+  written. The angle helpers' single-revolution / ≤ 180° wedge
+  assumptions are now stated and enforced rather than latent.
+- **Both test runners grouped into named test functions**; negative
+  schema cases pin a diagnostic substring (`expect_fail(label, text,
+  want)`) so an unrelated rejection cannot green a dead check, and
+  mutations go through a replace-exactly-once helper so a drifted
+  `VALID` template cannot silently turn a mutation case into a no-op.
+  test_validate: 23 → 50 cases; test_i18n: 30 → 43 cases.
+
+### Not adopted (reviewed and rejected, with reasons)
+
+- Per-section machine-token *counts* (vs presence): a faithful zh
+  translation legitimately merges repeated English mentions; equal
+  counts would false-fail correct translations.
+- `tree.md.bak`-style boundary porosity in `_token_present`: excluding
+  a trailing `.` would false-fail `writes tree.md.` at sentence end;
+  trade-off documented in the function comment.
+- Double-backtick inline spans and Setext headings in `scan_markdown`:
+  zero uses in the repo; the structure check only needs to be sound for
+  the constructs the docs actually use.
+- Splitting `_parse_map`/`_parse_list` further or merging the two
+  quote-tracking scanners: recursive-descent traversal is essential
+  complexity; both reviews' architecture lens agreed the parser should
+  stay intact.
+- Inverting the `validate_plugin` ↔ `_i18n` constant-passing
+  relationship: real coupling, but the inversion churns every consumer
+  for a boundary that is documented and tested as-is.
 
 ### Added (CI)
 
@@ -14,6 +202,14 @@ All notable changes to the `cc-tree` plugin. Versions follow the
   `force-cancel` answered "re-run that has not yet queued". With only
   `push` and `pull_request` triggers, no verdict was reachable for that
   commit without pushing another one. `gh workflow run ci.yml` now is.
+
+### Verification
+
+`validate_plugin.py` (7 checks, now 439 machine-token checks + wrapper
+parity) + `test_validate.py` (50 cases) + `test_i18n.py` (43 cases) all
+pass; every fixed false-pass has a regression case that pins its
+diagnostic; the regenerated SVG diffs only in the snapshot-wording
+subtitle (n = 35 stats unchanged).
 
 ## v0.5.1 — 2026-08-06
 

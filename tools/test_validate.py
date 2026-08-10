@@ -3,19 +3,19 @@
 
 Proves the promise in docs/ENGINE.md §10-§11 and docs/presets.md §1 is
 actually enforced (not just documented): the 4 shipped presets pass full
-schema validation, and deliberately-broken presets are rejected.
+frontmatter-schema validation, and deliberately-broken presets are rejected
+*for the right reason* — every negative case pins a diagnostic substring,
+so a rejection caused by an unrelated rule cannot green a dead check.
 
 Run with no arguments; exits non-zero on any test failure.
 """
 
 from __future__ import annotations
 
-import contextlib
-import io
 from pathlib import Path
 
 import validate_plugin as vp
-from _frontmatter import parse_frontmatter
+from _frontmatter import FrontmatterError, parse_frontmatter, split_frontmatter
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -27,32 +27,41 @@ _n_fail = 0
 _n_parser = 0
 
 
-def _validate_raises(name: str, text: str) -> bool:
-    """Return True if validating the frontmatter `text` triggers vp.fail()."""
-    fm = parse_frontmatter(text)
+def _validate_error(name: str, text: str) -> str | None:
+    """Validate `text` as preset frontmatter; return the failure message,
+    or None if it validates cleanly."""
+    try:
+        fm = parse_frontmatter(text)
+    except FrontmatterError as exc:
+        return f"frontmatter: {exc}"
     if fm is None:
-        return True  # no frontmatter is itself a rejection
-    path = Path(f"{name}.md")
-    with contextlib.redirect_stderr(io.StringIO()):
-        try:
-            vp.validate_preset_schema(path, fm)
-        except SystemExit:
-            return True
-    return False
+        return "no frontmatter"
+    try:
+        vp.validate_preset_schema(Path(f"{name}.md"), fm)
+    except vp.ValidationError as exc:
+        return str(exc)
+    return None
 
 
 def expect_pass(label: str, text: str) -> None:
     global _n_pass
     _n_pass += 1
-    if _validate_raises("test", text):
-        _failures.append(f"EXPECTED PASS but was REJECTED: {label}")
+    err = _validate_error("test", text)
+    if err is not None:
+        _failures.append(f"EXPECTED PASS but was REJECTED: {label}: {err}")
 
 
-def expect_fail(label: str, text: str) -> None:
+def expect_fail(label: str, text: str, want: str) -> None:
+    """The text must be rejected AND the diagnostic must contain `want` —
+    any-rejection-counts previously let an unrelated failure green a case."""
     global _n_fail
     _n_fail += 1
-    if not _validate_raises("test", text):
+    err = _validate_error("test", text)
+    if err is None:
         _failures.append(f"EXPECTED FAIL but was ACCEPTED: {label}")
+    elif want not in err:
+        _failures.append(
+            f"WRONG DIAGNOSTIC: {label}: wanted {want!r} in {err!r}")
 
 
 def expect_parsed(label: str, text: str, key: str, want) -> None:
@@ -60,10 +69,39 @@ def expect_parsed(label: str, text: str, key: str, want) -> None:
     `key` must equal `want` exactly."""
     global _n_parser
     _n_parser += 1
-    fm = parse_frontmatter(text)
+    try:
+        fm = parse_frontmatter(text)
+    except FrontmatterError as exc:
+        _failures.append(f"PARSER: {label}: unexpected FrontmatterError: {exc}")
+        return
     got = None if fm is None else fm.get(key)
     if got != want:
         _failures.append(f"PARSER: {label}: {key}={got!r}, want {want!r}")
+
+
+def expect_parse_error(label: str, text: str, want: str) -> None:
+    """The parser itself must reject `text`, mentioning `want`."""
+    global _n_parser
+    _n_parser += 1
+    try:
+        fm = parse_frontmatter(text)
+    except FrontmatterError as exc:
+        if want not in str(exc):
+            _failures.append(
+                f"PARSER: {label}: wanted {want!r} in error {exc!r}")
+        return
+    _failures.append(f"PARSER: {label}: expected FrontmatterError, got {fm!r}")
+
+
+def _replace_once(text: str, old: str, new: str) -> str:
+    """`str.replace` that fails loudly when `old` is absent or ambiguous —
+    a silent no-op replacement turns a mutation test into a duplicate of
+    the positive case."""
+    count = text.count(old)
+    if count != 1:
+        raise AssertionError(
+            f"mutation target occurs {count} times (need exactly 1): {old!r}")
+    return text.replace(old, new, 1)
 
 
 # A minimal, fully-valid preset frontmatter (name must be "test").
@@ -103,88 +141,148 @@ output_artifacts:
 body
 """
 
+FLOW_DIMS = (
+    'score_dims:\n'
+    '  - {key: S, name: s, desc: "d"}\n'
+    '  - {key: N, name: n, desc: "d"}\n'
+    '  - {key: F, name: f, desc: "d"}\n'
+    '  - {key: K, name: k, desc: "d"}\n'
+    '  - {key: B, name: b, desc: "d"}\n'
+)
 
-def main() -> int:
-    # --- Real shipped presets must pass full schema validation ---
+
+def test_shipped_presets() -> int:
+    """Every shipped preset must pass full frontmatter-schema validation."""
     presets_dir = REPO / "presets"
     real = sorted(p for p in presets_dir.glob("*.md") if p.name != "README.md")
     if not real:
         _failures.append("no shipped presets found to test")
     for p in real:
-        fm = parse_frontmatter(p.read_text(encoding="utf-8"))
+        # _validate_error validates against the synthetic path "test.md",
+        # which would fail the name==basename rule for every real preset —
+        # so run the validation directly against the real path.
+        try:
+            fm = parse_frontmatter(p.read_text(encoding="utf-8"))
+        except FrontmatterError as exc:
+            _failures.append(f"{p.name}: frontmatter: {exc}")
+            continue
         if fm is None:
             _failures.append(f"{p.name}: no frontmatter")
             continue
-        with contextlib.redirect_stderr(io.StringIO()):
-            try:
-                vp.validate_preset_schema(p, fm)
-            except SystemExit:  # pragma: no cover - failure path
-                _failures.append(f"shipped preset REJECTED: {p.name}")
+        try:
+            vp.validate_preset_schema(p, fm)
+        except vp.ValidationError as exc:  # pragma: no cover - failure path
+            _failures.append(f"shipped preset REJECTED: {p.name}: {exc}")
+    return len(real)
 
-    # --- Sanity: the minimal template passes ---
+
+def test_schema_rejections() -> None:
+    """Broken presets are rejected with the *matching* diagnostic."""
     expect_pass("minimal valid template", VALID)
 
-    # --- Broken presets must be rejected ---
-    # 11 node_schema fields (drop f12).
     expect_fail("node_schema has 11 fields",
-                VALID.replace("  - f12\n", "", 1))
-    # 4 score_dims (drop the B dimension line).
+                _replace_once(VALID, "  - f12\n", ""),
+                "node_schema must have exactly 12")
     expect_fail("score_dims has 4 entries",
-                VALID.replace('  - {key: B, name: b, desc: "d"}\n', "", 1))
-    # score_dims entry missing desc.
+                _replace_once(VALID, '  - {key: B, name: b, desc: "d"}\n', ""),
+                "score_dims must have exactly 5")
     expect_fail("score_dims entry missing desc",
-                VALID.replace('  - {key: S, name: s, desc: "d"}',
-                              '  - {key: S, name: s}'))
-    # verdict_enum missing the 'blocked' role.
+                _replace_once(VALID, '  - {key: S, name: s, desc: "d"}',
+                              '  - {key: S, name: s}'),
+                "score_dims[0].desc")
     expect_fail("verdict_enum missing blocked role",
-                VALID.replace("  blocked: B\n", "", 1))
-    # convergence_metric not one of the verdict roles.
+                _replace_once(VALID, "  blocked: B\n", ""),
+                "verdict_enum roles")
     expect_fail("convergence_metric not a verdict role",
-                VALID.replace("convergence_metric: advances",
-                              "convergence_metric: novelty_ratio"))
-    # unknown root_kind.
+                _replace_once(VALID, "convergence_metric: advances",
+                              "convergence_metric: novelty_ratio"),
+                "not in verdict_enum roles")
     expect_fail("unknown root_kind",
-                VALID.replace("root_kind: topic", "root_kind: bogus"))
-    # output_artifacts without primary.
+                _replace_once(VALID, "root_kind: topic", "root_kind: bogus"),
+                "root_kind=")
     expect_fail("output_artifacts missing primary",
-                VALID.replace("output_artifacts:\n  primary: out.md",
-                              "output_artifacts:\n  secondary: x.md"))
-    # name mismatch (frontmatter name != file stem "test").
+                _replace_once(VALID, "output_artifacts:\n  primary: out.md",
+                              "output_artifacts:\n  secondary:\n    x: x.md"),
+                "output_artifacts.primary")
     expect_fail("name does not match file basename",
-                VALID.replace("name: test", "name: wrongname"))
+                _replace_once(VALID, "name: test", "name: wrongname"),
+                "!= expected 'test'")
+    expect_fail("empty node_schema entry is rejected, not a crash",
+                _replace_once(VALID, "  - f12\n", "  -\n"),
+                "node_schema[11]")
 
-    # --- Parser regression cases ---
-    # Quoted scalar values must be unquoted (was: name kept its quotes and
-    # spuriously failed the name==basename check).
+    # Non-string values where the schema requires scalars: the parser can
+    # produce nested collections, and str()-coercion used to accept them
+    # (or crash on `dict in dict` for convergence_metric).
+    expect_fail("nested subject_label",
+                _replace_once(VALID, "subject_label: idea",
+                              "subject_label:\n  nested: idea"),
+                "subject_label must be a non-empty string")
+    expect_fail("flow-map node_schema entry",
+                _replace_once(VALID, "  - f1\n", "  - {bad: field}\n"),
+                "node_schema[0] must be a non-empty string")
+    expect_fail("nested output_artifacts.primary",
+                _replace_once(VALID, "  primary: out.md",
+                              "  primary:\n    nested: out.md"),
+                "output_artifacts.primary must be a non-empty string")
+    expect_fail("nested verdict label",
+                _replace_once(VALID, "  advances: A",
+                              "  advances:\n    nested: A"),
+                "verdict_enum.advances must be a non-empty string")
+    expect_fail("mapping-valued convergence_metric is rejected, not a crash",
+                _replace_once(VALID, "convergence_metric: advances",
+                              "convergence_metric:\n  nested: advances"),
+                "convergence_metric must be a non-empty string")
+
+    # Identifier discipline: distinct keys/fields/labels, 1-3 letter keys,
+    # out-dir-confined artifact filenames.
+    expect_fail("duplicate score key",
+                _replace_once(VALID, "{key: N, name: n", "{key: S, name: n"),
+                "score_dims keys must be distinct")
+    expect_fail("overlong score key",
+                _replace_once(VALID, "{key: S,", "{key: TOOLONG,"),
+                "must be 1-3 letters")
+    expect_fail("duplicate node_schema fields",
+                _replace_once(VALID, "  - f12\n", "  - f11\n"),
+                "node_schema field names must be distinct")
+    expect_fail("duplicate verdict labels",
+                _replace_once(VALID, "  kept: K", "  kept: A"),
+                "verdict_enum labels must be distinct")
+    expect_fail("path-escaping primary artifact",
+                _replace_once(VALID, "  primary: out.md",
+                              "  primary: ../../escape.md"),
+                "bare *.md filename")
+    expect_fail("path-escaping secondary artifact",
+                _replace_once(VALID, "output_artifacts:\n  primary: out.md",
+                              "output_artifacts:\n  primary: out.md\n"
+                              "  secondary:\n    evil: C:/absolute.md"),
+                "output_artifacts.secondary.evil")
+    expect_pass("well-formed secondary artifacts",
+                _replace_once(VALID, "output_artifacts:\n  primary: out.md",
+                              "output_artifacts:\n  primary: out.md\n"
+                              "  secondary:\n    rejected: rejected.md"))
+
+
+def test_frontmatter_regressions() -> None:
+    """Parser-level positive cases: subset constructs must parse exactly."""
     expect_pass("quoted name scalar is unquoted before validation",
-                VALID.replace("name: test", 'name: "test"'))
+                _replace_once(VALID, "name: test", 'name: "test"'))
     expect_parsed("double-quoted scalar", '---\nname: "attack"\n---\nx\n',
                   "name", "attack")
-    # A prose apostrophe must not swallow a trailing comment (was: the
-    # apostrophe toggled quote-tracking and the comment stayed in-value).
     expect_parsed("apostrophe before # keeps comment stripped",
                   "---\nsubject_label: reviewer's take  # note\n---\nx\n",
                   "subject_label", "reviewer's take")
-    # A flow-map list item with a trailing comment must still parse (was:
-    # degenerated to {'_raw': ...} because the raw item no longer ended
-    # with '}').
     expect_pass("flow-map score_dims entry tolerates trailing comment",
-                VALID.replace('  - {key: S, name: s, desc: "d"}',
+                _replace_once(VALID, '  - {key: S, name: s, desc: "d"}',
                               '  - {key: S, name: s, desc: "d"}  # dim S'))
-    # '#' inside a quoted flow-map value is content, not a comment.
     expect_parsed("hash inside quoted desc survives",
                   '---\ndims:\n  - {key: S, name: s, desc: "a # b"}\n---\nx\n',
                   "dims", [{"key": "S", "name": "s", "desc": "a # b"}])
-    # Standard YAML block-map list items must parse to dicts (was: the
-    # continuation lines were silently dropped and each item degraded to
-    # the scalar string "key: S").
     expect_parsed("block-map list items parse to dicts",
                   "---\ndims:\n  - key: S\n    name: s\n    desc: d\n"
                   "  - key: N\n    name: n\n    desc: d2\n---\nx\n",
                   "dims", [{"key": "S", "name": "s", "desc": "d"},
                            {"key": "N", "name": "n", "desc": "d2"}])
-    # End-to-end: a preset whose score_dims use block-map style passes
-    # full schema validation, same as the flow-map style.
     BLOCK_DIMS = (
         "score_dims:\n"
         "  - key: S\n    name: s\n    desc: d\n"
@@ -193,34 +291,79 @@ def main() -> int:
         "  - key: K\n    name: k\n    desc: d\n"
         "  - key: B\n    name: b\n    desc: d\n"
     )
-    FLOW_DIMS = (
-        'score_dims:\n'
-        '  - {key: S, name: s, desc: "d"}\n'
-        '  - {key: N, name: n, desc: "d"}\n'
-        '  - {key: F, name: f, desc: "d"}\n'
-        '  - {key: K, name: k, desc: "d"}\n'
-        '  - {key: B, name: b, desc: "d"}\n'
-    )
     expect_pass("block-map score_dims validates like flow-map",
-                VALID.replace(FLOW_DIMS, BLOCK_DIMS))
-    # An empty list entry must parse to "" rather than raising IndexError:
-    # `_strip_comment` used `s[:1] in "\"'"`, and `"" in "\"'"` is True, so a
-    # bare `-` crashed the whole validator with a traceback instead of the
-    # clean "node_schema[i] is empty" failure below.
+                _replace_once(VALID, FLOW_DIMS, BLOCK_DIMS))
     expect_parsed("bare `-` list entry parses to an empty string",
                   "---\nl:\n  -\n  - real\n---\nx\n", "l", ["", "real"])
-    expect_fail("empty node_schema entry is rejected, not a crash",
-                VALID.replace("  - f12\n", "  -\n"))
-    # Frontmatter whose closing `---` is the last byte of the file (no
-    # trailing newline) is still frontmatter.
     expect_parsed("closing --- at EOF without trailing newline",
                   "---\nname: test\n---", "name", "test")
 
-    # --- Section-reference namespace (guards _check_section_refs) ---
-    # The check is only as good as its harvest: if the heading style of
-    # ENGINE.md/presets ever changes, `valid` silently shrinks and dead
-    # refs stop being caught. Pin the shapes that must stay harvestable
-    # and the reference shapes that must stay matchable.
+    # 2026-08 strictness sweep: constructs the parser previously mangled.
+    expect_parsed("comment after a collection key keeps its children",
+                  "---\nouter: # note\n  child: value\n---\nx\n",
+                  "outer", {"child": "value"})
+    expect_parsed("comment after a block-scalar marker keeps the block",
+                  "---\nt: | # note\n  alpha\n  beta\n---\nx\n",
+                  "t", "alpha\nbeta")
+    expect_parsed("one-key block-map list items parse to dicts",
+                  "---\nl:\n  - key: S\n  - key: N\n---\nx\n",
+                  "l", [{"key": "S"}, {"key": "N"}])
+    expect_parsed("inline flow map as a value parses to a dict",
+                  "---\nve: {advances: A, kept: K}\n---\nx\n",
+                  "ve", {"advances": "A", "kept": "K"})
+    expect_pass("inline flow-map verdict_enum validates like the block form",
+                _replace_once(VALID,
+                              "verdict_enum:\n  advances: A\n  kept: K\n"
+                              "  pruned: P\n  blocked: B",
+                              "verdict_enum: {advances: A, kept: K, "
+                              "pruned: P, blocked: B}"))
+    expect_parsed("UTF-8 BOM before the opening --- is tolerated",
+                  "\ufeff---\nname: test\n---\nx\n", "name", "test")
+
+    global _n_parser
+    _n_parser += 1
+    _, body = split_frontmatter("---\nname: test\n---\n\n\n  body\n")
+    if body != "\n\n  body\n":
+        _failures.append(
+            f"PARSER: body must keep its leading blank lines, got {body!r}")
+
+
+def test_parser_rejections() -> None:
+    """Out-of-subset constructs raise instead of silently recovering."""
+    expect_parse_error("duplicate key",
+                       "---\nname: a\nname: b\n---\nx", "duplicate key")
+    expect_parse_error("junk non-mapping line",
+                       "---\nname: a\nJUNK LINE\n---\nx",
+                       "expected 'key: value'")
+    expect_parse_error("misindented map line",
+                       "---\nouter:\n    child: v\n  stray: x\n---\nx",
+                       "misindented")
+    expect_parse_error("sequence indicator without space",
+                       "---\nl:\n  -one\n---\nx", "list item")
+    expect_parse_error("text after flow map",
+                       "---\nd:\n  - {key: S} GARBAGE\n---\nx",
+                       "unexpected text after flow map")
+    expect_parse_error("flow-map entry without a colon",
+                       "---\nd:\n  - {key: S, JUNK}\n---\nx",
+                       "not 'key: value'")
+    expect_parse_error("unbalanced flow map",
+                       "---\nd:\n  - {key: S\n---\nx", "unbalanced")
+
+
+def test_heading_slugs() -> None:
+    """Anchor slugs must include GitHub's -N suffixes for repeats."""
+    global _n_parser
+    _n_parser += 1
+    got = vp._heading_slugs("## Repeat\n## Repeat\n## Other\n")
+    want = {"repeat", "repeat-1", "other"}
+    if got != want:
+        _failures.append(f"SLUGS: got {sorted(got)}, want {sorted(want)}")
+
+
+def test_section_reference_patterns() -> None:
+    """Guards _check_section_refs: the check is only as good as its
+    harvest. Pin the shapes that must stay harvestable and the reference
+    shapes that must stay matchable."""
     valid = set()
     for src in vp._section_id_sources():
         for _, heading in vp._HEADING_RE.findall(src.read_text(encoding="utf-8")):
@@ -243,13 +386,22 @@ def main() -> int:
     if refs != {"F8", "3.A", "6.2", "10"}:
         _failures.append(f"SECTION-REFS: reference scan returned {sorted(refs)}")
 
+
+def main() -> int:
+    n_shipped = test_shipped_presets()
+    test_schema_rejections()
+    test_frontmatter_regressions()
+    test_parser_rejections()
+    test_heading_slugs()
+    test_section_reference_patterns()
+
     if _failures:
         print("test_validate: FAILED")
         for f in _failures:
             print(f"  - {f}")
         return 1
     print("test_validate: all schema tests passed "
-          f"({len(real)} shipped presets + {_n_pass} positive + "
+          f"({n_shipped} shipped presets + {_n_pass} positive + "
           f"{_n_fail} negative + {_n_parser} parser cases)")
     return 0
 

@@ -59,11 +59,18 @@ A node spawns children when:
   prompt itself generates;
 - AND at least one child passes §4 + §5 with `verdict = advances`.
 
-A node is a **terminal leaf** (counts toward final `width`) when:
-- §3 has been run on it AND
-- no framing pass produced a child that survived §4 + §5 AND
-- the node itself has score ≥ pruning threshold (else it's `DEAD-END`
-  not a final leaf).
+A node is a **terminal leaf** (counts toward final `width`) when its
+verdict makes it terminal:
+- `kept` or `pruned` — terminal by decision (§5.3): the node stays in
+  the tree and is never re-expanded, so it is a tip the moment it is
+  scored. Pruned tips (e.g. brainstorm's `DEAD-END`) still count —
+  they are fully derived (§4, §F4) and delivered in the secondary
+  artifacts, and §7.4's `leaf_count` / verdict distribution counts
+  every one of them;
+- `advances` — terminal only after §3 has been re-run on it and no
+  framing pass produced a child that survived §4 + §5. §6 condition 4
+  requires this exhaustion of every `advances` leaf before
+  `CONVERGED`, so a finished tree has no unexpanded `advances` tips.
 
 A node tagged `INCOMPLETE_FORBIDDEN` **never** counts as a terminal
 leaf — it must be driven to a complete state (every field non-empty,

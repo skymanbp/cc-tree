@@ -8,7 +8,7 @@
 </defs>
 <rect width="1440" height="1360" fill="#ffffff"/>
 <text x="720.0" y="48" text-anchor="middle" font-size="30" font-weight="700" fill="#222">cc-tree &#8212; a phylogenetic tree of thoughts</text>
-<text x="720.0" y="76" text-anchor="middle" font-size="16" fill="#666">one universal radial-tree engine &#183; four swappable presets &#183; many directions win, some dead-end, the rest keep branching &#8212; no single winner</text>
+<text x="720.0" y="76" text-anchor="middle" font-size="16" fill="#666">one universal radial-tree engine &#183; four swappable presets &#183; mid-run snapshot: many directions win, some dead-end, the rest keep branching &#8212; no single winner</text>
 <circle cx="720.0" cy="660.0" r="172.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
 <circle cx="720.0" cy="660.0" r="254.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
 <circle cx="720.0" cy="660.0" r="336.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>

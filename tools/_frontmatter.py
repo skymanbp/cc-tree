@@ -34,15 +34,34 @@ Return shape:
 
 Comment/quote handling is quote-aware so commas and `#` inside a quoted
 `desc:` value are not mistaken for separators or comments.
+
+Anything *outside* the subset raises `FrontmatterError` instead of being
+silently skipped or coerced: this parser feeds a validator, so guessing
+at malformed input would convert authoring mistakes into false passes
+(junk lines, duplicate keys, `-item` without a space, and text after a
+flow map were all previously absorbed without a sound).
+
+Known, deliberate divergences from full YAML (the shipped presets use
+none of these): quote escapes (`\"`, doubled `''`) are not decoded, and
+block scalars are joined line-by-line — per-line indentation inside a
+`|` block and `>`-folding/chomping semantics are not preserved.
 """
 
 from __future__ import annotations
 
 import re
 
+
+class FrontmatterError(ValueError):
+    """Raised when a frontmatter block falls outside the supported subset."""
+
+
 # `(?:\n|\Z)`: the closing `---` may be the file's last byte, with no
-# trailing newline after it.
-FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*(?:\n|\Z)", re.DOTALL)
+# trailing newline after it. `\ufeff?`: tolerate a UTF-8 BOM. `[ \t]*`
+# (not `\s*`): horizontal whitespace only, so the match cannot swallow
+# blank lines that belong to the Markdown body.
+FRONTMATTER_RE = re.compile(r"^\ufeff?---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)",
+                            re.DOTALL)
 
 _BLOCK_SCALAR_MARKERS = {"|", ">", "|-", ">-", "|+", ">+"}
 
@@ -136,21 +155,26 @@ def _find_flow_map_end(s: str) -> int:
 def _parse_flow_map(s: str) -> dict[str, str]:
     """Parse `{key: S, name: severity, desc: "..."}` into a dict.
 
-    Anything after the matching closing `}` (e.g. a trailing `# comment`)
-    is ignored — cutting at the matched brace, not requiring endswith("}"),
-    keeps a commented flow-map item from degenerating to `{"_raw": ...}`.
-    A malformed body (unbalanced braces, or no `{` at all) yields
-    `{"_raw": <value>}`.
+    A trailing `# comment` after the matching closing `}` is allowed
+    (cutting at the matched brace keeps a commented flow-map item alive);
+    any *other* trailing text, an unbalanced brace, or an entry without a
+    `key: value` colon raises — silently dropping those turned malformed
+    presets into validated ones.
     """
     s = s.strip()
     close = _find_flow_map_end(s)
     if close == -1:
-        return {"_raw": _unquote(s)}
+        raise FrontmatterError(f"unbalanced braces in flow map: {s!r}")
+    tail = _strip_comment(s[close + 1:].strip())
+    if tail:
+        raise FrontmatterError(
+            f"unexpected text after flow map: {tail!r} in {s!r}")
     inner = s[1:close]
     out: dict[str, str] = {}
     for part in _split_commas(inner):
         if ":" not in part:
-            continue
+            raise FrontmatterError(
+                f"flow-map entry is not 'key: value': {part.strip()!r} in {s!r}")
         k, _, v = part.partition(":")
         out[k.strip()] = _unquote(v.strip())
     return out
@@ -179,24 +203,31 @@ def _parse_list(lines: list[str], i: int, base: int) -> tuple[list, int]:
         if ind < base:
             break
         if ind > base:
-            # Deeper than the list level and not a list entry we model; skip.
-            i += 1
-            continue
+            # A deeper line here belongs to no entry: block-map items
+            # consume their own continuations, so this is a stray.
+            raise FrontmatterError(
+                f"misindented line under list (indent {ind} > {base}): "
+                f"{raw.strip()!r}")
         s = raw.strip()
         if not s.startswith("-"):
             break
+        if s != "-" and not s.startswith("- "):
+            # YAML requires the sequence indicator to stand alone: `-one`
+            # is a plain scalar, which cannot start a list entry.
+            raise FrontmatterError(f"list item must be '-' or '- ...': {s!r}")
         item = s[1:].strip()
         if item.startswith("{"):
             items.append(_parse_flow_map(item))
             i += 1
-        elif _looks_like_map_entry(item) and _has_deeper_continuation(lines, i + 1, base):
+        elif _looks_like_map_entry(item):
             # Block-map list item (standard YAML list-of-maps):
             #   - key: S
             #     name: severity
             # Re-parse "- key: S" as the first line of a map whose base
-            # indent is the position after "- ", then absorb the deeper
-            # continuation lines. Without this, continuation lines were
-            # silently dropped and the item degraded to a scalar string.
+            # indent is the position after "- ", then absorb any deeper
+            # continuation lines. A single `- key: S` with no continuation
+            # is still a (one-entry) mapping — treating it as the scalar
+            # string "key: S" mis-shaped the value.
             item_indent = ind + 2
             sub = [" " * item_indent + item]
             i += 1
@@ -226,13 +257,6 @@ def _looks_like_map_entry(item: str) -> bool:
     return bool(sep) and " " not in key.strip() and (rest == "" or rest.startswith(" "))
 
 
-def _has_deeper_continuation(lines: list[str], i: int, base: int) -> bool:
-    """True if the next content line is indented deeper than `base`
-    (i.e. the current list item continues as a block map)."""
-    j = _next_content_line(lines, i)
-    return j < len(lines) and _indent(lines[j]) > base
-
-
 def _parse_map(lines: list[str], i: int, base: int) -> tuple[dict, int]:
     d: dict = {}
     n = len(lines)
@@ -245,15 +269,35 @@ def _parse_map(lines: list[str], i: int, base: int) -> tuple[dict, int]:
         if ind < base:
             break
         if ind > base:
-            i += 1
-            continue
+            # Nested blocks are consumed by their `key:` line below, so a
+            # deeper line arriving at this loop is orphaned — usually a
+            # misindented sibling that would otherwise vanish silently.
+            raise FrontmatterError(
+                f"misindented line (indent {ind} > {base}): {raw.strip()!r}")
         content = raw.strip()
         if ":" not in content:
-            i += 1
-            continue
+            raise FrontmatterError(
+                f"expected 'key: value', got {content!r}")
         key, _, rest = content.partition(":")
         key = key.strip()
+        if key in d:
+            # Last-wins would let a duplicate silently shadow the value the
+            # validator then approves.
+            raise FrontmatterError(f"duplicate key {key!r}")
         rest = rest.strip()
+        if rest.startswith("{"):
+            # Inline flow map as a value: `verdict_enum: {advances: A, …}`.
+            # Comment handling rides on _parse_flow_map's cut-at-brace (a
+            # bare _strip_comment here would sever a quoted `#` inside).
+            d[key] = _parse_flow_map(rest)
+            i += 1
+            continue
+        # Strip a trailing comment BEFORE the branch decisions: `key: # c`
+        # is an empty value (nested block or "") and `key: | # c` is a
+        # block scalar — with the comment left in place, the first parsed
+        # as the scalar "" and dropped its children, the second as the
+        # literal string "|".
+        rest = _strip_comment(rest)
         if rest in _BLOCK_SCALAR_MARKERS:
             i += 1
             block: list[str] = []
@@ -268,7 +312,7 @@ def _parse_map(lines: list[str], i: int, base: int) -> tuple[dict, int]:
             # Unquote after comment-stripping: `name: "attack"` must parse
             # to `attack`, matching flow-map value handling — otherwise the
             # validator's name==basename check rejects valid quoted YAML.
-            d[key] = _unquote(_strip_comment(rest))
+            d[key] = _unquote(rest)
             i += 1
         else:
             j = _next_content_line(lines, i + 1)
