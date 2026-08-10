@@ -28,6 +28,7 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+.ce/
 
 # Build / log artefacts
 *.log
