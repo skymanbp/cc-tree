@@ -3,7 +3,7 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## Unreleased
+## v0.7.0 — 2026-08-16
 
 Repository restructure, README rewrite, and a fourth adversarial sweep —
 this one a 5-dimension multi-agent audit (32 findings confirmed by an
