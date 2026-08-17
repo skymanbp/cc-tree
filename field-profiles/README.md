@@ -55,11 +55,15 @@ change the run's `output_language` selected by `--lang`.
 
 1. Copy [`_template.md`](_template.md) to `field-profiles/<your-field>.md`
    (or anywhere, and pass the path).
-2. Fill each list with **concrete, checkable** entries. "Be rigorous"
+2. **Set the `field:` key to the new basename** and rewrite
+   `description:`. The validator requires `field` == filename, so a
+   copy that keeps `field: _template` is rejected — and the underscore
+   that exempts the template itself will not exempt yours.
+3. Fill each list with **concrete, checkable** entries. "Be rigorous"
    carries no weighting signal; "report effect size with a 95% CI"
    does.
-3. Keep it short — 3–6 items per list. The profile re-prioritizes;
-   it does not replace the framings.
+4. Keep it short — 3–6 items for the three enumerative lists. The
+   profile re-prioritizes; it does not replace the framings.
 
 A field profile **cannot** weaken any universal engine rule
 (`docs/ENGINE.md` §0.5). It only changes the *order* in which branches

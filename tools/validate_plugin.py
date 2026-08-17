@@ -8,7 +8,9 @@ Checks:
   1. .claude-plugin/plugin.json is valid JSON and has name + version +
      description.
   2. .claude-plugin/marketplace.json is valid JSON; its metadata.version
-     and plugins[<self>].version both match plugin.json.
+     and plugins[<self>].version both match plugin.json, the metadata the
+     two manifests duplicate is byte-identical, and CHANGELOG.md carries a
+     section for the version they declare.
   3. Every skills/<name>/SKILL.md starts with a YAML frontmatter block
      that declares `name:` (= directory name) and `description:`.
   4. Every presets/<name>.md passes full schema validation (docs/ENGINE.md
@@ -18,12 +20,12 @@ Checks:
      each key/name/desc) + node_schema (exactly 12) + output_artifacts.primary.
   5. Every commands/<name>.md starts with a YAML frontmatter block that
      declares `description:`.
-  6. tools/*.py all parse as valid Python (ast.parse, no runtime imports).
-  7. Cross-file consistency: `](path#anchor)` links resolve to a real
-     heading, `examples/` line citations stay in bounds, command
-     `argument-hint` flags are documented outside frontmatter, field
-     profiles match the schema, and every `§N` / `§FN` prose reference
-     names a real section.
+  6. tools/**/*.py all parse as valid Python (ast.parse, no runtime imports).
+  7. Cross-file consistency: every relative Markdown link resolves on disk
+     and, when it carries a `#fragment`, points at a real heading;
+     `examples/` line citations stay in bounds, command `argument-hint`
+     flags are documented outside frontmatter, field profiles match the
+     schema, and every `§N` / `§FN` prose reference names a real section.
   8. docs/languages.json controls English-canonical / Chinese-parallel
      documentation, source digests, structure, and machine-token parity.
 """
@@ -37,7 +39,14 @@ import sys
 from pathlib import Path
 
 from _frontmatter import FrontmatterError, parse_frontmatter, split_frontmatter
-from _i18n import FLAG_RE, I18nError, is_skipped, load_manifest, validate_i18n
+from _i18n import (
+    FLAG_RE,
+    I18nError,
+    is_skipped,
+    load_manifest,
+    scan_markdown,
+    validate_i18n,
+)
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -119,7 +128,26 @@ def check_manifests() -> str:
     if inner.get("version") != plugin_v:
         fail(f"marketplace.json plugins[].version ({inner.get('version')!r}) != "
              f"plugin.json version ({plugin_v!r})")
-    return f"manifests OK (version {plugin_v})"
+    # Metadata the two manifests duplicate must stay byte-identical. Each file
+    # is independently well-formed, so a keyword added to plugin.json and not
+    # to the marketplace entry drifts silently — and it is the marketplace copy
+    # that plugin discovery reads.
+    for key in ("description", "keywords", "author",
+                "homepage", "repository", "license"):
+        if plugin.get(key) != inner.get(key):
+            fail(f"marketplace.json plugins[].{key} != plugin.json {key} "
+                 f"({inner.get(key)!r} vs {plugin.get(key)!r})")
+    # Nothing tied the declared version to the release history before, which
+    # is how v0.5.0 shipped as a tag and a GitHub release while its notes sat
+    # unheaded inside the v0.5.1 section.
+    changelog = REPO / "CHANGELOG.md"
+    if not changelog.is_file():
+        fail(f"{changelog} missing")
+    if not re.search(rf"^##\s+v{re.escape(plugin_v)}(?![0-9.])",
+                     changelog.read_text(encoding="utf-8"), re.MULTILINE):
+        fail(f"CHANGELOG.md has no '## v{plugin_v}' section for the version "
+             "the manifests declare")
+    return f"manifests OK (version {plugin_v}, metadata paired, changelog present)"
 
 
 def _check_md_frontmatter(path: Path, required_keys: tuple[str, ...],
@@ -307,8 +335,12 @@ def check_commands() -> str:
 
 
 def check_tools_syntax() -> str:
+    """Every Python file under tools/ parses — including tools/tests/, which a
+    flat `glob("*.py")` stopped covering the moment the tests moved into their
+    own package-free subdirectory."""
     tools_dir = REPO / "tools"
-    py_files = sorted(tools_dir.glob("*.py"))
+    py_files = sorted(p for p in tools_dir.rglob("*.py")
+                      if not is_skipped(p.relative_to(REPO).parts))
     if not py_files:
         fail(f"{tools_dir} has no .py tools")
     for p in py_files:
@@ -316,7 +348,7 @@ def check_tools_syntax() -> str:
             ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
         except SyntaxError as e:
             fail(f"{p}: SyntaxError: {e}")
-    return f"tools/*.py syntax OK ({len(py_files)} files)"
+    return f"tools/**/*.py syntax OK ({len(py_files)} files)"
 
 
 # --- Cross-file consistency checks -----------------------------------------
@@ -325,8 +357,7 @@ def check_tools_syntax() -> str:
 # out-of-bounds example citations, undocumented command flags, malformed field
 # profiles, dead §-references — into a CI failure.
 
-_LINK_RE = re.compile(r"\]\(([^)#\s]+)#([^)\s]+)\)")
-_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+_LINK_RE = re.compile(r"\]\(([^)\s]+)\)")
 _CITATION_RE = re.compile(r"([A-Za-z0-9_.\-/]+\.md):(\d+)(?:-(\d+))?")
 # Deliberately stricter than _i18n's inline-code pattern: this one must not
 # span lines, so one stray backtick cannot blank out half a document.
@@ -350,6 +381,21 @@ def _content_md_files() -> list[Path]:
             if not is_skipped(p.relative_to(REPO).parts)]
 
 
+def _headings(text: str) -> list[tuple[int, str]]:
+    """Fence-aware `(level, title)` pairs.
+
+    Delegates to `_i18n.scan_markdown` so the repository has exactly one
+    heading scanner. The private `^#{1,6}\\s+` regex this replaced ran over raw
+    text with no fence tracking, so `# === Slot 1: root type ===` inside a
+    YAML example fence counted as a heading — feeding pseudo-entries into the
+    §-namespace, the anchor slug table, and the field-profile section check
+    (9 phantom headings in ENGINE.md alone, 4 per preset).
+    """
+    shape = scan_markdown(text)
+    return [(level, title) for (level, _marker), title
+            in zip(shape.headings, shape.heading_titles)]
+
+
 def _slugify(heading: str) -> str:
     """GitHub-style heading slug: drop code ticks, lowercase, strip
     punctuation (keep word chars / spaces / hyphens), spaces -> hyphens."""
@@ -364,7 +410,7 @@ def _heading_slugs(text: str) -> set[str]:
     perfectly valid `#repeat-1` link was reported as dead."""
     counts: dict[str, int] = {}
     slugs: set[str] = set()
-    for _, heading in _HEADING_RE.findall(text):
+    for _level, heading in _headings(text):
         base = _slugify(heading)
         seen = counts.get(base, 0)
         counts[base] = seen + 1
@@ -372,22 +418,37 @@ def _heading_slugs(text: str) -> set[str]:
     return slugs
 
 
-def _check_anchors(md_files: list[Path]) -> int:
-    """Every `](path#fragment)` link must point at a file that exists and
-    a heading whose slug equals the fragment. Pure-fragment links
-    (`](#L42)`) are skipped — the docs use those as illustrative
-    pseudo-references in framing examples."""
-    n = 0
+def _check_links(md_files: list[Path]) -> tuple[int, int]:
+    """Every relative Markdown link must resolve on disk, and a link that
+    carries a `#fragment` must additionally name a real heading.
+
+    Returns `(links, anchors)`.
+
+    The fragment half was here from the start; the *existence* half was the
+    hole. The old pattern required a `#`, so `](../docs/ENGINE.md)` — the form
+    almost every command, preset, and doc actually uses — was never checked at
+    all. That is precisely the class a file move breaks, so a restructure could
+    strand a hundred links with CI still green.
+
+    Skipped: absolute URLs, `mailto:`, and pure-fragment links (`](#L42)`),
+    which the framing docs use as illustrative pseudo-references.
+    """
+    links = anchors = 0
     slug_cache: dict[Path, set[str]] = {}
     for src in md_files:
         text = _strip_inline_code(src.read_text(encoding="utf-8"))
-        for target_rel, frag in _LINK_RE.findall(text):
-            if target_rel.startswith(("http://", "https://")):
+        for raw in _LINK_RE.findall(text):
+            if raw.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            target_rel, _, frag = raw.partition("#")
+            if not target_rel:
                 continue
             target = (src.parent / target_rel).resolve()
-            if not target.is_file():
-                fail(f"{src}: link target missing: {target_rel}")
-            if target.suffix != ".md":
+            # Directory links (`](../presets/)`) are legitimate targets.
+            if not target.exists():
+                fail(f"{src}: link target missing: {raw}")
+            links += 1
+            if not frag or target.suffix != ".md" or not target.is_file():
                 continue
             if target not in slug_cache:
                 slug_cache[target] = _heading_slugs(
@@ -395,8 +456,8 @@ def _check_anchors(md_files: list[Path]) -> int:
             if frag.lower() not in slug_cache[target]:
                 fail(f"{src}: dead anchor #{frag} -> {target_rel} "
                      f"(no heading slugs match)")
-            n += 1
-    return n
+            anchors += 1
+    return links, anchors
 
 
 def _check_example_citations() -> int:
@@ -432,20 +493,30 @@ def _check_skill_flags(repo: Path, required: tuple[str, ...]) -> tuple[str, set[
     `argument-hint` advertises form the *common* namespace that wrapper
     commands may document via the skill body.
     """
-    skill_path = repo / "skills" / "tree" / "SKILL.md"
-    skill_fm, skill_body = _read_split(skill_path)
-    skill_hint = str((skill_fm or {}).get("argument-hint", ""))
-    common = set(FLAG_RE.findall(skill_hint)) | set(required)
-    for flag in set(FLAG_RE.findall(skill_hint)):
-        if not _contains_flag(skill_body, flag):
-            fail(f"{skill_path}: argument-hint advertises {flag} but the "
-                 "skill body does not document it")
-    for flag in required:
-        if (not _contains_flag(skill_hint, flag)
-                or not _contains_flag(skill_body, flag)):
-            fail(f"{skill_path}: required common flag {flag} must appear in "
-                 "both argument-hint and skill body")
-    return skill_body, common
+    bodies: list[str] = []
+    common = set(required)
+    skill_paths = sorted((repo / "skills").glob("*/SKILL.md"))
+    if not skill_paths:
+        fail("skills/*/SKILL.md: no runtime skill found to validate flags against")
+    # Enumerated, not hard-coded to skills/tree/SKILL.md: `_i18n._harvest_tokens`
+    # already globs every skill for exactly this reason, and the two must agree
+    # — a second skill's flags were otherwise never hint/body-checked.
+    for skill_path in skill_paths:
+        skill_fm, skill_body = _read_split(skill_path)
+        skill_hint = str((skill_fm or {}).get("argument-hint", ""))
+        hint_flags = set(FLAG_RE.findall(skill_hint))
+        common |= hint_flags
+        for flag in hint_flags:
+            if not _contains_flag(skill_body, flag):
+                fail(f"{skill_path}: argument-hint advertises {flag} but the "
+                     "skill body does not document it")
+        for flag in required:
+            if (not _contains_flag(skill_hint, flag)
+                    or not _contains_flag(skill_body, flag)):
+                fail(f"{skill_path}: required common flag {flag} must appear "
+                     "in both argument-hint and skill body")
+        bodies.append(skill_body)
+    return "\n".join(bodies), common
 
 
 def _check_wrapper_flags(cmd: Path, repo: Path, skill_body: str,
@@ -507,9 +578,10 @@ _SECTION_ID_RE = re.compile(r"^§?(F\d+|\d+(?:\.[0-9A-Za-z]+)?)[.\s—-]")
 
 
 def _section_id_sources() -> list[Path]:
-    """Files whose headings define the engine's §-section namespace."""
+    """Files whose headings define the engine's §-section namespace. Skills are
+    enumerated rather than named so the namespace follows the skill."""
     return [REPO / "docs" / "ENGINE.md", REPO / "docs" / "ENGINE.zh.md",
-            REPO / "skills" / "tree" / "SKILL.md",
+            *sorted((REPO / "skills").glob("*/SKILL.md")),
             *sorted((REPO / "presets").glob("*.md"))]
 
 
@@ -531,7 +603,7 @@ def _check_section_refs(md_files: list[Path]) -> int:
     for src in _section_id_sources():
         if not src.is_file():
             continue
-        for _, heading in _HEADING_RE.findall(src.read_text(encoding="utf-8")):
+        for _level, heading in _headings(src.read_text(encoding="utf-8")):
             m = _SECTION_ID_RE.match(heading.strip())
             if m:
                 valid.add(m.group(1).upper())
@@ -579,8 +651,8 @@ def _check_field_profiles() -> int:
         # Titles may carry an annotation after the section name (the shipped
         # profiles write "Reviewer concerns — feeds §3.C ..."), so the
         # required name matches as a whole-word prefix of the title.
-        h2_titles = [title.strip() for hashes, title
-                     in _HEADING_RE.findall(text) if len(hashes) == 2]
+        h2_titles = [title.strip() for level, title
+                     in _headings(text) if level == 2]
         for title in required_sections:
             if not any(t == title or t.startswith(title + " ")
                        for t in h2_titles):
@@ -591,14 +663,27 @@ def _check_field_profiles() -> int:
 
 def check_crossrefs() -> str:
     md_files = _content_md_files()
-    anchors = _check_anchors(md_files)
+    links, anchors = _check_links(md_files)
     citations = _check_example_citations()
     flags = _check_command_flags()
     profiles = _check_field_profiles()
     sections = _check_section_refs(md_files)
-    return (f"cross-refs OK ({anchors} anchors, {citations} example "
-            f"citations, {flags} command flags, {profiles} field profiles, "
-            f"{sections} section refs)")
+    # Tripwires. Each of these sub-checks reports a count that nothing used to
+    # assert on, so any of them could be reduced to a no-op — by a bad regex,
+    # a renamed directory, or an over-eager skip rule — with the whole suite
+    # still printing OK. A zero where the repository plainly has content is
+    # the signature of a check that stopped looking.
+    for count, what in ((links, "relative links"), (anchors, "anchor links"),
+                        (citations, "example citations"),
+                        (flags, "command flags"),
+                        (profiles, "field profiles"),
+                        (sections, "section refs")):
+        if count == 0:
+            fail(f"cross-refs: scanned 0 {what} across {len(md_files)} "
+                 "documents; the check is no longer looking at anything")
+    return (f"cross-refs OK ({links} links / {anchors} anchors, {citations} "
+            f"example citations, {flags} command flags, {profiles} field "
+            f"profiles, {sections} section refs)")
 
 
 def check_i18n() -> str:

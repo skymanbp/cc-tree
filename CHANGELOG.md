@@ -3,6 +3,114 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## Unreleased
+
+Repository restructure, README rewrite, and a fourth adversarial sweep —
+this one a 5-dimension multi-agent audit (32 findings confirmed by an
+independent refuting pass, 6 rejected, including one the verifier and a
+first-party `wc -l` both refuted). Nothing in the runtime prompt changed
+semantics except three contract-drift fixes listed below.
+
+### Fixed (the checks themselves)
+
+- **Running the test suite broke the validator.** `is_skipped`'s skip
+  list was maintained by hand against `.gitignore` and had drifted:
+  `.pytest_cache/README.md` is a real file pytest writes, so
+  `pytest && python tools/validate_plugin.py` reported it as an
+  *unregistered canonical document*. Dot-prefixed directories are now
+  skipped by rule, which cannot drift from `.gitignore` the way a list
+  can. `.venv/`, `.ce/`, `.claude/`, `.mypy_cache/`, `.tox/` are covered
+  by the same rule.
+- **`examples/attack/expected-out/*.md` was invisible to every
+  cross-file check.** The run-output heuristic skipped any path
+  component ending in `-out`, which swallowed the repository's own
+  showcase fixtures. The suffix test is now anchored to the top-level
+  component, where run output actually lands.
+- **`pytest` passed unconditionally.** Both suites record diagnostics in
+  a module list that only `main()` inspects, so every collected `test_*`
+  returned normally: injecting `root_kind: BOGUS` into a shipped preset
+  still printed `13 passed` while the script runner correctly exited 1.
+  Collected tests now re-raise what they recorded, and the same mutation
+  produces `1 failed`.
+- **Heading extraction was fence-blind.** `validate_plugin` had its own
+  `^#{1,6}` regex applied to raw text, so `# === Slot 1: root type ===`
+  inside a YAML example fence counted as a heading (9 phantom headings in
+  ENGINE.md, 4 per preset) and fed the §-namespace, the anchor slug
+  table, and the field-profile section check. It now reuses
+  `_i18n.scan_markdown`, leaving one heading scanner in the repository.
+- **Relative links without an anchor were never checked.** The link
+  pattern required a `#fragment`, so `](../docs/ENGINE.md)` — the form
+  nearly every command, preset, and doc uses — was unverified. All 208
+  relative links now resolve or CI fails; the check caught its own
+  authors' stale paths during this restructure.
+- **Zero-count tripwires.** Each cross-ref sub-check returned a count
+  nothing asserted on, so any of them could silently become a no-op. A
+  zero now fails.
+- **Nothing tied the version to its release notes.** `CHANGELOG.md` had
+  no `## v0.5.0` section although v0.5.0 shipped as a tag and a GitHub
+  release — its notes sat unheaded inside `## v0.5.1`. The manifests
+  check now requires a section for the declared version, and requires
+  `plugin.json` and `marketplace.json` to agree on description,
+  keywords, author, homepage, repository, and license.
+- **Skill discovery was hard-coded** to `skills/tree/SKILL.md` in the
+  flag and §-namespace checks while every neighbouring check globbed
+  `skills/*/SKILL.md`. Both now enumerate.
+- **`tools/**/*.py`** is syntax-checked recursively, so the relocated
+  tests stay covered.
+- **The diagram generator has a CI gate.** It was only `ast.parse`-d,
+  never run; CI now regenerates and diffs against the committed SVG.
+
+### Fixed (contract drift)
+
+- **`/cc-tree:brainstorm --no-online` could never converge.** The preset
+  declared field 11 `--no-online → empty`, and ENGINE §4 forces
+  `INCOMPLETE_FORBIDDEN` on any empty field, which §6.1 condition 1 then
+  blocks on forever. The field now records
+  `external_resources_unchecked=true`, matching ENGINE §3.X.
+- **The default `tree-chain` pipeline stopped at stage 2.** `design`'s
+  baseline stops unconditionally with `EARLY_STOP=root_underspecified`
+  when `goal_statement` / `hard_constraints` are empty, and a seeded
+  stage-2 run has no `<root>` to fill them from. Seeded runs now derive
+  both fields from the seeds and the prior run's root.
+- **`option_<id>.md` was undeclared.** The design→attack handoff file is
+  named by `chaining.md` and `tree-chain.md` but appeared in no output
+  contract. ENGINE §7.2 and SKILL.md §4 now list per-item files, and
+  explain why they cannot live in `output_artifacts` frontmatter.
+- `glossary-anchors.md` added to SKILL.md's output contract (ENGINE §7.2
+  had it); `§6.2` corrected to `§6.1 condition 2` at the seven sites that
+  meant the ratio rather than the decision table; `§0–§9` corrected to
+  `§0–§11`; ENGINE §2.1's non-inference preset list now includes
+  `design`; `docs/presets.md`'s "eight rules" replaced by the ten
+  conditions the validator actually enforces, and its contradictory
+  "15-line"/"4-line" wrapper sizes dropped.
+- **Copying `_template.md` produced a rejected profile.** Neither the
+  template nor the authoring steps said to change `field:`, which the
+  validator requires to equal the basename. Both now do.
+- **The showcase example blamed the cap for its own abridgement.** All
+  four files claimed `tree.json`, `REPORT.md`, and the 12-field
+  derivation appear only in an "uncapped run"; §F7 requires them under a
+  cap too. The regeneration target also moved to the already-ignored
+  `attack-out/`, so there is one list of ignored output names instead of
+  two.
+
+### Changed (structure)
+
+- `EVALUATION.md` → `docs/EVALUATION.md`; `tools/test_*.py` →
+  `tools/tests/`. Test scripts put `tools/` on `sys.path` themselves, so
+  both the script form CI uses and `pytest` work from any directory.
+- New `docs/README.md` (+ `.zh.md`) documentation index and
+  `CONTRIBUTING.md`.
+- `.gitignore` grouped by purpose and completed: `chain-out/` (the
+  shipped `tree-chain` default) and `.claude/` were missing.
+
+### Changed (docs)
+
+- README rewritten and restructured: what it is, how it works in five
+  steps, why it differs, a categorized feature reference, a full flag
+  table, the output layout, a repository map, and a documentation index.
+  Chinese parallel rewritten alongside it.
+- Manifest keywords expanded from 9 to 35 across both manifests.
+
 ## v0.6.0 — 2026-08-10
 
 Adversarial multi-model review sweep. Three parallel read-only
@@ -276,6 +384,8 @@ helpers carry docstrings.
   answered with a token stub below the 20% letter floor. Only the
   byte-for-byte "English copy" case was covered. Now 30 cases, and
   neutering the check makes all three fail.
+
+## v0.5.0 — 2026-08-06
 
 Second debug sweep, done line-by-line over every shipped file: **24
 defects across 18 files**, all in classes the existing gates could not

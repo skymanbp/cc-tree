@@ -2,11 +2,13 @@
 
 > ⚠️ **Abridged output of a real capped run**
 > (`--width 3 --depth 1 --no-online --no-grill`) on the toy artifact
-> [`../sample-claim.md`](../sample-claim.md), trimmed to the root +
-> CONFIRMED leaves to document the deliverable format. An uncapped run
-> also produces `tree.json`, `marginal.md`, `refuted.md`, a `REPORT.md`,
-> and a full 12-field derivation per node. Sorted by severity (S)
-> descending.
+> [`../sample-claim.md`](../sample-claim.md), **hand-trimmed** to the
+> root + CONFIRMED leaves to document the deliverable format. The
+> trimming, not the cap, is why the rest is absent: any real run —
+> capped or not — also writes `tree.json`, `marginal.md`, `refuted.md`,
+> a `REPORT.md`, and a full 12-field derivation per node, because
+> `docs/ENGINE.md` §F7 requires every visible leaf to be complete even
+> when a cap trips. Sorted by severity (S) descending.
 
 ## C1 — "10× faster for all users in production" overgeneralizes a single-machine p50 (S=3)
 

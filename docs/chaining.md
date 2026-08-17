@@ -69,7 +69,12 @@ stage reports use another language.
   a seeded run to start "instead of a fresh root"). Each seeded idea
   enters as a depth-1 seed node and is expanded into concrete
   options; the idea's `predictions` / `assumptions` carry into the
-  option nodes' goals/constraints.
+  option nodes' goals/constraints. The design preset's own
+  `goal_statement` / `hard_constraints` root fields are **derived
+  from the seeds and the prior run's root** in this mode rather than
+  triggering `EARLY_STOP=root_underspecified` — see
+  [`presets/design.md`](../presets/design.md) §2. Without that
+  carve-out the default chain would stop at stage 2.
 - **design → attack**: the chosen option file (its `option_<id>.md`,
   with `mechanism` + `trade_offs`) is passed as the attack stage's
   **root artifact** — attack's `root_kind` is `artifact`, so the

@@ -1,7 +1,7 @@
 # 领域画像（Field profiles）
 
 > 语言：中文。英文规范版：[`field-profiles/README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: b21c1e24efda59238fc96adf916b8ea18922acbd3db399b4d3252b3726a2fa01 -->
+<!-- i18n-source-sha256: 6773638efa197fa7fa3ed80164b77160085fa4d5d24a3af9ad66194b17a060cb -->
 
 **领域画像（field profile）**是一个可选的 markdown 文件，它为
 cc-tree 引擎提供领域感知的审稿人加权。它让 12 个 framing 以某一特定
@@ -50,10 +50,13 @@ cc-tree 引擎提供领域感知的审稿人加权。它让 12 个 framing 以�
 
 1. 把 [`_template.md`](_template.md) 复制到
    `field-profiles/<your-field>.md`（或任意位置，然后传入该路径）。
-2. 用**具体、可核查**的条目填满每张清单。"要严谨"不携带任何加权
+2. **把 `field:` 键改成新的文件基名**，并重写 `description:`。
+   验证器要求 `field` 与文件名一致，所以保留 `field: _template` 的副本
+   会被拒绝 —— 而让模板自身获得豁免的那个下划线，不会豁免你的文件。
+3. 用**具体、可核查**的条目填满每张清单。"要严谨"不携带任何加权
    信号；"报告效应量并附 95% CI"才携带。
-3. 保持简短 —— 每张清单 3–6 条。画像是重新排序优先级；它不替代
-   framing。
+4. 保持简短 —— 那三张枚举式清单各 3–6 条。画像是重新排序优先级；
+   它不替代 framing。
 
 一份领域画像**不能**削弱任何普适引擎规则（`docs/ENGINE.md`
 §0.5）。它只改变分支被探索的*顺序*并抬高证据门槛 —— 它绝不允许一处

@@ -379,8 +379,9 @@ If after a documented effort the root still has empty fields:
 - presets that allow inference (`brainstorm` research-mode) infer
   the missing fields from the closest available project state and
   flag them `[INFERRED — verify with user]`;
-- presets that do not allow inference (`attack`, `code-audit`) emit
-  `EARLY_STOP=root_underspecified` and exit.
+- every other preset — i.e. all but `brainstorm`'s research mode; the
+  shipped set is `attack`, `code-audit`, and `design` — emits
+  `EARLY_STOP=root_underspecified` and exits.
 
 Root is written to `<out>/tree.md` + `<out>/tree.json` before any
 §3 pass runs.
@@ -769,10 +770,19 @@ with the same `--out <dir>` to resume.
 │                       #   design:     options.md (recommended)
 │                       #   code-audit: findings.md
 ├── <secondary>.md*     # preset's marginal / pending / refuted lists
+├── <per-item>.md*      # per-item detail files a preset's body declares
+│                       #   design: option_<id>.md (mechanism + trade_offs);
+│                       #   this is what a design→attack chain hands over
 ├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # long-field spillovers
 ```
+
+`output_artifacts` frontmatter names only the fixed per-run deliverables,
+because its values must be literal filenames the validator can confine to
+`<out>/`. Per-item files carry an `<id>` and are therefore declared in the
+preset body instead — but they are part of the output contract all the same,
+and [`chaining.md`](chaining.md) depends on them.
 
 ### 7.3 `tree.md` per-node format
 
@@ -946,7 +956,7 @@ A preset can:
 - name the four verdicts (`verdict_enum`);
 - name the 12 node fields (`node_schema`);
 - name the 5 score dimensions (`score_dims`);
-- pick which verdict counts toward the §6.2 ratio
+- pick which verdict counts toward the §6.1 condition-2 ratio
   (`convergence_metric`);
 - choose `root_kind` (topic / artifact / code / design-prompt);
 - name the output deliverable files (`output_artifacts`);

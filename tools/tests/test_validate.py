@@ -12,12 +12,25 @@ Run with no arguments; exits non-zero on any test failure.
 
 from __future__ import annotations
 
+import functools
+import sys
 from pathlib import Path
 
-import validate_plugin as vp
-from _frontmatter import FrontmatterError, parse_frontmatter, split_frontmatter
+# tools/ holds the modules under test and is deliberately NOT a package: CI
+# runs `python tools/validate_plugin.py`, which works only because Python puts
+# the script's own directory on sys.path[0]. From tools/tests/ that no longer
+# happens, so add tools/ explicitly. Derived from __file__, never absolute.
+TOOLS = Path(__file__).resolve().parent.parent
+REPO = TOOLS.parent
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 
-REPO = Path(__file__).resolve().parent.parent
+import validate_plugin as vp  # noqa: E402 — requires the sys.path setup above
+from _frontmatter import (  # noqa: E402 — same
+    FrontmatterError,
+    parse_frontmatter,
+    split_frontmatter,
+)
 
 _failures: list[str] = []
 # Counted at call time, never hard-coded, so the summary line cannot claim
@@ -25,6 +38,7 @@ _failures: list[str] = []
 _n_pass = 0
 _n_fail = 0
 _n_parser = 0
+_n_shipped = 0
 
 
 def _validate_error(name: str, text: str) -> str | None:
@@ -151,8 +165,9 @@ FLOW_DIMS = (
 )
 
 
-def test_shipped_presets() -> int:
+def test_shipped_presets() -> None:
     """Every shipped preset must pass full frontmatter-schema validation."""
+    global _n_shipped
     presets_dir = REPO / "presets"
     real = sorted(p for p in presets_dir.glob("*.md") if p.name != "README.md")
     if not real:
@@ -173,7 +188,10 @@ def test_shipped_presets() -> int:
             vp.validate_preset_schema(p, fm)
         except vp.ValidationError as exc:  # pragma: no cover - failure path
             _failures.append(f"shipped preset REJECTED: {p.name}: {exc}")
-    return len(real)
+    # Recorded in a module counter rather than returned: a `test_*` function
+    # that returns non-None raises PytestReturnNotNoneWarning, which pytest
+    # has been escalating toward an error across releases.
+    _n_shipped = len(real)
 
 
 def test_schema_rejections() -> None:
@@ -366,7 +384,7 @@ def test_section_reference_patterns() -> None:
     shapes that must stay matchable."""
     valid = set()
     for src in vp._section_id_sources():
-        for _, heading in vp._HEADING_RE.findall(src.read_text(encoding="utf-8")):
+        for _level, heading in vp._headings(src.read_text(encoding="utf-8")):
             m = vp._SECTION_ID_RE.match(heading.strip())
             if m:
                 valid.add(m.group(1).upper())
@@ -387,13 +405,49 @@ def test_section_reference_patterns() -> None:
         _failures.append(f"SECTION-REFS: reference scan returned {sorted(refs)}")
 
 
+# Ordered exactly as `main()` runs them, captured BEFORE the pytest wrapping
+# below so the script runner keeps the plain, non-raising originals.
+_TESTS = (
+    test_shipped_presets,
+    test_schema_rejections,
+    test_frontmatter_regressions,
+    test_parser_rejections,
+    test_heading_slugs,
+    test_section_reference_patterns,
+)
+
+
+def _pytest_visible(fn):
+    """Re-raise, as an assertion, whatever `fn` recorded in `_failures`.
+
+    Every function above reports by appending to a module-level list that only
+    `main()` inspects. pytest never calls `main()`, so each collected `test_*`
+    returned normally and passed unconditionally: injecting `root_kind: BOGUS`
+    into a shipped preset still produced `13 passed` from `pytest` while
+    `python tools/tests/test_validate.py` correctly exited 1. A green pytest
+    run was therefore evidence of nothing.
+
+    Only the failures this call added are raised, so one broken check does not
+    smear its diagnostic across every later test.
+    """
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        before = len(_failures)
+        fn(*args, **kwargs)
+        added = _failures[before:]
+        if added:
+            raise AssertionError("\n".join(added))
+    return wrapper
+
+
+for _name, _fn in list(globals().items()):
+    if _name.startswith("test_") and callable(_fn):
+        globals()[_name] = _pytest_visible(_fn)
+
+
 def main() -> int:
-    n_shipped = test_shipped_presets()
-    test_schema_rejections()
-    test_frontmatter_regressions()
-    test_parser_rejections()
-    test_heading_slugs()
-    test_section_reference_patterns()
+    for test in _TESTS:
+        test()
 
     if _failures:
         print("test_validate: FAILED")
@@ -401,7 +455,7 @@ def main() -> int:
             print(f"  - {f}")
         return 1
     print("test_validate: all schema tests passed "
-          f"({n_shipped} shipped presets + {_n_pass} positive + "
+          f"({_n_shipped} shipped presets + {_n_pass} positive + "
           f"{_n_fail} negative + {_n_parser} parser cases)")
     return 0
 

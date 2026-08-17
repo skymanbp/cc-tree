@@ -29,6 +29,15 @@ jobs:
       - name: Validate manifests / skills / presets / commands / tools syntax / cross-refs
         run: python tools/validate_plugin.py
       - name: Preset schema validator self-tests (positive + negative + parser cases)
-        run: python tools/test_validate.py
+        run: python tools/tests/test_validate.py
       - name: Multilingual contract self-tests (pairs + digests + negative cases)
-        run: python tools/test_i18n.py
+        run: python tools/tests/test_i18n.py
+      # The committed diagram is generated, never hand-edited. Regenerate into
+      # a scratch copy and diff: a change to gen_radial_tree.py that silently
+      # stops matching docs/assets/ used to be invisible (the generator was
+      # only ast.parse-d, never run).
+      - name: Diagram is in sync with its generator
+        run: |
+          cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
+          python tools/gen_radial_tree.py
+          diff -u /tmp/committed.svg docs/assets/cc-tree-radial-tree.svg

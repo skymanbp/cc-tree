@@ -61,7 +61,7 @@ before producing the first node** (the engine spec is what defines
 | `--no-grill` | off | Skip §2.0 glossary grill prelude. Marks root-node terms as `unverified`; §6 convergence adds a warning. |
 | `--no-online` | off | Disable `WebSearch` / `WebFetch`. Local + already-Read references only. |
 | `--min-frameworks N` | 12 | Minimum framing passes per node. **Floor is 12** (full §3.A–§3.L); flag exists for documentation, not relaxation. |
-| `--min-novelty-ratio R` | 0.15 | §6.2 convergence requires "last 2 rounds' high-verdict / total < R". |
+| `--min-novelty-ratio R` | 0.15 | §6.1 condition 2 requires "last 2 rounds' high-verdict / total < R". |
 
 > Presets and their command wrappers may document additional
 > preset-specific flags (e.g. `attack`'s
@@ -94,7 +94,8 @@ Open the preset file. Extract from its YAML frontmatter:
 - `subject_label` — what each tree node is called (`idea`, `critique`,
   `option`, `audit-finding`, …)
 - `verdict_enum` — 4-tuple: `advances / kept / pruned / blocked`
-- `convergence_metric` — which verdict *role* counts toward §6.2.
+- `convergence_metric` — which verdict *role* counts toward the §6.1
+  condition-2 ratio.
   It must be one of the four `verdict_enum` role keys verbatim
   (`advances` / `kept` / `pruned` / `blocked`); alias spellings like
   `novelty_ratio` are rejected by the validator. All four shipped
@@ -239,12 +240,19 @@ The five that most reliably degrade output quality:
 <out>/
 ├── tree.md             # human-readable outline of every node
 ├── tree.json           # machine-readable, full 12 fields per node
+├── glossary-anchors.md # §2.0 prelude output (unless --no-grill was set)
 ├── <primary>.md        # preset's "advances" / top-recommendation file
 ├── <secondary>.md*     # preset's "marginal / pending / refuted" files
+├── <per-item>.md*      # preset-specific per-item detail files, when the
+│                       #   preset's body declares them (design writes
+│                       #   option_<id>.md, the design→attack chain handoff)
 ├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # spilled when a node's evidence > 100 lines
 ```
+
+This is the same layout as [`docs/ENGINE.md` §7.2](../../docs/ENGINE.md#72-output-directory-layout);
+that section is authoritative if the two ever disagree.
 
 Each node lands the moment its 12 fields are filled (§7.1 incremental
 write contract). Restart from interruption: just re-invoke the same
@@ -255,9 +263,10 @@ detects the existing tree and resumes from the highest-id leaf.
 
 ## 5. References
 
-- [`docs/ENGINE.md`](../../docs/ENGINE.md) — full engine spec (§0–§9)
+- [`docs/ENGINE.md`](../../docs/ENGINE.md) — full engine spec (§0–§11;
+  §0–§9 bind a run, §10–§11 bind a preset author)
 - [`docs/framings.md`](../../docs/framings.md) — the 12 framings, per-preset examples
 - [`docs/presets.md`](../../docs/presets.md) — how to author your own preset
 - [`presets/`](../../presets/) — shipped presets
 - [`commands/`](../../commands/) — ergonomic slash-command wrappers
-- [`EVALUATION.md`](../../EVALUATION.md) — design rationale
+- [`docs/EVALUATION.md`](../../docs/EVALUATION.md) — design rationale

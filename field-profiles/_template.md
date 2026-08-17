@@ -1,5 +1,5 @@
 ---
-field: _template
+field: _template   # CHANGE THIS to your file's basename — the validator requires field == basename
 description: Domain-neutral starting point for a cc-tree field profile. Copy to <your-field>.md and fill in.
 ---
 

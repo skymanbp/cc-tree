@@ -1,7 +1,7 @@
 # 跨 preset 串联（Cross-preset chaining）
 
 > 语言：中文。英文规范版：[`docs/chaining.md`](chaining.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 16d6fd23211dec75eba8fdde36d3fc3289b1fb69d54c3990e197d14e28862f82 -->
+<!-- i18n-source-sha256: 46251451004fe3f298701d32e11e52d114b914eb4147e16c813f48954239c2d1 -->
 
 一个自然的工作流会把若干 preset 依次串起来，把每个阶段最好的输出
 喂给下一个阶段：
@@ -64,7 +64,11 @@
   （不需要新的根 —— `docs/ENGINE.md` §2.3 允许一次带 seed 的运行
   "instead of a fresh root" 起步）。每个被 seed 的想法作为 depth-1
   seed 节点进入，并被展开为具体选项；该想法的 `predictions` /
-  `assumptions` 会带入选项节点的目标/约束。
+  `assumptions` 会带入选项节点的目标/约束。在这种模式下，design preset
+  自己的 `goal_statement` / `hard_constraints` 根字段是**从 seed 和上一轮
+  运行的根推导出来**的，而不是触发 `EARLY_STOP=root_underspecified` ——
+  见 [`presets/design.md`](../presets/design.md) §2。没有这条豁免，
+  默认的链路会停在第 2 阶段。
 - **design → attack**：被选中的选项文件（其 `option_<id>.md`，带
   `mechanism` + `trade_offs`）作为 attack 阶段的**根 artifact** 传入
   —— attack 的 `root_kind` 是 `artifact`，所以该选项是被批评的对象，

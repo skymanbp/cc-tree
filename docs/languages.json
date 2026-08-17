@@ -14,6 +14,12 @@
       }
     },
     {
+      "canonical": "docs/README.md",
+      "translations": {
+        "zh": "docs/README.zh.md"
+      }
+    },
+    {
       "canonical": "docs/ENGINE.md",
       "translations": {
         "zh": "docs/ENGINE.zh.md"
@@ -52,12 +58,16 @@
   ],
   "canonical_only": [
     {
-      "path": "EVALUATION.md",
+      "path": "docs/EVALUATION.md",
       "reason": "Project evaluation and design-history record is maintained in canonical English only."
     },
     {
       "path": "CHANGELOG.md",
       "reason": "Release history is maintained in canonical English only."
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "reason": "Contributor workflow references English-only tooling output, file paths, and CI step names."
     },
     {
       "path": "LICENSE",

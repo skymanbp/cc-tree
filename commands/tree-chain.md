@@ -73,6 +73,6 @@ cap), leaf count, the top-K carried forward, and the dropped tail.
 ```
 
 This is a thin orchestration wrapper: each stage is a normal
-`/cc-tree:tree` run and obeys every engine rule (§0–§9). Chaining adds
+`/cc-tree:tree` run and obeys every engine rule (§0–§11). Chaining adds
 only the sequencing and the logged top-K handoff — it never relaxes a
 per-stage convergence or completeness rule.

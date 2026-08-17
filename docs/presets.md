@@ -44,7 +44,7 @@ verdict_enum:
   pruned:   DEAD-END        # nodes pruned (kept for reference)
   blocked:  NEEDS-MORE-INFO # incomplete; must be driven to one of the above
 
-# === Slot 4: which verdict counts toward §6.2 convergence ratio ===
+# === Slot 4: which verdict counts toward the §6.1 convergence ratio ===
 # Typically "advances" — engine checks: (last 2 rounds' advances / total) < --min-novelty-ratio
 convergence_metric: advances   # must be one of the 4 verdict_enum roles above (verbatim)
 
@@ -111,25 +111,39 @@ glossary_paths:
 
 ### Engine-enforced compliance
 
-`tools/validate_plugin.py` enforces eight rules and rejects a preset
-that breaks any of them:
+`tools/validate_plugin.py` rejects a preset that breaks any of the
+following. (No count is quoted: the list has to be re-read against
+`validate_preset_schema` whenever a rule is added, and a stale
+"enforces eight rules" line is exactly the drift this repository
+treats as a defect.)
 
 1. Any required key from the list above is missing or empty (this
    covers `subject_label` and `output_artifacts`, not just the
    headline ones).
 2. File basename doesn't match `name:`.
-3. Unknown `root_kind`.
-4. `verdict_enum` is not a mapping of exactly the 4 required roles,
-   or any role's label is blank.
-5. `convergence_metric` isn't one of the `verdict_enum` role keys.
-6. `score_dims.length != 5`, or any entry is not a mapping with a
+3. Any scalar field — `description`, `subject_label`, a verdict label,
+   `convergence_metric`, an artifact filename — is not actually a
+   non-empty string. A nested mapping where a scalar belongs is
+   rejected, not coerced.
+4. Unknown `root_kind`.
+5. `verdict_enum` is not a mapping of exactly the 4 required roles,
+   any role's label is blank, or two roles share a label (a duplicate
+   makes every report that prints verdicts ambiguous).
+6. `convergence_metric` isn't one of the `verdict_enum` role keys.
+7. `score_dims.length != 5`, or any entry is not a mapping with a
    non-empty `key`, `name`, and `desc`.
-7. `node_schema.length != 12`, or any entry is empty.
-8. `output_artifacts` has no non-empty `primary`.
+8. A `score_dims` `key` is not 1–3 letters, or two dims share a key —
+   the five-term score line `S=3 N=2 …` is unreadable otherwise.
+9. `node_schema.length != 12`, any entry is empty, or two entries name
+   the same field (they become the 12 JSON keys of every node).
+10. `output_artifacts` has no non-empty `primary`, or any `primary` /
+    `secondary` value is not a bare `*.md` filename — every artifact is
+    written under the run's `<out>/`, so a separator or `..` would let a
+    preset write outside it.
 
 CI runs the validator on every push; broken presets block the
-merge. `tools/test_validate.py` proves each rejection with a
-negative test case.
+merge. `tools/tests/test_validate.py` proves each rejection with a
+negative test case that pins the expected diagnostic.
 
 ### 1.1 Language boundary
 
@@ -261,15 +275,15 @@ final-report verdict counts. Pick something that reads naturally in
 
 | Role | Semantic | Common labels |
 |---|---|---|
-| `advances` | Recurse into another §3 pass on this node. Counts toward §6.2 convergence ratio (unless `convergence_metric` overrides). | PROMISING / CONFIRMED / RECOMMENDED |
+| `advances` | Recurse into another §3 pass on this node. Counts toward the §6.1 condition-2 convergence ratio (unless `convergence_metric` overrides). | PROMISING / CONFIRMED / RECOMMENDED |
 | `kept` | Stay in tree, don't re-expand. Often "interesting but not actionable now". | MARGINAL / VIABLE / SECONDARY |
 | `pruned` | Don't re-expand; derivation kept for reference and to prevent regeneration. For `attack`-style presets this is REFUTED (valuable positive record). | DEAD-END / REFUTED / NOT-RECOMMENDED |
 | `blocked` | Forbidden state; must be driven to one of the other three before §6 convergence. | NEEDS-MORE-INFO / INCOMPLETE_FORBIDDEN |
 
 ### `convergence_metric`
 
-Which verdict's "ratio drops below `--min-novelty-ratio`" triggers
-§6.2. **It must be one of the four `verdict_enum` role keys**
+Which verdict's "ratio drops below `--min-novelty-ratio`" satisfies
+§6.1 condition 2. **It must be one of the four `verdict_enum` role keys**
 (`advances` / `kept` / `pruned` / `blocked`), written *verbatim* —
 the validator (`tools/validate_plugin.py`) rejects anything else
 (no aliases like `novelty_ratio` / `confirmed_ratio`). For almost
@@ -312,12 +326,14 @@ Two options:
 
 1. **Local file.** Save anywhere; invoke with
    `--preset /path/to/my-preset.md`. No plugin changes needed.
-2. **Ship in this plugin.** Add `presets/my-preset.md`, optionally
-   add `commands/my-preset.md` (15-line slash-command wrapper),
-   open a PR. CI will validate frontmatter / schema compliance.
+2. **Ship in this plugin.** Add `presets/my-preset.md` **and**
+   `commands/my-preset.md` (a thin slash-command wrapper), open a PR.
+   CI validates frontmatter / schema compliance, and the wrapper is
+   not optional: a preset shipped without its like-named command fails
+   the wrapper-parity check.
 
-For commands wrappers, see the shipped `commands/*.md` for the
-4-line pattern.
+For command wrappers, copy the pattern from the shipped
+`commands/*.md` — frontmatter plus a few lines of body.
 
 ---
 

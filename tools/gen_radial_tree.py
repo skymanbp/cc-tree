@@ -120,11 +120,16 @@ PRESETS = [
                lf("P")]),
 ]
 
+# One source per verdict for both the marker colour and the legend wording.
+# There used to be two: these `label` strings were never read, while `build()`
+# rendered a second, differently-worded local dict — so the "authoritative"
+# labels here quietly disagreed with what the SVG actually said. Labels are
+# kept short deliberately; the legend strip overflows past ~34 characters.
 VERDICT = {
-    "A": dict(color="#2e7d32", label="advances — re-expands (grows deeper)"),
-    "K": dict(color="#e69138", label="kept — stays, no re-expand"),
-    "P": dict(color="#9e9e9e", label="pruned — kept for reference"),
-    "B": dict(color="#cc0000", label="blocked — must be completed"),
+    "A": dict(color="#2e7d32", label="advances — a win (or re-expands)"),
+    "K": dict(color="#e69138", label="kept — held for reference"),
+    "P": dict(color="#9e9e9e", label="pruned — a dead end"),
+    "B": dict(color="#cc0000", label="blocked — must be resolved"),
 }
 
 
@@ -202,8 +207,6 @@ def validate_model():
                 raise ValueError(
                     f"preset {p['name']!r}: depth {d} exceeds ring table "
                     f"(max {ring_cap})")
-            leaves = []
-            collect_leaves(child, leaves)
             stack = [child]
             while stack:
                 node = stack.pop()
@@ -285,7 +288,8 @@ def build() -> tuple[str, dict]:
         add(f'<circle cx="{nx:.1f}" cy="{ny:.1f}" r="4.2" fill="#fff" '
             f'stroke="{color}" stroke-width="2.0"/>')
 
-    total_leaves = 0
+    total_leaves = 0     # drawn tips, every verdict
+    total_blocked = 0    # tips whose verdict is `blocked` (see below)
     total_internal = 0
     deepest = 1
     for p in PRESETS:
@@ -294,6 +298,7 @@ def build() -> tuple[str, dict]:
         for child in p["tree"]:
             collect_leaves(child, leaves)
         n_leaf = len(leaves)
+        total_blocked += sum(1 for leaf in leaves if leaf["v"] == "B")
         span = a2 - a1
         margin = span * 0.12
         lo, hi = a1 + margin, a2 - margin
@@ -421,21 +426,27 @@ def build() -> tuple[str, dict]:
              "branches reach uneven depth."])
 
     # width callout (top centre, small) -> outer rings (top gap, angle 0)
+    # ENGINE.md §0.1: a `blocked` tip is never a terminal leaf — it must be
+    # driven to completion first — so it cannot be counted toward width. This
+    # snapshot is a run in flight (a converged tree has no blocked tip at all,
+    # §6.1 condition 1), which is why the two numbers differ here.
     wc_w = 300
     callout(int(CX - wc_w / 2), 94, wc_w, 92, "width — how many tips",
-            ["Total terminal leaves delivered,",
-             "wherever they land. Set by",
-             "convergence — not a fixed cap."])
+            ["Terminal leaves delivered, wherever",
+             "they land — blocked tips excluded",
+             "until resolved. Set by convergence."])
     wx, wy = pt(0, RMAX + 6)
     add(f'<line x1="{CX}" y1="186" x2="{wx:.1f}" y2="{wy:.1f}" '
         f'stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>')
 
     # n callout (bottom-right)
     n_total = total_leaves + total_internal + 1
+    width = total_leaves - total_blocked
     callout(W - 298, 1000, 264, 110, "n — total nodes",
             ["Every node in the tree: root +",
              f"internal + leaves. Here n = {n_total}",
-             f"(width = {total_leaves}, max depth = {deepest}).",
+             f"(width = {width} of {total_leaves} tips; "
+             f"depth {deepest}).",
              "Streamed incrementally to tree.json."])
 
     # ---- verdict legend (bottom strip) -----------------------------------
@@ -443,17 +454,11 @@ def build() -> tuple[str, dict]:
     add(f'<text x="{CX}" y="{ly0}" text-anchor="middle" font-size="13.5" '
         f'font-weight="700" fill="#333">every leaf is a verdict — a branch can '
         f'win, dead-end, or keep branching (open node = re-expanded):</text>')
-    labels = {  # short legend labels to avoid overflow
-        "A": "advances — a win (or re-expands)",
-        "K": "kept — held for reference",
-        "P": "pruned — a dead end",
-        "B": "blocked — must be resolved",
-    }
     cols = [CX - 520, CX - 250, CX + 30, CX + 320]
     for code, cxp in zip(("A", "K", "P", "B"), cols):
         add(verdict_marker(cxp, ly0 + 26, code, R=8.5))
         add(f'<text x="{cxp + 16:.1f}" y="{ly0 + 31}" font-size="12.5" '
-            f'fill="#444">{esc(labels[code])}</text>')
+            f'fill="#444">{esc(VERDICT[code]["label"])}</text>')
 
     add('</svg>')
     stats = dict(leaves=total_leaves, internal=total_internal,

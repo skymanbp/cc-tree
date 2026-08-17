@@ -39,7 +39,7 @@ node_schema:
   - feasibility             # 8: 4 lines (data / compute / time / skill)
   - risks                   # 9: ≥ 3 risks, each tagged technical / scientific / resource
   - branch_potential        # 10: ≥ 2 sub-question hints for next-round expansion
-  - external_resources      # 11: §3.X found repos / plugins / datasets (URLs); --no-online → empty
+  - external_resources      # 11: §3.X found repos / plugins / datasets (URLs); --no-online → record external_resources_unchecked=true, never blank (a blank field is INCOMPLETE_FORBIDDEN per ENGINE §4)
   - verdict_provisional     # 12: PROMISING / MARGINAL / DEAD-END / NEEDS-MORE-INFO
 
 output_artifacts:

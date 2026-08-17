@@ -1,10 +1,12 @@
 # tree.md — abridged capped attack run on `../sample-claim.md`
 
 > ⚠️ **Abridged output of a real capped run**
-> (`--width 3 --depth 1 --no-online --no-grill`), trimmed to the root +
-> CONFIRMED leaves to document the node format from `docs/ENGINE.md`
-> §7.3. An uncapped run also carries the REFUTED / MARGINAL branches and
-> a full 12-field derivation per node.
+> (`--width 3 --depth 1 --no-online --no-grill`), **hand-trimmed** to
+> the root + CONFIRMED leaves to document the node format from
+> `docs/ENGINE.md` §7.3. The trimming, not the cap, is why the rest is
+> absent: any real run carries the REFUTED / MARGINAL branches and a
+> full 12-field derivation per node, capped or not (`docs/ENGINE.md`
+> §F7).
 
 ### root  Claim: caching layer makes the API 10× faster
 - **central_claim**: "our new caching layer makes the API 10× faster"

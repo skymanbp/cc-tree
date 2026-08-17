@@ -104,6 +104,20 @@ If `goal_statement` or `hard_constraints` are empty, **stop** with
 clear goals or constraints is a fishing expedition; force the user
 to sharpen first.
 
+**Seeded runs (`--seed-from`, `docs/ENGINE.md` §2.3) fill these two
+fields rather than hard-stopping on them.** This is the stage-2 case
+of the shipped `brainstorm,design,attack` chain, which invokes
+`/cc-tree:tree --preset design --seed-from <prev>/shortlist.md` with
+no fresh `<root>` — an unconditional stop would make the default
+pipeline in [`docs/chaining.md`](../docs/chaining.md) unreachable.
+Derive `goal_statement` from the seeding run's root subject, and
+`hard_constraints` from the seed items' `assumptions` plus the
+constraints recorded in the prior run's `REPORT.md`; cite each with
+the `file:line` of the seed file it came from. Only if that
+derivation still leaves either field empty does the stop apply. The
+seed *items* themselves are never re-validated (§2.3) — this fills
+the root that frames them.
+
 ## §3 framing flavors
 
 Most framings translate directly from the brainstorm flavors, with

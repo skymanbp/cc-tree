@@ -1,35 +1,41 @@
-# Generated tree-explorations from running the skill.
-# Each run writes to <out>/<UTCdate>__<root-slug>/ (default location).
-# These contain user content; never commit by default.
+# --- Run output ------------------------------------------------------------
+# Generated tree-explorations from running the skill. Each run writes to
+# <out>/<UTCdate>__<root-slug>/; these are the shipped defaults, one per
+# command wrapper plus tree-chain's. They contain user content — never commit.
+# tools/_i18n.py's is_skipped() also skips any TOP-LEVEL *-out/ directory, so
+# a custom --out at the repo root stays invisible to the validator too.
 tree-out/
 brainstorm-out/
 attack-out/
 design-out/
 code-audit-out/
+chain-out/
 
-# Personal / machine-specific Claude Code project memory.
+# --- Agent / tooling state (per-machine, regenerable) ----------------------
 # CLAUDE.md is shared (working principles); CLAUDE.local.md is for paths,
 # virtualenvs, machine quirks — never commit it.
 CLAUDE.local.md
-
-# cc-memory plugin local state (per-machine sqlite + private conversation
-# notes + topic/session indexes). Regenerable; never commit.
+# cc-memory plugin local state (sqlite + private conversation notes + indexes).
 memory/
+# cc-enslaver session state.
+.ce/
+# Claude Code per-machine settings (settings.local.json). Shared settings, if
+# any are ever added, would need an explicit negation below.
+.claude/
 
-# Python
+# --- Python ----------------------------------------------------------------
 __pycache__/
 *.pyc
 *.pyo
 .venv/
 .pytest_cache/
 
-# OS / editor
+# --- OS / editor -----------------------------------------------------------
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-.ce/
 
-# Build / log artefacts
+# --- Build / log artefacts -------------------------------------------------
 *.log
 *.tmp

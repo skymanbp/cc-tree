@@ -30,20 +30,40 @@ _INLINE_CODE_RE = re.compile(r"`[^`]*`")
 _URL_RE = re.compile(r"https?://\S+")
 FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*")
 _FRAMING_RE = re.compile(r"§3\.[A-LX]")
-# Directory names never scanned for documents (shared with validate_plugin.py
-# so the two skip lists cannot drift apart).
-SKIP_DIR_PARTS = {".git", ".github", "memory", "__pycache__", "node_modules"}
+# Non-dot infrastructure directories never scanned for documents (shared with
+# validate_plugin.py so the two skip lists cannot drift apart). Dot-prefixed
+# directories are covered by rule instead of by name — see `is_skipped`.
+SKIP_DIR_PARTS = {"memory", "__pycache__", "node_modules"}
 
 
 def is_skipped(rel_parts: tuple[str, ...]) -> bool:
-    """True when a repo-relative path sits under a directory documents are
-    never scanned from: infrastructure (`SKIP_DIR_PARTS`) or a run-output dir
-    (`tree-out/`, `attack-out/`, …). Shared with validate_plugin.py for the
-    same reason as `SKIP_DIR_PARTS` — three copies of this predicate could
-    drift apart silently.
+    """True when a repo-relative *file* path sits under a directory documents
+    are never scanned from. `rel_parts` is a file's `Path.parts`, so
+    `rel_parts[:-1]` is exactly its parent-directory chain. Shared with
+    validate_plugin.py so the two scans cannot drift apart.
+
+    Three rules, in the order they earned their place:
+
+    1. **Any dot-prefixed directory** — `.git`, `.github`, `.venv`,
+       `.pytest_cache`, `.mypy_cache`, `.tox`, `.ce`, `.claude`. All of it is
+       tool state, and all of it is already gitignored. Enumerating them by
+       name is what failed: `.pytest_cache/README.md` is a real file pytest
+       writes, so running the test suite and then the validator reported it as
+       an "unregistered canonical document" — a green checkout failing because
+       of its own test run. A rule cannot drift from `.gitignore`; a
+       hand-maintained list did.
+    2. **`SKIP_DIR_PARTS`** — the non-dot infrastructure directories.
+    3. **A top-level `*-out` directory.** Runs write to `<out>/` at the
+       invocation root (`tree-out/`, `brainstorm-out/`, `chain-out/`, …), so
+       anchoring the suffix test to `rel_parts[0]` skips real run output
+       without swallowing tracked fixtures. The unanchored form silently hid
+       `examples/attack/expected-out/*.md` — versioned showcase content — from
+       every cross-file check in the repo.
     """
-    return any(part in SKIP_DIR_PARTS or part.endswith("-out")
-               for part in rel_parts[:-1])
+    parents = rel_parts[:-1]
+    if any(part.startswith(".") or part in SKIP_DIR_PARTS for part in parents):
+        return True
+    return bool(parents) and parents[0].endswith("-out")
 
 
 class I18nError(ValueError):
@@ -447,8 +467,13 @@ def _harvest_tokens(repo: Path, manifest: dict,
             continue
         tokens |= _preset_tokens(parse_frontmatter(path.read_text(encoding="utf-8")) or {})
 
-    engine = (repo / "docs" / "ENGINE.md").read_text(encoding="utf-8")
-    tokens.update(_FRAMING_RE.findall(engine))
+    # Guarded: check_i18n converts I18nError/FrontmatterError into a clean
+    # check failure but not OSError, so an unguarded read of a moved or
+    # deleted engine spec escaped as a raw traceback.
+    engine_path = repo / "docs" / "ENGINE.md"
+    if not engine_path.is_file():
+        raise I18nError(f"engine spec missing: {engine_path}")
+    tokens.update(_FRAMING_RE.findall(engine_path.read_text(encoding="utf-8")))
     return {token for token in tokens if token}
 
 

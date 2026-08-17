@@ -1,7 +1,7 @@
 # 撰写一个 cc-tree preset
 
 > 语言：中文。英文规范版：[`docs/presets.md`](presets.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: abcabb8ec94a9372b8d140ae520093fdca852dbc6448b7e957ca1cdc36fbfa8e -->
+<!-- i18n-source-sha256: 667add2206e38a48243b332524493c88bc6791eb55905b891b8a5304d1a02a9d -->
 
 一个 preset 是单个 `.md` 文件，它为一个用例定制那台通用引擎
 （[`ENGINE.md`](ENGINE.md)）。它提供六个可覆盖的槽位（词汇 + 配方），
@@ -44,7 +44,7 @@ verdict_enum:
   pruned:   DEAD-END        # nodes pruned (kept for reference)
   blocked:  NEEDS-MORE-INFO # incomplete; must be driven to one of the above
 
-# === Slot 4: which verdict counts toward §6.2 convergence ratio ===
+# === Slot 4: which verdict counts toward the §6.1 convergence ratio ===
 # Typically "advances" — engine checks: (last 2 rounds' advances / total) < --min-novelty-ratio
 convergence_metric: advances   # must be one of the 4 verdict_enum roles above (verbatim)
 
@@ -110,22 +110,34 @@ glossary_paths:
 
 ### 引擎强制的合规
 
-`tools/validate_plugin.py` 强制执行八条规则，违反任意一条的 preset
-都会被拒绝：
+违反以下任意一条的 preset 都会被 `tools/validate_plugin.py` 拒绝。
+（这里不写条数：每加一条规则都必须重新对照 `validate_preset_schema`
+把清单读一遍，而一句过期的"强制执行八条规则"正是本仓库当作缺陷来处理的
+那种漂移。）
 
 1. 上面清单里的任一必需键缺失或为空（这涵盖 `subject_label` 与
    `output_artifacts`，不只是那几个显眼的键）。
 2. 文件基名与 `name:` 不匹配。
-3. 未知的 `root_kind`。
-4. `verdict_enum` 不是恰好含 4 个必需角色的映射，或某个角色的标签为空。
-5. `convergence_metric` 不是 `verdict_enum` 角色键之一。
-6. `score_dims.length != 5`，或任一条目不是含非空 `key`、`name`、
+3. 任何标量字段 —— `description`、`subject_label`、某个判定标签、
+   `convergence_metric`、某个产物文件名 —— 实际上不是非空字符串。
+   本该是标量的位置上出现嵌套映射会被拒绝，而不是被强制转换。
+4. 未知的 `root_kind`。
+5. `verdict_enum` 不是恰好含 4 个必需角色的映射，或某个角色的标签为空，
+   或两个角色共用同一个标签（重复会让每一份打印判定的报告产生歧义）。
+6. `convergence_metric` 不是 `verdict_enum` 角色键之一。
+7. `score_dims.length != 5`，或任一条目不是含非空 `key`、`name`、
    `desc` 的映射。
-7. `node_schema.length != 12`，或任一条目为空。
-8. `output_artifacts` 没有非空的 `primary`。
+8. 某个 `score_dims` 的 `key` 不是 1–3 个字母，或两个维度共用同一个
+   key —— 否则 `S=3 N=2 …` 这行五项评分就读不出来了。
+9. `node_schema.length != 12`，或任一条目为空，或两个条目命名同一个字段
+   （它们会成为每个节点那 12 个 JSON 键）。
+10. `output_artifacts` 没有非空的 `primary`，或任何 `primary` /
+    `secondary` 取值不是裸的 `*.md` 文件名 —— 每份产物都写在本次运行的
+    `<out>/` 之下，所以路径分隔符或 `..` 会让 preset 写到目录之外去。
 
 CI 在每次推送时运行验证器；损坏的 preset 会阻止合并。
-`tools/test_validate.py` 用负例逐条证明这些拒绝确实生效。
+`tools/tests/test_validate.py` 用负例逐条证明这些拒绝确实生效，
+并且每个负例都钉住了预期的诊断信息。
 
 ### 1.1 语言边界
 
@@ -252,14 +264,14 @@ code?"
 
 | 角色 | 语义 | 常见标签 |
 |---|---|---|
-| `advances` | 在此节点上递归进入又一轮 §3。计入 §6.2 收敛比（除非 `convergence_metric` 覆盖）。 | PROMISING / CONFIRMED / RECOMMENDED |
+| `advances` | 在此节点上递归进入又一轮 §3。计入 §6.1 条件 2 的收敛比（除非 `convergence_metric` 覆盖）。 | PROMISING / CONFIRMED / RECOMMENDED |
 | `kept` | 留在树中，不重新展开。常为"有趣但现在不可行动"。 | MARGINAL / VIABLE / SECONDARY |
 | `pruned` | 不重新展开；保留推导以供参考并防止重新生成。对 `attack` 风格的 preset，这是 REFUTED（有价值的正面记录）。 | DEAD-END / REFUTED / NOT-RECOMMENDED |
 | `blocked` | 禁止状态；必须在 §6 收敛之前被推进到其他三者之一。 | NEEDS-MORE-INFO / INCOMPLETE_FORBIDDEN |
 
 ### `convergence_metric`
 
-哪种判定的"比率跌破 `--min-novelty-ratio`"会触发 §6.2。**它必须是四个
+哪种判定的"比率跌破 `--min-novelty-ratio`"满足 §6.1 条件 2。**它必须是四个
 `verdict_enum` 角色键之一**（`advances` / `kept` / `pruned` /
 `blocked`），逐字书写 —— 验证器（`tools/validate_plugin.py`）会拒绝
 其他任何东西（不允许 `novelty_ratio` / `confirmed_ratio` 之类的别名）。
@@ -297,11 +309,13 @@ recommended）来自你在 `verdict_enum` 里映射到 `advances` 角色上的
 
 1. **本地文件。** 存在任意位置；用 `--preset /path/to/my-preset.md`
    调用。无需改动插件。
-2. **随本插件发布。** 添加 `presets/my-preset.md`，可选地再添加
-   `commands/my-preset.md`（15 行的 slash 命令封装），提交一个 PR。
-   CI 会验证 frontmatter / schema 合规。
+2. **随本插件发布。** 添加 `presets/my-preset.md` **以及**
+   `commands/my-preset.md`（一层薄薄的 slash 命令封装），提交一个 PR。
+   CI 会验证 frontmatter / schema 合规，而且这层封装不是可选的：
+   发布一个没有同名命令的 preset 会让外壳配对检查失败。
 
-关于命令封装，见随发布的 `commands/*.md` 里那个 4 行的模式。
+关于命令封装，照抄随发布的 `commands/*.md` 的写法 ——
+frontmatter 加几行正文。
 
 ---
 

@@ -1,7 +1,11 @@
 # Why cc-tree, and why this shape
 
-Date: 2026-05-25
+Started: 2026-05-25 · Last updated: 2026-08-16
 Author: skymanbp + Claude Opus 4.7
+
+A living design record, not a dated snapshot: the "Open questions" and
+"Decision" sections at the end are appended to on each release, so the
+range above matters more than any single date.
 
 ## The question
 
@@ -26,8 +30,9 @@ on stable convergence). What varies between use-cases:
 4. The **verdict vocabulary** (which label means "expand further",
    which means "kept but pruned", which means "incomplete and must be
    driven to completion").
-5. The **convergence ratio** (which verdict counts toward the §6.2
-   "novelty / confirmed / recommended ratio drops below 0.15" check).
+5. The **convergence ratio** (which verdict counts toward the §6.1
+   condition-2 "novelty / confirmed / recommended ratio drops below
+   0.15" check).
 6. The **final report file names** (`shortlist.md` vs `confirmed.md` vs
    `options.md`).
 
@@ -232,7 +237,7 @@ interruption.
    `tools/validate_plugin.py` now hard-enforces the structural schema
    (`score_dims` count + each `key`/`name`/`desc`, `node_schema` count,
    `verdict_enum` roles, `convergence_metric`, `root_kind`) with
-   behavioral tests in `tools/test_validate.py`. A *semantic*
+   behavioral tests in `tools/tests/test_validate.py`. A *semantic*
    "is this scoring scheme self-consistent / are the dims orthogonal?"
    check remains future work — structural validity is enforced;
    judgment of the rubric is not.

@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 68f270fabb889d1e51a28cb8970661b9a23e3b727d772929cf43b5c066e4556d -->
+<!-- i18n-source-sha256: 05d91d753ea390a29cd49e62b240c6062e56b3f3c7692ec84cfd0581069f458b -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -334,7 +334,8 @@ allowed"。
 如果在经过有据可查的努力之后根仍有空字段：
 - 允许推断的预设（`brainstorm` research-mode）从最接近的可用项目状态推断
   出缺失字段，并将其标记为 `[INFERRED — verify with user]`；
-- 不允许推断的预设（`attack`、`code-audit`）发出
+- 其余每一个预设 —— 即除 `brainstorm` research-mode 之外的全部；
+  当前发布的集合是 `attack`、`code-audit` 与 `design` —— 发出
   `EARLY_STOP=root_underspecified` 并退出。
 
 根在任何 §3 pass 运行之前被写入 `<out>/tree.md` + `<out>/tree.json`。
@@ -681,10 +682,18 @@ blocked)`。映射规则为：
 │                       #   design:     options.md (recommended)
 │                       #   code-audit: findings.md
 ├── <secondary>.md*     # preset's marginal / pending / refuted lists
+├── <per-item>.md*      # per-item detail files a preset's body declares
+│                       #   design: option_<id>.md (mechanism + trade_offs);
+│                       #   this is what a design→attack chain hands over
 ├── REPORT.md           # §7.4 final-report block (also echoed to stdout)
 └── nodes/
     └── <id>.md         # long-field spillovers
 ```
+
+`output_artifacts` frontmatter 只命名每次运行固定的那几份交付物，因为它的取值
+必须是校验器能限制在 `<out>/` 之内的字面文件名。带 `<id>` 的逐项文件因此改在
+预设正文里声明 —— 但它们同样属于输出契约，而且
+[`chaining.md`](chaining.md) 正是依赖它们。
 
 ### 7.3 `tree.md` per-node format（`tree.md` 逐节点格式）
 
@@ -840,7 +849,7 @@ blocked)`。映射规则为：
 - 命名四个裁决（`verdict_enum`）；
 - 命名 12 个节点字段（`node_schema`）；
 - 命名 5 个评分维度（`score_dims`）；
-- 选择哪个裁决计入 §6.2 比率（`convergence_metric`）；
+- 选择哪个裁决计入 §6.1 条件 2 的比率（`convergence_metric`）；
 - 选择 `root_kind`（topic / artifact / code / design-prompt）；
 - 命名输出交付文件（`output_artifacts`）；
 - 提供一个自定义的 §2 基线配方（在预设正文中）；
