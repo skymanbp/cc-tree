@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 08b5f461867a4492f4faf7b581daaa2e59f810d79ae45acef1cb59ccb6444e5a -->
+<!-- i18n-source-sha256: 1f8c5ebf8b1116b6e36da9c72fc6ea8ed9f21d15904f9b2ae410eb7bec4d94bb -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、
@@ -429,7 +429,8 @@ cc-tree/
 │   └── languages.json     Bilingual document manifest + machine-token registry
 ├── examples/attack/       A worked example: input, expected output, how to rerun
 ├── tools/                 Repo validators and generators (no runtime dependency)
-│   └── tests/             Self-tests for the validator, parser, and i18n contract
+│   └── tests/             Self-tests: preset schema, frontmatter parser,
+│                          i18n contract, and every check group
 └── .github/workflows/     CI: validator + self-tests on Python 3.11 and 3.13
 ```
 

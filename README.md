@@ -461,7 +461,8 @@ cc-tree/
 │   └── languages.json     Bilingual document manifest + machine-token registry
 ├── examples/attack/       A worked example: input, expected output, how to rerun
 ├── tools/                 Repo validators and generators (no runtime dependency)
-│   └── tests/             Self-tests for the validator, parser, and i18n contract
+│   └── tests/             Self-tests: preset schema, frontmatter parser,
+│                          i18n contract, and every check group
 └── .github/workflows/     CI: validator + self-tests on Python 3.11 and 3.13
 ```
 
