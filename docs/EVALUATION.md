@@ -306,3 +306,28 @@ contradicted §5.3/§7.4 on whether `kept`/`pruned` tips count toward
 replaces it) — the refactor the complexity scan and both review lenses
 independently converged on — while the parser and i18n algorithms were
 deliberately left intact.
+
+v0.7.0 restructures the repository and rewrites the README, on the back of
+a fourth sweep — a five-dimension multi-agent audit whose findings were put
+through an independent refuting pass before any of them was acted on. The
+theme this time was *checks that fail open*: running the test suite made the
+validator fail (its skip list had been maintained by hand against
+`.gitignore`), `pytest` passed unconditionally because the suites recorded
+diagnostics into a list only `main()` read, relative links without a
+`#fragment` were never resolved, and the run-output heuristic hid the
+repository's own showcase fixtures. Structurally: `EVALUATION.md` moved into
+`docs/`, the tests moved into `tools/tests/`, and a documentation index and
+contributor guide were added.
+
+v0.7.1 closes the last coverage gap that v0.7.0 documented but did not fix.
+A trace showed 17 of `validate_plugin.py`'s 35 functions were never entered
+by any test — including `main()` and every cross-file sub-check — so
+`tools/tests/test_checks.py` now runs all seven check groups against a
+synthetic repository and mutates it once per rule. Writing it immediately
+found three defects the shipped repository could not surface: deleting
+*every* command wrapper passed the wrapper-parity check, `_check_command_flags`
+bound `REPO` at def time and so always ignored its argument, and v0.7.0's own
+zero-count tripwire was strict enough to reject a legitimate repository. The
+same release applies a documentation audit's 14 confirmed findings, 26 having
+been rejected by the refuting pass — including one this project's own
+maintainer had called confirmed.

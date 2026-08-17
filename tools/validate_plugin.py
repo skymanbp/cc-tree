@@ -311,17 +311,18 @@ def check_presets() -> str:
 
 def check_commands() -> str:
     commands_dir = REPO / "commands"
-    if not commands_dir.is_dir():
-        return "commands OK (no commands/ dir — optional)"
-    files = sorted(p for p in commands_dir.glob("*.md") if p.name != "README.md")
-    if not files:
-        return "commands OK (no command .md files — optional)"
+    files = (sorted(p for p in commands_dir.glob("*.md") if p.name != "README.md")
+             if commands_dir.is_dir() else [])
     for f in files:
         _check_md_frontmatter(f, ("description",), None)
     # Wrapper parity: every shipped preset must keep its like-named slash
     # command (README advertises the pairing; deleting one wrapper
     # previously left a validator-approved package that contradicted it).
     # Extra commands without a preset (tree-chain) are fine.
+    #
+    # This runs even when commands/ is empty or absent. It used to return
+    # early on `not files`, which made N=0 — deleting *every* wrapper, the
+    # most complete way to violate the rule — the one case that passed.
     command_names = {f.stem for f in files}
     wrappers = 0
     for preset in sorted((REPO / "presets").glob("*.md")):
@@ -331,6 +332,10 @@ def check_commands() -> str:
             fail(f"presets/{preset.name} has no command wrapper "
                  f"commands/{preset.stem}.md")
         wrappers += 1
+    if not commands_dir.is_dir():
+        return "commands OK (no commands/ dir — optional)"
+    if not files:
+        return "commands OK (no command .md files — optional)"
     return f"commands OK ({len(files)} commands, {wrappers} preset wrappers)"
 
 
@@ -553,13 +558,21 @@ def _check_wrapper_flags(cmd: Path, repo: Path, skill_body: str,
     return n
 
 
-def _check_command_flags(repo: Path = REPO) -> int:
+def _check_command_flags(repo: Path | None = None) -> int:
     """Validate command hints against authoritative Markdown bodies.
 
     Frontmatter is excluded from the documentation sources so a flag cannot
     validate itself merely by appearing in the same `argument-hint`. The
     language manifest may also require a common flag in every wrapper.
+
+    `repo` defaults to `REPO` at CALL time, not at def time. Written as
+    `repo: Path = REPO` the module global was captured when the function was
+    defined, so the check silently ignored its argument and always scanned the
+    real repository — which made it the one cross-ref sub-check that could not
+    be pointed at a fixture, and therefore the one that could not be tested.
     """
+    if repo is None:
+        repo = REPO
     # This runs during the cross-refs check, before check_i18n's guard, so a
     # malformed manifest must be reported here rather than escaping as a
     # traceback.
@@ -668,19 +681,20 @@ def check_crossrefs() -> str:
     flags = _check_command_flags()
     profiles = _check_field_profiles()
     sections = _check_section_refs(md_files)
-    # Tripwires. Each of these sub-checks reports a count that nothing used to
-    # assert on, so any of them could be reduced to a no-op — by a bad regex,
-    # a renamed directory, or an over-eager skip rule — with the whole suite
-    # still printing OK. A zero where the repository plainly has content is
-    # the signature of a check that stopped looking.
-    for count, what in ((links, "relative links"), (anchors, "anchor links"),
-                        (citations, "example citations"),
-                        (flags, "command flags"),
-                        (profiles, "field profiles"),
-                        (sections, "section refs")):
-        if count == 0:
-            fail(f"cross-refs: scanned 0 {what} across {len(md_files)} "
-                 "documents; the check is no longer looking at anything")
+    # One tripwire, not six. `_content_md_files()` feeds every Markdown
+    # sub-check below, so an empty list turns all of them into no-ops at once —
+    # a state no repository that ships documentation can legitimately be in.
+    #
+    # The per-sub-check counts are deliberately NOT floored. A repository can
+    # honestly contain zero anchored links, zero example citations, or zero
+    # field profiles, so `count == 0` is not evidence of a broken check; an
+    # earlier version of this guard asserted all six and rejected the
+    # validator's own fixture repository for having no `#anchor` links. Proof
+    # that each sub-check still fires belongs in a test that can construct a
+    # repository where the check MUST reject — see tools/tests/test_checks.py.
+    if not md_files:
+        fail("cross-refs: no documents scanned; _content_md_files() matched "
+             "nothing, so every Markdown cross-check is vacuous")
     return (f"cross-refs OK ({links} links / {anchors} anchors, {citations} "
             f"example citations, {flags} command flags, {profiles} field "
             f"profiles, {sections} section refs)")

@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 1e51e513ff394206a0b2620f2e34d16943945fb525407d440cdc3aeb3cc0130f -->
+<!-- i18n-source-sha256: 08b5f461867a4492f4faf7b581daaa2e59f810d79ae45acef1cb59ccb6444e5a -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、
@@ -295,8 +295,8 @@ flag、frontmatter 与 JSON 键、`root_kind` 取值、判决标签、score key�
 
 ### Engineering guarantees
 
-`tools/validate_plugin.py` 会在每一次 push 和 pull request 上跑七组检查，
-覆盖 Python 3.11 与 3.13：
+`tools/validate_plugin.py` 会在每一个 pull request、以及每一次推到 `main`
+的 push 上跑七组检查，覆盖 Python 3.11 与 3.13：
 
 | 检查 | 在什么情况下失败 |
 |---|---|
@@ -395,9 +395,11 @@ claude plugin list
 
 ## Output layout
 
-每次运行都增量写入 `<out>/<UTCdate>__<slug>/`（默认 `tree-out/…`；
-按 preset 的命令分别默认为 `brainstorm-out/`、`attack-out/`、`design-out/`、
-`code-audit-out/`，`tree-chain` 则是 `chain-out/`）。
+每次运行都增量写入它的 `--out` 目录，而那个目录**就是**本次运行的目录 ——
+你传进去的路径后面不会再被追加任何东西。带日期的那一段只属于*默认值*：
+引擎是 `tree-out/<UTCdate>__<slug>/`，按 preset 的命令分别是
+`brainstorm-out/<UTCdate>__<slug>/`、`attack-out/…`、`design-out/…`、
+`code-audit-out/…`，`tree-chain` 则是 `chain-out/…`。
 
 ```
 <out>/
@@ -488,8 +490,12 @@ cc-tree/
 ## Contributing
 
 欢迎提 issue 和 pull request。[`CONTRIBUTING.md`](CONTRIBUTING.md)
-讲了仓库布局、一条能在本地复现 CI 的命令，以及最容易绊倒新贡献者的两条规则：
-preset 是被 schema 校验的，改英文文档就必须刷新对应中文平行版的源摘要。
+讲了仓库布局、能在本地复现 CI 的那几条命令，以及最容易绊倒新贡献者的那些
+不变式 —— 其中包括：preset 是被 schema 校验的、每个 preset 都必须带上它的
+命令外壳、每个新增的 Markdown 文件都必须登记进 `docs/languages.json`，
+以及改英文文档就必须刷新对应中文平行版的源摘要。
+（这里刻意不写条数：一个文件里写数字、另一个文件里放清单，正是本仓库
+反复在自己身上查出来的那种漂移。）
 
 ## License
 

@@ -45,7 +45,10 @@ For stage `i` in `--stages` (in order):
 3. Before the hand-off, take the **top-`--top-k` by the deliverable's
    own ranking key** from the prior deliverable (each deliverable is
    sorted by its declared key — see the contract table — so this is
-   the first K lines). **Log the cut**: "stage i seeded K of M;
+   the first K **entries**). An entry is a `## <id>` section, not a
+   physical line: deliverables carry several lines of fields per item,
+   so split on level-2 headings and take each section's subject
+   statement. **Log the cut**: "stage i seeded K of M;
    dropped M−K below the cut" — never truncate silently.
 4. If a stage's primary deliverable is empty (prior stage found nothing
    to advance), **stop the chain** and report which stage went dry; do

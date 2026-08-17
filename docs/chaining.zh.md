@@ -1,7 +1,7 @@
 # 跨 preset 串联（Cross-preset chaining）
 
 > 语言：中文。英文规范版：[`docs/chaining.md`](chaining.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 46251451004fe3f298701d32e11e52d114b914eb4147e16c813f48954239c2d1 -->
+<!-- i18n-source-sha256: 0648d4669a643c691522d71d1a60dd35b48cb47435011f6f5d6b10d313209771 -->
 
 一个自然的工作流会把若干 preset 依次串起来，把每个阶段最好的输出
 喂给下一个阶段：
@@ -21,7 +21,7 @@
 `code-audit` 按 severity × exploit-likelihood 降序（每个 preset 的
 `output_artifacts` 注释才是权威）：
 
-| Preset | 主产物 | 每行是一个… | 排序依据 |
+| Preset | 主产物 | 每一条是一个… | 排序依据 |
 |---|---|---|---|
 | brainstorm | `shortlist.md` | 研究想法 / 方向 | 分数降序 |
 | design | `options.md` | 设计选项 | 分数降序 |
@@ -31,14 +31,19 @@
 下一阶段如何消费这份文件，取决于它所属 preset 的 `root_kind`
 —— 见下方 **Root 还是 seeds**。对于 `topic` / `design-prompt` 阶段，
 用的是 `--seed-from <primary.md>`（`docs/ENGINE.md` §2.3）：列表里的
-每一项都成为一个 depth-1 seed 节点并被重新展开。不需要任何重新排版
-—— 主产物本来就是逐行一项的。
+每一项都成为一个 depth-1 seed 节点并被重新展开。
+
+**一"条"是一个小节，不是一行。** 主产物是一份排好序的
+`## <id> — <主题陈述>` 小节清单，每一节都带着该 preset 的
+`output_artifacts` 注释所承诺的那些字段 —— 而不是一行一项。所以读取主产物
+意味着按二级标题切分、取每节的主题陈述；直接按行取前 N 行会把某一项的正文
+拦腰截断。
 
 ### Top-K extraction
 
 `tree-chain` 从每个阶段的主产物中，**按该产物自己的排序键取 top-K**
 （默认 K=3）并带入下一阶段。因为每份产物都已按其声明的键排序，
-"top-K" 就是前 K 项。被丢弃的尾部会被报告出来（绝不静默截断 ——
+"top-K" 就是标题顺序里的前 K *条*。被丢弃的尾部会被报告出来（绝不静默截断 ——
 `docs/ENGINE.md` §F7 的精神）：链路日志会写明
 "seeded 3 of 11; dropped 8 below the cut"。
 

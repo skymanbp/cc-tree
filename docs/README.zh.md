@@ -1,7 +1,7 @@
 # cc-tree documentation
 
 > 语言：中文。英文规范版：[`docs/README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 0b42d475f345388c50e3ecb5e90cdf7df7bb49f58939c2665b8122105f16a416 -->
+<!-- i18n-source-sha256: 82919ee18c2c1ae19dd863c44751b0bc1bf4e78782914c90c985e27dbfc835c6 -->
 
 这里收录了所有用于**规定、讲解、论证**这台引擎的文档。项目总览在上一层的
 [`../README.md`](../README.md)；本页是其余文档的带注索引。
@@ -60,6 +60,7 @@
 python tools/validate_plugin.py     # 7 check groups; what CI runs first
 python tools/tests/test_validate.py # preset schema + frontmatter parser cases
 python tools/tests/test_i18n.py     # bilingual contract cases
+python tools/tests/test_checks.py   # every check group vs a synthetic repo
 ```
 
 细节（包括如何刷新译文摘要）见

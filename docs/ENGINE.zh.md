@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 05d91d753ea390a29cd49e62b240c6062e56b3f3c7692ec84cfd0581069f458b -->
+<!-- i18n-source-sha256: 57d0d9436369a927b83a226019b17454eb60a0998ce8ad19f723f9fd9f3f7a1b -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -170,6 +170,11 @@ omitted`、`easy to show`、`obvious`、`略`、`自明` 或等价表述。
 `conv`。引擎**不得**在内部收窄它们。当用户设置了一个有限上限并且该上限被
 触及时，引擎仍要把每一个在途节点驱动到完整的 §4 状态，然后才报告触顶
 状态——可见的叶节点集合**永远**是完整的。
+
+只有 `--width / --depth / --rounds` 是*可报告的*上限：它们各自有一个状态
+token（§6.2）和一条 §6.1 条件 6 的检验。`--max-branches` 抬高的是每个节点的
+上限，而它的下限已由 §3 固定在 12；它永远不会终止一次运行，所以不存在
+`BRANCHES_CAP_REACHED`，§6.1、§6.2 与 §7.4 也都没有命名这样一个状态。
 
 ### F8. Hard ban on deferred / incomplete leaves（对 deferred / 不完整叶节点的硬性禁令）
 
@@ -512,16 +517,23 @@ code-audit 寻找 CVE / 安全公告 / 仓库中别处的同一模式。
 | 4 | 推导 / 证据 | `derivation` / `evidence` / `mechanism` / `repro_steps` |
 | 5 | 假设（≥ 3） | 始终为 `assumptions` |
 | 6 | 预测 / 后果 | `predictions` / `observable_consequences` |
-| 7 | 应答 / 反防御 | `falsifiability`（brainstorm/design）/ `artifact_defense`（attack）/ `mitigation_present`（code-audit） |
-| 8 | 与既有工作 / 现状的比较 | `novelty_vs_literature` / `alternative_interpretations` |
-| 9 | 成本 / 可修复性 / 可行性 | `feasibility` / `proposed_fix` / `cost_of_change` |
+| 7 | 应答 / 反防御 | `falsifiability`（brainstorm）/ `artifact_defense`（attack）/ `mitigation_present`（code-audit）/ `trade_offs`（design） |
+| 8 | 与既有工作 / 现状的比较（预设可选） | `novelty_vs_literature`（brainstorm）/ `alternative_interpretations`（attack、code-audit）/ `prior_art`（design） |
+| 9 | 成本 / 可修复性 / 可行性 | `feasibility`（brainstorm）/ `proposed_fix`（attack、code-audit）/ `implementation_cost`（design） |
 | 10 | 风险 / 陷阱（预设可选） | brainstorm 用 `risks`，design 用 `operational_risks`；attack 与 code-audit 把风险放进 `artifact_defense` / `threat_model_context` |
-| 11 | 分支潜力 | `branch_potential` / `sub_critique_potential` |
+| 11 | 分支潜力（预设可选） | `branch_potential`（brainstorm）/ `sub_critique_potential`（attack）；design 与 code-audit 把这个槽位用在 `migration_path` / `threat_model_context` 上 |
 | 12 | 临时裁决 | 始终为 `verdict_provisional` |
+| — | §3.X 外部核查 | `external_resources`（brainstorm）/ `external_dependencies`（design）/ `external_check`（attack）/ `related_findings`（code-audit） |
 
 **槽位**列是一个类别索引，不是 `node_schema` 中的位置。预设提供恰好 12 个
 具名字段并可自由排序；只有类别是通用的，而标注为*预设可选*的类别在预设把
 该字段用于领域专属关注点时可以缺席。
+
+最后一行刻意没有槽位编号。§3.X 要求每个预设都为它的外部交叉核查命名一个
+字段，但预设是从同样的 12 个字段里挪出一个来放它，而不是加第 13 个 ——
+所以它是一个必需的*类别*，占据预设腾得出来的那个槽位。上表中的每一个示例
+都是某个已发布预设真正声明过的字段；一个类别的示例指向不存在的字段，
+正是这张表以前发生漂移的方式。
 
 适用于每个字段的严格要求：
 

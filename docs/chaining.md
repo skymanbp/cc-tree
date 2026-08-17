@@ -22,7 +22,7 @@ ranking key — score desc for `brainstorm` / `design`, severity desc
 for `attack`, severity × exploit-likelihood desc for `code-audit`
 (each preset's `output_artifacts` comment is authoritative):
 
-| Preset | Primary deliverable | Each line is a… | Sorted by |
+| Preset | Primary deliverable | Each entry is a… | Sorted by |
 |---|---|---|---|
 | brainstorm | `shortlist.md` | research idea / direction | score desc |
 | design | `options.md` | design option | score desc |
@@ -33,17 +33,24 @@ How the next stage consumes that file depends on its preset's
 `root_kind` — see **Root vs seeds** below. For `topic` /
 `design-prompt` stages it's `--seed-from <primary.md>`
 (`docs/ENGINE.md` §2.3): each listed item becomes a depth-1 seed node
-and is re-expanded. No reformatting is needed — the deliverables are
-already line-per-item.
+and is re-expanded.
+
+**An entry is a section, not a line.** A deliverable is a ranked list of
+`## <id> — <subject statement>` sections, each carrying the fields that
+preset's `output_artifacts` comment promises — not one item per physical
+line. Reading a deliverable therefore means splitting on its level-2
+headings and taking the subject statement of each; a naive head-N over
+lines would slice a single item's body in half.
 
 ### Top-K extraction
 
 `tree-chain` takes the **top-K by the deliverable's own ranking key**
 from each stage's primary deliverable (default K=3) and carries them
 into the next stage. Because each deliverable is sorted by its
-declared key, "top-K" is just the first K items. The dropped tail is
-reported (never silently truncated — `docs/ENGINE.md` §F7 spirit):
-the chain log states "seeded 3 of 11; dropped 8 below the cut".
+declared key, "top-K" is the first K *entries* in that heading order.
+The dropped tail is reported (never silently truncated —
+`docs/ENGINE.md` §F7 spirit): the chain log states "seeded 3 of 11;
+dropped 8 below the cut".
 
 ### Language propagation
 

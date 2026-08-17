@@ -1,7 +1,7 @@
 # 领域画像（Field profiles）
 
 > 语言：中文。英文规范版：[`field-profiles/README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 6773638efa197fa7fa3ed80164b77160085fa4d5d24a3af9ad66194b17a060cb -->
+<!-- i18n-source-sha256: 12563c7e358c9a4694c936aee46f1456bed21e4a389588e1db0946111fd45cc4 -->
 
 **领域画像（field profile）**是一个可选的 markdown 文件，它为
 cc-tree 引擎提供领域感知的审稿人加权。它让 12 个 framing 以某一特定
@@ -57,6 +57,11 @@ cc-tree 引擎提供领域感知的审稿人加权。它让 12 个 framing 以�
    信号；"报告效应量并附 95% CI"才携带。
 4. 保持简短 —— 那三张枚举式清单各 3–6 条。画像是重新排序优先级；
    它不替代 framing。
+5. 如果这份画像放在**本仓库里**，就要把它登记进
+   [`docs/languages.json`](../docs/languages.json) 的 `canonical_only`，
+   并写明理由。画像是一条路径一条路径登记的，不像 preset 那样用通配，
+   所以没登记的画像会让文档覆盖检查失败。放在仓库外、用路径传入的画像
+   不需要登记。
 
 一份领域画像**不能**削弱任何普适引擎规则（`docs/ENGINE.md`
 §0.5）。它只改变分支被探索的*顺序*并抬高证据门槛 —— 它绝不允许一处

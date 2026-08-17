@@ -194,6 +194,12 @@ sets a finite cap and it's reached, the engine still drives every
 in-flight node to a complete §4 state before reporting the cap-trip
 status — the visible leaf set is **always complete**.
 
+Only `--width / --depth / --rounds` are *reportable* caps: they have a
+status token each (§6.2) and a §6.1 condition-6 test. `--max-branches`
+raises a per-node ceiling whose floor §3 already fixes at 12; it never
+terminates a run, so there is no `BRANCHES_CAP_REACHED` and none of §6.1,
+§6.2, or §7.4 names one.
+
 ### F8. Hard ban on deferred / incomplete leaves
 
 The ban is **semantic in every output language**. Any wording that postpones,
@@ -580,18 +586,26 @@ Universal field categories:
 | 4 | Derivation / evidence | `derivation` / `evidence` / `mechanism` / `repro_steps` |
 | 5 | Assumptions (≥ 3) | always `assumptions` |
 | 6 | Predictions / consequences | `predictions` / `observable_consequences` |
-| 7 | Defense / counter-defense | `falsifiability` (brainstorm/design) / `artifact_defense` (attack) / `mitigation_present` (code-audit) |
-| 8 | Comparison to prior work / state | `novelty_vs_literature` / `alternative_interpretations` |
-| 9 | Cost / fixability / feasibility | `feasibility` / `proposed_fix` / `cost_of_change` |
+| 7 | Defense / counter-defense | `falsifiability` (brainstorm) / `artifact_defense` (attack) / `mitigation_present` (code-audit) / `trade_offs` (design) |
+| 8 | Comparison to prior work / state (preset-optional) | `novelty_vs_literature` (brainstorm) / `alternative_interpretations` (attack, code-audit) / `prior_art` (design) |
+| 9 | Cost / fixability / feasibility | `feasibility` (brainstorm) / `proposed_fix` (attack, code-audit) / `implementation_cost` (design) |
 | 10 | Risks / pitfalls (preset-optional) | `risks` (brainstorm) / `operational_risks` (design); `attack` and `code-audit` carry risk inside `artifact_defense` / `threat_model_context` instead |
-| 11 | Branch potential | `branch_potential` / `sub_critique_potential` |
+| 11 | Branch potential (preset-optional) | `branch_potential` (brainstorm) / `sub_critique_potential` (attack); `design` and `code-audit` spend the slot on `migration_path` / `threat_model_context` |
 | 12 | Provisional verdict | always `verdict_provisional` |
+| — | §3.X external check | `external_resources` (brainstorm) / `external_dependencies` (design) / `external_check` (attack) / `related_findings` (code-audit) |
 
 The **Slot** column is a category index, not a position in
 `node_schema`. A preset supplies exactly 12 named fields and orders
 them freely; only the categories are universal, and a category marked
 *preset-optional* may be absent when the preset spends that field on a
 domain-specific concern instead.
+
+The last row has no slot number on purpose. §3.X requires every preset to
+name a field for its external cross-check, but presets spend one of the
+same 12 fields on it rather than adding a 13th — so it is a required
+*category* that occupies whichever slot the preset can spare. Every example
+above is a field a shipped preset actually declares; a category whose
+examples name no real field is how this table drifted before.
 
 Strict requirements applying to every field:
 

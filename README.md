@@ -322,8 +322,8 @@ translation fails CI.
 
 ### Engineering guarantees
 
-`tools/validate_plugin.py` runs seven check groups on every push and pull
-request, across Python 3.11 and 3.13:
+`tools/validate_plugin.py` runs seven check groups on every pull request and
+every push to `main`, across Python 3.11 and 3.13:
 
 | Check | What it fails on |
 |---|---|
@@ -425,10 +425,12 @@ and `--top-k N` (default 3). Presets may document their own flags, such as
 
 ## Output layout
 
-Each run writes incrementally to `<out>/<UTCdate>__<slug>/` (default
-`tree-out/…`; the per-preset commands default to `brainstorm-out/`,
-`attack-out/`, `design-out/`, `code-audit-out/`, and `tree-chain` to
-`chain-out/`).
+Each run writes incrementally to its `--out` directory, which **is** the run
+directory — nothing further is appended to a path you pass. The dated segment
+is part of the *default* value only: `tree-out/<UTCdate>__<slug>/` for the
+engine, and `brainstorm-out/<UTCdate>__<slug>/`, `attack-out/…`,
+`design-out/…`, `code-audit-out/…` for the per-preset commands,
+`chain-out/…` for `tree-chain`.
 
 ```
 <out>/
@@ -525,10 +527,13 @@ use sci-paper. If you want the engine for anything else, use cc-tree.
 ## Contributing
 
 Issues and pull requests are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md)
-covers the repository layout, the one command that reproduces CI locally,
-and the two rules that trip up first-time contributors: presets are
-schema-validated, and editing an English document requires refreshing its
-Chinese parallel's source digest.
+covers the repository layout, the commands that reproduce CI locally, and
+the invariants that trip up first-time contributors — among them: presets
+are schema-validated, every preset needs its command wrapper, every new
+Markdown file must be registered in `docs/languages.json`, and editing an
+English document requires refreshing its Chinese parallel's source digest.
+(No counts here on purpose: a number in one file and a list in another is
+exactly the drift this repository keeps finding in itself.)
 
 ## License
 

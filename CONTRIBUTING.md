@@ -9,10 +9,11 @@ everything CI will check before a human reads your diff.
 python tools/validate_plugin.py       # 7 check groups — run this first
 python tools/tests/test_validate.py   # preset schema + frontmatter parser cases
 python tools/tests/test_i18n.py       # bilingual contract cases
+python tools/tests/test_checks.py     # every check group vs a synthetic repo
 python tools/gen_radial_tree.py       # only if you touched the generator
 ```
 
-These are the four steps
+These are the five steps
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs, on Python 3.11
 and 3.13 (CI diffs the regenerated diagram against the committed one rather
 than trusting it). There are no third-party dependencies — the standard
@@ -83,8 +84,12 @@ renumber a heading and CI tells you which references died.
   up. Guide: [`docs/presets.md`](docs/presets.md).
 - **A field profile** — copy
   [`field-profiles/_template.md`](field-profiles/_template.md), **set the
-  `field:` key to your new basename**, and fill the four required `##`
-  sections. Guide:
+  `field:` key to your new basename**, fill the four required `##` sections,
+  **and register the file in `docs/languages.json`** under `canonical_only`
+  with a reason. That last step is not optional and is easy to miss:
+  `presets/` and `commands/` are registered by glob, but field profiles are
+  registered one path at a time, so a new profile is an *unregistered
+  canonical document* and fails invariant 4 until you add it. Guide:
   [`field-profiles/README.md`](field-profiles/README.md).
 - **A translation** — add a `pairs` entry to `docs/languages.json`, mirror
   the heading structure exactly, keep every fence byte-identical, and record

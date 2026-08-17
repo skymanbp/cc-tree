@@ -64,6 +64,11 @@ change the run's `output_language` selected by `--lang`.
    does.
 4. Keep it short — 3–6 items for the three enumerative lists. The
    profile re-prioritizes; it does not replace the framings.
+5. If the profile lives **in this repository**, register it in
+   [`docs/languages.json`](../docs/languages.json) under `canonical_only`,
+   with a reason. Profiles are registered one path at a time rather than by
+   glob, so an unregistered one fails the documentation-coverage check. A
+   profile you keep outside the repo and pass by path needs no registration.
 
 A field profile **cannot** weaken any universal engine rule
 (`docs/ENGINE.md` §0.5). It only changes the *order* in which branches

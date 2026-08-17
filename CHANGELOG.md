@@ -3,6 +3,78 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## v0.7.1 — 2026-08-16
+
+Closes the coverage gap v0.7.0 documented but did not fix, and applies a
+full-corpus documentation audit. 14 findings confirmed, 26 rejected by an
+independent refuting pass — including one the maintainer had called
+confirmed (`presets/design.md`'s `(F = 0)` parenthetical glosses "violated
+hard constraint", so the gate was never inverted).
+
+### Added (test coverage)
+
+- **`tools/tests/test_checks.py`** — 7 clean cases + 40 rejection cases,
+  running all seven check groups against a synthetic repository and
+  mutating it once per rule. A trace had shown 17 of
+  `validate_plugin.py`'s 35 functions were never entered by any test,
+  including `main()`, `check_manifests`, `check_crossrefs`, `check_i18n`
+  and every cross-file sub-check: all of them could have been reduced to
+  no-ops with CI still green. Coverage is now 35/35. Wired into CI as a
+  fifth step.
+
+### Fixed (found by the new tests)
+
+- **Deleting *every* command wrapper passed the wrapper-parity check.**
+  `check_commands` returned early on `not files`, so N=0 — the most
+  complete way to violate the rule — was the one case that passed.
+- **`_check_command_flags` ignored its argument.** Written as
+  `def f(repo: Path = REPO)`, the module global was captured at def time,
+  so the check always scanned the real repository. It was consequently the
+  one cross-ref sub-check that could not be pointed at a fixture, and
+  therefore the one that could not be tested.
+- **v0.7.0's own zero-count tripwire was too strict.** It required at
+  least one *anchored* link, but zero anchored links is a legitimate
+  state, and it rejected the validator's own fixture repository. Narrowed
+  to the one count that cannot legitimately be zero (`md_files`); proving
+  each sub-check still fires is a test's job, and now is one.
+
+### Fixed (documentation)
+
+- **Following CONTRIBUTING's field-profile recipe broke CI.** Profiles are
+  registered in `docs/languages.json` one path at a time while `presets/`
+  and `commands/` use globs, so a new profile was an unregistered
+  canonical document. Both the contributor guide and
+  `field-profiles/README.md` now carry the registration step.
+- **The chaining handoff contract said deliverables are "line-per-item"**
+  and told `tree-chain` to take "the first K lines". Deliverables are
+  ranked `## <id>` sections carrying several lines of fields each, so a
+  head-N over lines would slice an item's body in half. Now defined as
+  entries, split on level-2 headings.
+- **ENGINE §4's slot table named fields no preset declares.**
+  `falsifiability` was attributed to `design` (which has no such field)
+  and `cost_of_change` to nothing at all. Every example is now a field a
+  shipped preset really declares, slots 8 and 11 are marked
+  preset-optional, and the §3.X external-check category — required by the
+  spec but occupying whichever of the 12 slots a preset can spare — has a
+  row.
+- **§F7 listed `--max-branches` as a cap with a cap-trip status**, but
+  §6.1, §6.2 and §7.4 define none. It raises a per-node ceiling whose
+  floor §3 fixes at 12 and never terminates a run; §F7 now says so.
+- **README's output-layout paragraph double-nested the run directory**,
+  contradicting its own fence six lines below and the worked example: an
+  explicit `--out` *is* the run directory, and the dated segment belongs
+  to the default value only.
+- README described `CONTRIBUTING.md` as "one command and two rules" (it is
+  five and five) — counts removed rather than corrected, so the two files
+  cannot drift again; "on every push" narrowed to "every pull request and
+  every push to `main`", matching `ci.yml`'s `branches: [main]`.
+- Two physically wrong worked examples in `framings.md`: relaxing a 5σ cut
+  to 3σ cannot make detections *drop out* (it triples the sample), and
+  10¹¹ M_sun is a Milky-Way-scale halo, not the galaxy-cluster regime.
+- `docs/EVALUATION.md` gained the v0.7.0 and v0.7.1 decision paragraphs its
+  header date already claimed; the v0.7.0 changelog's "4 per preset"
+  phantom-heading count corrected to "3–4".
+
 ## v0.7.0 — 2026-08-16
 
 Repository restructure, README rewrite, and a fourth adversarial sweep —
@@ -33,11 +105,11 @@ semantics except three contract-drift fixes listed below.
   Collected tests now re-raise what they recorded, and the same mutation
   produces `1 failed`.
 - **Heading extraction was fence-blind.** `validate_plugin` had its own
-  `^#{1,6}` regex applied to raw text, so `# === Slot 1: root type ===`
-  inside a YAML example fence counted as a heading (9 phantom headings in
-  ENGINE.md, 4 per preset) and fed the §-namespace, the anchor slug
-  table, and the field-profile section check. It now reuses
-  `_i18n.scan_markdown`, leaving one heading scanner in the repository.
+  `^#{1,6}` regex applied to raw text, so a `#`-prefixed line inside a
+  fenced example counted as a heading (9 phantom headings in ENGINE.md,
+  3–4 per preset) and fed the §-namespace, the anchor slug table, and the
+  field-profile section check. It now reuses `_i18n.scan_markdown`,
+  leaving one heading scanner in the repository.
 - **Relative links without an anchor were never checked.** The link
   pattern required a `#fragment`, so `](../docs/ENGINE.md)` — the form
   nearly every command, preset, and doc uses — was unverified. All 208

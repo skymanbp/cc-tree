@@ -32,6 +32,13 @@ jobs:
         run: python tools/tests/test_validate.py
       - name: Multilingual contract self-tests (pairs + digests + negative cases)
         run: python tools/tests/test_i18n.py
+      # Every check group against a synthetic repository. The suites above
+      # exercise the schema and i18n internals; without this one, 17 of
+      # validate_plugin.py's 35 functions — including main() and every
+      # cross-file sub-check — were never entered by any test, so they could
+      # have been reduced to no-ops with CI still green.
+      - name: Check-group behavioural tests (clean fixture + one mutation per rule)
+        run: python tools/tests/test_checks.py
       # The committed diagram is generated, never hand-edited. Regenerate into
       # a scratch copy and diff: a change to gen_radial_tree.py that silently
       # stops matching docs/assets/ used to be invisible (the generator was

@@ -189,10 +189,10 @@ children — one relax, one tighten.
   exposes a new degeneracy between f_NL and substructure mass
   spectrum."
 - **attack.** "Relax: the paper's S/N criterion required 5σ. At
-  3σ, half the reported detections drop out — what does the
-  remaining sample look like? Tighten: at 7σ, the result strengthens
-  but the sample size halves — was the 5σ choice optimized
-  post-hoc?"
+  3σ the sample roughly triples — do the added marginal detections
+  follow the same trend, or does the claimed correlation wash out?
+  Tighten: at 7σ the result strengthens but the sample size halves —
+  was the 5σ choice optimized post-hoc?"
 - **design.** "Relax: drop the 99.9% uptime SLO → opens a much
   simpler single-region architecture. Tighten: 99.99% SLO requires
   multi-region active-active, which the current proposal doesn't
@@ -223,8 +223,8 @@ extrapolation that exposes new physics / behavior.
 **Per-preset flavor:**
 
 - **brainstorm.** "Substructure detection currently targets
-  ~10⁸ M_sun. Push to 10¹¹: solar-mass halos approach galaxy-cluster
-  range, the regime where stellar gravitational lensing dominates.
+  ~10⁸ M_sun. Push to 10¹¹: Milky-Way-scale halos, where the lens is
+  a whole galaxy and baryonic contraction reshapes the profile.
   Push to 10⁵: subhalos in the warm-dark-matter cutoff regime —
   potentially a WDM constraint angle."
 - **attack.** "Method validated at z < 0.5. Extrapolate to z > 2:

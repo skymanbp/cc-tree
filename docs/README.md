@@ -65,6 +65,7 @@ than leaving dangling pointers.
 python tools/validate_plugin.py     # 7 check groups; what CI runs first
 python tools/tests/test_validate.py # preset schema + frontmatter parser cases
 python tools/tests/test_i18n.py     # bilingual contract cases
+python tools/tests/test_checks.py   # every check group vs a synthetic repo
 ```
 
 Details, including how to refresh a translation digest, are in
