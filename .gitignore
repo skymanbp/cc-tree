@@ -17,7 +17,7 @@ chain-out/
 CLAUDE.local.md
 # cc-memory plugin local state (sqlite + private conversation notes + indexes).
 memory/
-# cc-enslaver session state.
+# cc-enforcer session state.
 .ce/
 # Claude Code per-machine settings (settings.local.json). Shared settings, if
 # any are ever added, would need an explicit negation below.

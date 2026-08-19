@@ -230,7 +230,7 @@ The five that most reliably degrade output quality:
 5. ❌ **WebSearch snippet → conclusion.** Snippets are search results,
    not source-of-truth. Every external citation requires `WebFetch`
    of the actual page; otherwise the field is invalid (rule 04 +
-   rule 01 from cc-enslaver, if installed).
+   rule 01 from cc-enforcer, if installed).
 
 ---
 

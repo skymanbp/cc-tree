@@ -177,7 +177,7 @@ information-densest branch** and proceeding. Stop only when:
 - a resumed run receives an explicit language tag that conflicts with its
   persisted `output_language` (report `EARLY_STOP=language_mismatch` before
   producing another node),
-- a tool DENY from cc-enslaver or sandbox policy blocks an essential
+- a tool DENY from cc-enforcer or sandbox policy blocks an essential
   read (report what's blocked; do not silently switch strategies).
 
 The single prompting carve-out is the §2.0 glossary grill, which runs
@@ -909,7 +909,7 @@ derivation that follows.
    scoring on the survivors.
 3. The main agent **re-verifies every citation** a sub-agent returned
    (the `file:line` still says what the agent claimed; the WebFetch'd
-   URL still supports the point) before the child counts — cc-enslaver
+   URL still supports the point) before the child counts — cc-enforcer
    rule 04 applies transitively; a sub-agent's unverified claim is not
    evidence.
 
