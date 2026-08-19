@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 57d0d9436369a927b83a226019b17454eb60a0998ce8ad19f723f9fd9f3f7a1b -->
+<!-- i18n-source-sha256: c5f6936062efce0368ae687b89c776a007fe9c2c1c30d40b7be9222789fd0266 -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
