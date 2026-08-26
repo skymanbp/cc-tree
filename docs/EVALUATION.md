@@ -285,9 +285,12 @@ file. Two parser defects (a crash on an empty list entry, a misparse of
 frontmatter ending at EOF) and 22 contract-drift defects were fixed —
 mostly places where the runtime prompt, the engine spec, and a preset's
 own declared schema disagreed about a field name, a verdict label, or a
-section number. Two more drift classes became CI failures: `§N` prose
-references must resolve to a real heading, and anchors must live in the
-link href where the validator can check them.
+section number. Three more drift classes became CI failures: `§N` prose
+references must resolve to a real heading; anchors must live in the link
+href, where the validator can see them; and a machine token registered in
+a form that matches nothing — which left its i18n parity check silently
+vacuous — is caught, with `[NEEDS_VERIFICATION]` normalized and
+`root_underspecified` / `tool_blocked` registered.
 
 v0.6.0 is the third sweep, and the first run adversarially by a second
 model family: three parallel read-only `gpt-5.6-sol` reviews (55
