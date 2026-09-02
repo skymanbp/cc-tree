@@ -39,3 +39,5 @@ Thumbs.db
 # --- Build / log artefacts -------------------------------------------------
 *.log
 *.tmp
+# cc-enforcer index / cc-memory state: machine-local, never content
+.ccm/
