@@ -370,8 +370,8 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (210 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
-  [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 152 aligned sections, 507 machine-token checks)
+  [ok] cross-refs OK (236 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
 $ python -m pytest tools/tests -q
@@ -380,15 +380,15 @@ $ python -m pytest tools/tests -q
 
 ### 4.3 The adversarial-sweep record
 
-Every minor release since v0.3.0 has been driven by an adversarial sweep of the whole corpus — from
-v0.6.0 onward by a *different* model family, and by an independent refuting pass that rejects
-findings before any is acted on. The confirmed/rejected split is the honest metric this project
-has, so it is published rather than smoothed:
+Four whole-corpus adversarial sweeps since v0.3.0 (v0.3.0, v0.5.0, v0.6.0, v0.7.0), plus v0.7.1's
+documentation audit — from v0.6.0 onward run by a *different* model family, and by an independent
+refuting pass that rejects findings before any is acted on. The confirmed/rejected split is the
+honest metric this project has, so it is published rather than smoothed:
 
 | Release | Method | Findings | What it changed |
 |---|---|---|---|
 | v0.3.0 | first line-by-line sweep | 26 confirmed defects across 20 files | 5 cross-file consistency checks became CI failures |
-| v0.5.0 | second sweep, line-by-line over every shipped file | 24 defects across 18 files | dead `§N` pointers and misplaced anchors became CI failures |
+| v0.5.0 | second sweep, line-by-line over every shipped file | 24 defects across 18 files | dead `§N` pointers, anchors outside the link href, and machine tokens registered in a form that matched nothing became CI failures |
 | v0.6.0 | 3 parallel read-only reviews by a second model family (`gpt-5.6-sol`, xhigh) | 55 numbered findings; 26 reproduced by execution before any fix (26/26 confirmed) | closed the *gates'* own false-pass channels |
 | v0.7.0 | 5-dimension multi-agent audit + independent refuting pass | 32 confirmed, 6 rejected | fixed the checks that failed open |
 | v0.7.1 | full-corpus documentation audit + refuting pass | 14 confirmed, 26 rejected | validator function coverage 18/35 → 35/35 |
@@ -604,7 +604,7 @@ Each was a real fork with a rejected alternative; the full argument is in
 
 **Everything this README claims is either executable or CI-checked.** Drift between the docs, the
 runtime prompt, and the schema is the defect class this repository takes most seriously — every
-release since v0.3.0 has converted a class of found drift into a CI failure, so the same mistake
+sweep since v0.3.0 has converted a class of found drift into a CI failure, so the same mistake
 cannot be made twice quietly.
 
 **A gate that cannot fail is not a gate.** Recent sweeps kept finding checks that passed *because*

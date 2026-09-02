@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 5a4bfa2ad551615a1e72258cc84b780591f850ee055d156f92b06e1a3f49948b -->
+<!-- i18n-source-sha256: 87202c96ba7c3852bb241667109d22d185a1ddb458d0b826f4b77309ae3d1c82 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -355,8 +355,8 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (210 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
-  [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 152 aligned sections, 507 machine-token checks)
+  [ok] cross-refs OK (236 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
 $ python -m pytest tools/tests -q
@@ -365,14 +365,15 @@ $ python -m pytest tools/tests -q
 
 ### 4.3 对抗式扫查记录
 
-自 v0.3.0 起，每一个小版本都是由一次对全语料的对抗式扫查驱动的 —— 从 v0.6.0 开始由*另一个*
-模型家族来做，并且加了一道独立的反驳过程，findings 要先被它筛过才允许动手。确认/否决的比例
-是这个项目手上唯一诚实的度量，所以它被原样公布，而不是被抹平：
+自 v0.3.0 起共四次对全语料的对抗式扫查（v0.3.0、v0.5.0、v0.6.0、v0.7.0），外加 v0.7.1 的
+文档审计 —— 从 v0.6.0 开始由*另一个*模型家族来做，并且加了一道独立的反驳过程，findings
+要先被它筛过才允许动手。确认/否决的比例是这个项目手上唯一诚实的度量，所以它被原样公布，
+而不是被抹平：
 
 | 版本 | 方法 | findings | 它改变了什么 |
 |---|---|---|---|
 | v0.3.0 | 第一次逐行扫查 | 20 个文件里 26 条确认缺陷 | 5 项跨文件一致性检查变成了 CI 失败项 |
-| v0.5.0 | 第二次扫查，逐行过完每一个发布文件 | 18 个文件里 24 条缺陷 | 悬空 `§N` 指针与位置放错的锚点变成了 CI 失败项 |
+| v0.5.0 | 第二次扫查，逐行过完每一个发布文件 | 18 个文件里 24 条缺陷 | 悬空 `§N` 指针、写在链接文字而不是 href 里的锚点、以及登记成匹配不到任何东西的机器 token，一并变成了 CI 失败项 |
 | v0.6.0 | 由第二个模型家族（`gpt-5.6-sol`，xhigh）做的 3 路只读评审 | 55 条编号 findings；其中 26 条在动手前由执行复现（26/26 确认） | 堵死了*关卡自身*的假通过通道 |
 | v0.7.0 | 5 维多代理审计 + 独立反驳过程 | 32 条确认、6 条否决 | 修掉了那些"失败时反而放行"的检查 |
 | v0.7.1 | 全语料文档审计 + 反驳过程 | 14 条确认、26 条否决 | 校验器函数覆盖率 18/35 → 35/35 |
@@ -577,8 +578,8 @@ import 标准库以外的任何东西，这就是 `python tools/validate_plugin.
 ### 7.3 项目哲学
 
 **这份 README 声称的一切，要么可以执行，要么被 CI 检查。** 文档、运行时提示词与 schema
-三者之间的漂移，是本仓库最当回事的缺陷类别 —— 自 v0.3.0 起，每个版本都会把一类查出来的漂移
-转成 CI 失败项，这样同一个错误不可能第二次悄悄发生。
+三者之间的漂移，是本仓库最当回事的缺陷类别 —— 自 v0.3.0 起，每一次扫查都会把一类查出来的
+漂移转成 CI 失败项，这样同一个错误不可能第二次悄悄发生。
 
 **一道不会失败的关卡不算关卡。** 最近几次扫查反复查出"因为坏了所以通过"的检查：一份已经和
 `.gitignore` 漂移开的跳过清单、一套只有 `main()` 会读诊断信息的测试、一个连"删光所有外壳"
