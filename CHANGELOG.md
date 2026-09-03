@@ -3,6 +3,47 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## v0.7.2 — unreleased
+
+Documentation only. No preset, command, skill, runtime prompt, or
+validator behaviour changed.
+
+### Changed
+
+- **Both READMEs were restructured into a nine-section standard layout**,
+  and the repository map now names all three test suites.
+- **The engine's companion project is named `cc-enforcer`** in
+  `docs/ENGINE.md`, its Chinese parallel, `skills/tree/SKILL.md`, and
+  `.gitignore`; `docs/ENGINE.zh.md`'s source digest was re-stamped for the
+  English edit.
+- **`.gitignore` covers `.ce/` and `.ccm/`** — a cc-enforcer index and
+  cc-memory state; machine-local, never content.
+- **README §4.3 is scoped to sweeps rather than releases** — four
+  whole-corpus adversarial sweeps since v0.3.0 plus v0.7.1's documentation
+  audit — and the v0.5.0 row names all three drift classes that sweep
+  turned into CI failures. The validator transcript was refreshed to the
+  run the corpus produces today.
+
+### Fixed
+
+- **`docs/EVALUATION.md` undercounted v0.5.0's drift gates as two.** Three
+  became CI failures: dead `§N` prose references, anchors outside the link
+  href, and a machine token registered in a form that matched nothing.
+- **`docs/EVALUATION.md` counted seven maintained English↔Chinese
+  documentation pairs, and its header date trailed its last content
+  change.** `docs/languages.json` declares eight pairs — `docs/README.md`
+  joined as the eighth in v0.7.0's restructure.
+- **The validator transcript in both READMEs was labelled a v0.7.1
+  snapshot.** No such block existed at that tag, and its counts were
+  revised after it. The label now names what the block is: a snapshot at
+  `HEAD`, dated.
+- **README §9.1 pointed all four roadmap items at `docs/EVALUATION.md`**,
+  where only the scoring-rubric question is open — the other three are
+  recorded there as resolved. Each item now links the issue that tracks
+  it, and the three open help-wanted issues the section did not name — a
+  `tree.json` diagram export, a showcase gallery, and long-run ergonomics
+  — are listed.
+
 ## v0.7.1 — 2026-08-16
 
 Closes the coverage gap v0.7.0 documented but did not fix, and applies a

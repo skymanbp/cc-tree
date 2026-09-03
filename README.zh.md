@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 87202c96ba7c3852bb241667109d22d185a1ddb458d0b826f4b77309ae3d1c82 -->
+<!-- i18n-source-sha256: d1d6e6875911d6b7cc5e6c34c5aac7314e9e34f488ee830ea014351a0431399d -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -345,8 +345,8 @@ cc-tree 不附带任何延迟或准确率基准，硬造一个也是不诚实的
 | [`tools/tests/test_i18n.py`](tools/tests/test_i18n.py) | 多语言契约：配对、摘要、结构一致性、反例 |
 | [`tools/tests/test_checks.py`](tools/tests/test_checks.py) | 对一个合成仓库跑全部七组检查，每条规则做一次变异 |
 
-在本地复现整道关卡 —— CI 跑的就是这些。下面是 v0.7.1 时的快照；逐次运行的计数会随语料变化，
-所以它们只是被报告，从不被断言：
+在本地复现整道关卡 —— CI 跑的就是这些。下面是 HEAD（2026-09-03）时的快照；逐次运行的计数
+会随语料变化，所以它们只是被报告，从不被断言：
 
 ```
 $ python tools/validate_plugin.py
@@ -355,7 +355,7 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (236 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] cross-refs OK (238 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
   [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
@@ -637,19 +637,30 @@ cc-tree/
 
 ### 9.1 路线图 —— 还开着的问题
 
-以下是没有承诺时间表的开放问题，登记在 [`docs/EVALUATION.md`](docs/EVALUATION.md)。原始清单
+以下是没有承诺时间表的开放问题。第一条的设计理由写在
+[`docs/EVALUATION.md`](docs/EVALUATION.md) 里；有具体工作项的那几条登记在
+[open issues](https://github.com/skymanbp/cc-tree/issues)，每条下面都给了链接。原始清单
 上的其余各项都已经交付：串联与 `--seed-from` 在 v0.2.0、强制子代理派发在 v0.2.0、
 多语言输出在 v0.4.0。
 
 - **打分标尺的语义校验。** 结构 schema 是硬强制的 —— 五个维度、每个都带 `key` / `name` /
   `desc`，以及一个指向真实判决的 `convergence_metric`。但这些维度彼此是否*正交*、标尺是否
-  自洽，仍然是人的判断。
+  自洽，仍然是人的判断。理由见 [`docs/EVALUATION.md`](docs/EVALUATION.md) 的
+  "Open questions" 第 1 条。
 - **更多自带 preset。** 四个覆盖了有具体需求的场景；`architecture-review` 与
-  `risk-analysis` 是最显然的下两个，各自只是一份 ~150 行文件，无需改引擎。
+  `risk-analysis` 是最显然的下两个，各自只是一份 ~150 行文件，无需改引擎。登记在
+  [#1](https://github.com/skymanbp/cc-tree/issues/1)：一个 `research` / 文献综述 preset。
 - **更多领域档案。** 目前只自带 `physics`。模板和它的 schema 检查都已就位；档案本身是内容
-  工作。
+  工作。登记在 [#2](https://github.com/skymanbp/cc-tree/issues/2)：安全、机器学习、前端、
+  分布式系统。
 - **更多文档语言。** 清单、摘要与一致性机制本身与语言无关；今天登记在册的只有 `en` 和
   `zh`。
+- **给 `tree.json` 做图形导出。** 从运行自己的 JSON 渲染出 Graphviz、Mermaid 或可交互的
+  HTML。登记在 [#3](https://github.com/skymanbp/cc-tree/issues/3)。
+- **一个样例展廊。** 把真实运行的结果发布到 `docs/` 下，这样装之前就能判断产物质量。
+  登记在 [#4](https://github.com/skymanbp/cc-tree/issues/4)。
+- **长跑时的人机工程。** 长时间运行途中给出进度摘要，恢复时说清自己是从哪里接上的。
+  登记在 [#5](https://github.com/skymanbp/cc-tree/issues/5)。
 
 ### 9.2 已知限制
 

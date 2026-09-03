@@ -1,6 +1,6 @@
 # Why cc-tree, and why this shape
 
-Started: 2026-05-25 · Last updated: 2026-08-16
+Started: 2026-05-25 · Last updated: 2026-09-03
 Author: skymanbp + Claude Opus 4.7
 
 A living design record, not a dated snapshot: the "Open questions" and
@@ -254,7 +254,7 @@ interruption.
 4. **Multi-language preset support.** **Resolved in v0.4.0**: one
    English machine skeleton now supports deterministic `--lang <tag|auto>`
    output, run/resume/chain language persistence, arbitrary-language input and
-   custom prose, seven maintained English↔Chinese documentation pairs, and a
+   custom prose, eight maintained English↔Chinese documentation pairs, and a
    manifest + source-digest + structural/token validator. Translation quality
    remains a human review responsibility; freshness and schema preservation
    are CI-enforced.

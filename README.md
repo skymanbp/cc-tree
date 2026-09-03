@@ -360,8 +360,8 @@ so the committed SVG cannot drift from [`tools/gen_radial_tree.py`](tools/gen_ra
 | [`tools/tests/test_i18n.py`](tools/tests/test_i18n.py) | the multilingual contract: pairs, digests, structural parity, negative cases |
 | [`tools/tests/test_checks.py`](tools/tests/test_checks.py) | all seven check groups against a synthetic repository, one mutation per rule |
 
-Reproduce the whole gate locally — this is what CI runs. Snapshot at v0.7.1; the per-run counts
-move with the corpus, so they are reported, never asserted:
+Reproduce the whole gate locally — this is what CI runs. Snapshot at HEAD, 2026-09-03; the
+per-run counts move with the corpus, so they are reported, never asserted:
 
 ```
 $ python tools/validate_plugin.py
@@ -370,7 +370,7 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (236 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] cross-refs OK (238 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
   [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
@@ -667,19 +667,31 @@ declaration in [`docs/languages.json`](docs/languages.json).
 
 ### 9.1 Roadmap — what is still open
 
-Open questions with no committed dates, tracked in [`docs/EVALUATION.md`](docs/EVALUATION.md).
-Everything else on the original list has shipped: chaining and `--seed-from` in v0.2.0, mandatory
-sub-agent dispatch in v0.2.0, multi-language output in v0.4.0.
+Open questions with no committed dates. The design rationale for the first one is in
+[`docs/EVALUATION.md`](docs/EVALUATION.md); the ones with a concrete work item are tracked as
+[open issues](https://github.com/skymanbp/cc-tree/issues) and linked per bullet. Everything else
+on the original list has shipped: chaining and `--seed-from` in v0.2.0, mandatory sub-agent
+dispatch in v0.2.0, multi-language output in v0.4.0.
 
 - **Semantic validation of a scoring rubric.** The structural schema is hard-enforced — five
   dimensions, each with `key` / `name` / `desc`, and a `convergence_metric` naming a real verdict.
   Whether those dimensions are *orthogonal*, or the rubric self-consistent, is a human judgment.
+  Rationale: [`docs/EVALUATION.md`](docs/EVALUATION.md), "Open questions" item 1.
 - **More shipped presets.** Four cover the cases with a concrete need; `architecture-review` and
   `risk-analysis` are the obvious next two, each one ~150-line file with no engine change.
+  Tracking: [#1](https://github.com/skymanbp/cc-tree/issues/1), a `research` / literature-review
+  preset.
 - **More field profiles.** Only `physics` ships. The template and its schema check are in place;
-  the profiles themselves are content.
+  the profiles themselves are content. Tracking:
+  [#2](https://github.com/skymanbp/cc-tree/issues/2) — security, ML, frontend, distributed systems.
 - **More documentation languages.** The manifest, digest, and parity machinery is
   language-agnostic; only `en` and `zh` are registered today.
+- **A diagram export for `tree.json`.** Graphviz, Mermaid, or interactive HTML rendered from the
+  run's own JSON. Tracking: [#3](https://github.com/skymanbp/cc-tree/issues/3).
+- **A showcase gallery.** Real runs published under `docs/`, so the output can be judged before
+  installing. Tracking: [#4](https://github.com/skymanbp/cc-tree/issues/4).
+- **Long-run ergonomics.** A progress summary while a long run is in flight, and a resume path
+  that reports what it picked up. Tracking: [#5](https://github.com/skymanbp/cc-tree/issues/5).
 
 ### 9.2 Known limitations
 
