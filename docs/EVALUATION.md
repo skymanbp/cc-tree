@@ -278,7 +278,8 @@ classes that sweep found into CI failures.
 v0.4.0 completes the language architecture: English is the canonical/default
 machine skeleton, human-readable output is selected per run, arbitrary-language
 content remains valid input, Chinese public documentation is maintained as
-seven explicit pairs, and CI fails closed on version or schema drift.
+explicit pairs registered in `docs/languages.json`, and CI fails closed on
+version or schema drift.
 
 v0.5.0 is the second debug sweep, done line-by-line over every shipped
 file. Two parser defects (a crash on an empty list entry, a misparse of

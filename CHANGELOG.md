@@ -38,11 +38,12 @@ validator behaviour changed.
   revised after it. The label now names what the block is: a snapshot at
   `HEAD`, dated.
 - **README §9.1 pointed all four roadmap items at `docs/EVALUATION.md`**,
-  where only the scoring-rubric question is open — the other three are
-  recorded there as resolved. Each item now links the issue that tracks
-  it, and the three open help-wanted issues the section did not name — a
-  `tree.json` diagram export, a showcase gallery, and long-run ergonomics
-  — are listed.
+  whose "Open questions" list tracks the first of them alone — the
+  scoring rubric, item 1. The pointer is now scoped to that bullet, the
+  two bullets with a concrete work item link the issue tracking them,
+  and three open issues the section did not name — a `tree.json` diagram
+  export, a showcase gallery, and long-run ergonomics — are listed as
+  bullets of their own.
 
 ## v0.7.1 — 2026-08-16
 
