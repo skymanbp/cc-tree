@@ -365,7 +365,7 @@ per-run counts move with the corpus, so they are reported, never asserted:
 
 ```
 $ python tools/validate_plugin.py
-  [ok] manifests OK (version 0.7.1, metadata paired, changelog present)
+  [ok] manifests OK (version 0.7.2, metadata paired, changelog present)
   [ok] skills OK (1 skills)
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)

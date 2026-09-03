@@ -3,7 +3,7 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## v0.7.2 — unreleased
+## v0.7.2 — 2026-09-03
 
 Documentation only. No preset, command, skill, runtime prompt, or
 validator behaviour changed.

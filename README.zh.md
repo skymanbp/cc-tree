@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: d1d6e6875911d6b7cc5e6c34c5aac7314e9e34f488ee830ea014351a0431399d -->
+<!-- i18n-source-sha256: 144a6dd504f5e272285522092561f3db373a726e683897e1bc409862d35d79f4 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -350,7 +350,7 @@ cc-tree 不附带任何延迟或准确率基准，硬造一个也是不诚实的
 
 ```
 $ python tools/validate_plugin.py
-  [ok] manifests OK (version 0.7.1, metadata paired, changelog present)
+  [ok] manifests OK (version 0.7.2, metadata paired, changelog present)
   [ok] skills OK (1 skills)
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
