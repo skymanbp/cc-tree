@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 144a6dd504f5e272285522092561f3db373a726e683897e1bc409862d35d79f4 -->
+<!-- i18n-source-sha256: 1b03306f44d1e53fa1b6e20e0d8eb91c089cabbe32ff8847078be6609ab3e740 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -345,8 +345,11 @@ cc-tree 不附带任何延迟或准确率基准，硬造一个也是不诚实的
 | [`tools/tests/test_i18n.py`](tools/tests/test_i18n.py) | 多语言契约：配对、摘要、结构一致性、反例 |
 | [`tools/tests/test_checks.py`](tools/tests/test_checks.py) | 对一个合成仓库跑全部七组检查，每条规则做一次变异 |
 
-在本地复现整道关卡 —— CI 跑的就是这些。下面是 HEAD（2026-09-03）时的快照；逐次运行的计数
-会随语料变化，所以它们只是被报告，从不被断言：
+在本地复现整道关卡 —— 下面五步就是
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 在每一个 pull request、以及每一次推到
+`main` 的 push 上按此顺序跑的内容（validate 这个 job 会把整条序列跑两遍，一遍 Python 3.11，
+一遍 3.13）。下面是 HEAD（2026-09-03）时的快照；逐次运行的计数会随语料变化，所以它们只是被
+报告，从不被断言：
 
 ```
 $ python tools/validate_plugin.py
@@ -355,13 +358,30 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (238 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] cross-refs OK (240 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
   [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
-$ python -m pytest tools/tests -q
-22 passed
+$ python tools/tests/test_validate.py
+test_validate: all schema tests passed (4 shipped presets + 6 positive + 20 negative + 20 parser cases)
+
+$ python tools/tests/test_i18n.py
+test_i18n: all 43 multilingual cases passed
+
+$ python tools/tests/test_checks.py
+test_checks: all check-group tests passed (7 clean + 40 rejection cases)
+
+$ cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
+$ python tools/gen_radial_tree.py
+wrote <repo>/docs/assets/cc-tree-radial-tree.svg
+leaves(width) = 23 internal = 11 n = 35 max depth = 4
+$ diff -u /tmp/committed.svg docs/assets/cc-tree-radial-tree.svg
 ```
+
+`diff` 什么都不打印就是通过；`<repo>` 代表 checkout 的根目录，是那段输出里唯一与机器相关的
+部分。`python -m pytest tools/tests -q`（22 passed）用一条命令收集上面同样的三个套件，是本地
+顺手的超集，但它**不是** CI 的步骤：CI 把每个套件当普通脚本直接调用，所以这道关卡不依赖
+pytest。
 
 ### 4.3 对抗式扫查记录
 

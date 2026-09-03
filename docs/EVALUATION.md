@@ -1,7 +1,7 @@
 # Why cc-tree, and why this shape
 
 Started: 2026-05-25 · Last updated: 2026-09-03
-Author: skymanbp + Claude Opus 4.7
+Author: skymanbp
 
 A living design record, not a dated snapshot: the "Open questions" and
 "Decision" sections at the end are appended to on each release, so the

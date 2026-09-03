@@ -360,8 +360,11 @@ so the committed SVG cannot drift from [`tools/gen_radial_tree.py`](tools/gen_ra
 | [`tools/tests/test_i18n.py`](tools/tests/test_i18n.py) | the multilingual contract: pairs, digests, structural parity, negative cases |
 | [`tools/tests/test_checks.py`](tools/tests/test_checks.py) | all seven check groups against a synthetic repository, one mutation per rule |
 
-Reproduce the whole gate locally — this is what CI runs. Snapshot at HEAD, 2026-09-03; the
-per-run counts move with the corpus, so they are reported, never asserted:
+Reproduce the whole gate locally — these are the five steps
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs, in this order, on every pull request
+and every push to `main` (the validate job runs the whole sequence twice, once on Python 3.11 and
+once on 3.13). Snapshot at HEAD, 2026-09-03; the per-run counts move with the corpus, so they are
+reported, never asserted:
 
 ```
 $ python tools/validate_plugin.py
@@ -370,13 +373,30 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (238 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
+  [ok] cross-refs OK (240 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
   [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
-$ python -m pytest tools/tests -q
-22 passed
+$ python tools/tests/test_validate.py
+test_validate: all schema tests passed (4 shipped presets + 6 positive + 20 negative + 20 parser cases)
+
+$ python tools/tests/test_i18n.py
+test_i18n: all 43 multilingual cases passed
+
+$ python tools/tests/test_checks.py
+test_checks: all check-group tests passed (7 clean + 40 rejection cases)
+
+$ cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
+$ python tools/gen_radial_tree.py
+wrote <repo>/docs/assets/cc-tree-radial-tree.svg
+leaves(width) = 23 internal = 11 n = 35 max depth = 4
+$ diff -u /tmp/committed.svg docs/assets/cc-tree-radial-tree.svg
 ```
+
+`diff` printing nothing is the pass, and `<repo>` stands in for the checkout root — the one part
+of that output that is machine-specific. `python -m pytest tools/tests -q` (22 passed) collects
+the same three suites in a single command and is the convenient local superset, but it is **not**
+a CI step: CI invokes each suite as a plain script, so the gate carries no pytest dependency.
 
 ### 4.3 The adversarial-sweep record
 
