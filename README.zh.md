@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: b064144a0e7310d5e58a6b624cdd64b54272ee0eef64b6f33c6cb93bf909c582 -->
+<!-- i18n-source-sha256: a5c067751e7fdf985f9a29e8c1233f8f7c22a0180a4aef3112bbb7ea7ab583c8 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -353,7 +353,7 @@ cc-tree 不附带任何延迟或准确率基准，硬造一个也是不诚实的
 
 ```
 $ python tools/validate_plugin.py
-  [ok] manifests OK (version 0.7.2, metadata paired, changelog present)
+  [ok] manifests OK (version 0.7.3, metadata paired, changelog present)
   [ok] skills OK (1 skills)
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
@@ -387,7 +387,7 @@ pytest。
 
 自 v0.3.0 起共四次对全语料的对抗式扫查（v0.3.0、v0.5.0、v0.6.0、v0.7.0），外加 v0.7.1 的
 文档审计 —— 从 v0.6.0 开始由*另一个*模型家族来做，并且加了一道独立的反驳过程，findings
-要先被它筛过才允许动手 —— 以及一次尚未发版的结构审计（2026-09-24），它是例外：一个模型、
+要先被它筛过才允许动手 —— 以及 v0.7.3 的结构审计（2026-09-24），它是例外：一个模型、
 一个会话、没有反驳过程，取而代之的是每条校验器 finding 在修复前都先在校验器自己的 fixture
 上由执行复现。确认/否决的比例是这个项目手上唯一诚实的度量，所以它被原样公布，
 而不是被抹平：
@@ -399,7 +399,7 @@ pytest。
 | v0.6.0 | 由第二个模型家族（`gpt-5.6-sol`，xhigh）做的 3 路只读评审 | 55 条编号 findings；其中 26 条在动手前由执行复现（26/26 确认） | 堵死了*关卡自身*的假通过通道 |
 | v0.7.0 | 5 维多代理审计 + 独立反驳过程 | 32 条确认、6 条否决 | 修掉了那些"失败时反而放行"的检查 |
 | v0.7.1 | 全语料文档审计 + 反驳过程 | 14 条确认、26 条否决 | 校验器函数覆盖率 18/35 → 35/35 |
-| Unreleased (2026-09-24) | 单会话结构审计；校验器 findings 由执行复现，而非由第二道过程反驳 | 5 条校验器缺陷（3 条崩溃通道、2 条越界漏洞），逐条复现；3 条 prompt 逻辑缺陷（一处判定空洞、一处判定重叠、一处歧义注释）由阅读发现 | `glossary_paths` 与相对链接被限制在项目内；两个 preset 的判定表补全；skill 描述收缩为只描述引擎 |
+| v0.7.3 | 单会话结构审计；校验器 findings 由执行复现，而非由第二道过程反驳 | 5 条校验器缺陷（3 条崩溃通道、2 条越界漏洞），逐条复现；3 条 prompt 逻辑缺陷（一处判定空洞、一处判定重叠、一处歧义注释）由阅读发现 | `glossary_paths` 与相对链接被限制在项目内；两个 preset 的判定表补全；skill 描述收缩为只描述引擎 |
 
 有两行值得读第二遍。v0.7.1 里那套新的行为测试立刻找出了三个已发布仓库自身暴露不出来的缺陷：
 删掉*每一个*命令外壳反而能通过外壳配对检查、`_check_command_flags` 忽略了它自己的入参、

@@ -3,7 +3,7 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## Unreleased
+## v0.7.3 — 2026-09-24
 
 Structure audit: three validator crashes fixed, two confinement checks
 added, the verdict tables of two presets closed, and a slimmer runtime

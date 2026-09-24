@@ -338,8 +338,8 @@ same release applies a documentation audit's 14 confirmed findings, 26 having
 been rejected by the refuting pass — including one this project's own
 maintainer had called confirmed.
 
-The unreleased 2026-09-24 work is a structure audit of the whole plugin by
-one model in one session — no second model family and no refuting pass;
+v0.7.3 (2026-09-24) is a structure audit of the whole plugin by one model
+in one session — no second model family and no refuting pass;
 in their place, every validator finding was reproduced by execution against
 the validator's own fixture before it was fixed, and each fix carries a
 test that pins its diagnostic. The gates still had crash channels: an
@@ -352,6 +352,3 @@ prompt, `attack` had no verdict for an 8–10 score with an empty defense,
 `code-audit`'s `X = 0` clause overlapped REFUTED, and the skill description
 had re-absorbed all four presets' triggers — the description pollution
 Path 2 above was rejected for — so it was cut back to the engine alone.
-The version was deliberately left at 0.7.2: cutting a release is the
-maintainer's call, and `CHANGELOG.md` carries the entry under
-`Unreleased` until then.

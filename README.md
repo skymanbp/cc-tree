@@ -368,7 +368,7 @@ reported, never asserted:
 
 ```
 $ python tools/validate_plugin.py
-  [ok] manifests OK (version 0.7.2, metadata paired, changelog present)
+  [ok] manifests OK (version 0.7.3, metadata paired, changelog present)
   [ok] skills OK (1 skills)
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
@@ -402,8 +402,8 @@ a CI step: CI invokes each suite as a plain script, so the gate carries no pytes
 
 Four whole-corpus adversarial sweeps since v0.3.0 (v0.3.0, v0.5.0, v0.6.0, v0.7.0), plus v0.7.1's
 documentation audit — from v0.6.0 onward run by a *different* model family, and by an independent
-refuting pass that rejects findings before any is acted on — and one unreleased structure audit
-(2026-09-24) that is the exception: one model, one session, no refuting pass, with every validator
+refuting pass that rejects findings before any is acted on — and v0.7.3's structure audit
+(2026-09-24), which is the exception: one model, one session, no refuting pass, with every validator
 finding reproduced by execution against the validator's own fixture before it was fixed. The
 confirmed/rejected split is the honest metric this project has, so it is published rather than
 smoothed:
@@ -415,7 +415,7 @@ smoothed:
 | v0.6.0 | 3 parallel read-only reviews by a second model family (`gpt-5.6-sol`, xhigh) | 55 numbered findings; 26 reproduced by execution before any fix (26/26 confirmed) | closed the *gates'* own false-pass channels |
 | v0.7.0 | 5-dimension multi-agent audit + independent refuting pass | 32 confirmed, 6 rejected | fixed the checks that failed open |
 | v0.7.1 | full-corpus documentation audit + refuting pass | 14 confirmed, 26 rejected | validator function coverage 18/35 → 35/35 |
-| Unreleased (2026-09-24) | single-session structure audit; validator findings reproduced by execution, not refuted by a second pass | 5 validator defects (3 crash channels, 2 confinement holes), each reproduced; 3 prompt-logic defects (a verdict gap, a verdict overlap, an ambiguous gloss) found by reading | `glossary_paths` and relative links confined to the project; two presets' verdict tables closed; the skill description cut back to the engine |
+| v0.7.3 | single-session structure audit; validator findings reproduced by execution, not refuted by a second pass | 5 validator defects (3 crash channels, 2 confinement holes), each reproduced; 3 prompt-logic defects (a verdict gap, a verdict overlap, an ambiguous gloss) found by reading | `glossary_paths` and relative links confined to the project; two presets' verdict tables closed; the skill description cut back to the engine |
 
 Two rows deserve a second read. In v0.7.1 the new behavioural suite immediately found three defects
 the shipped repository could not surface: deleting *every* command wrapper passed the
