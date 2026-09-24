@@ -373,7 +373,7 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (8 files)
-  [ok] cross-refs OK (251 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 410 section refs)
+  [ok] cross-refs OK (251 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 411 section refs)
   [ok] i18n OK (8 pairs, 23 canonical-only docs, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
