@@ -1,6 +1,6 @@
 # Why cc-tree, and why this shape
 
-Started: 2026-05-25 · Last updated: 2026-09-03
+Started: 2026-05-25 · Last updated: 2026-09-24
 Author: skymanbp
 
 A living design record, not a dated snapshot: the "Open questions" and
@@ -335,3 +335,21 @@ zero-count tripwire was strict enough to reject a legitimate repository. The
 same release applies a documentation audit's 14 confirmed findings, 26 having
 been rejected by the refuting pass — including one this project's own
 maintainer had called confirmed.
+
+The unreleased 2026-09-24 work is a structure audit of the whole plugin by
+one model in one session — no second model family and no refuting pass;
+in their place, every validator finding was reproduced by execution against
+the validator's own fixture before it was fixed, and each fix carries a
+test that pins its diagnostic. The gates still had crash channels: an
+unclosed fence, a non-object marketplace `metadata`, and a dot-directory
+under `skills/` each produced a traceback or a false rejection instead of
+a diagnostic. Two confinement holes closed: a preset's `glossary_paths`
+could point the §2.0 grill at `../../etc/passwd`, and a relative link
+could resolve outside the checkout and still count as live. In the runtime
+prompt, `attack` had no verdict for an 8–10 score with an empty defense,
+`code-audit`'s `X = 0` clause overlapped REFUTED, and the skill description
+had re-absorbed all four presets' triggers — the description pollution
+Path 2 above was rejected for — so it was cut back to the engine alone.
+The version was deliberately left at 0.7.2: cutting a release is the
+maintainer's call, and `CHANGELOG.md` carries the entry under
+`Unreleased` until then.
