@@ -86,7 +86,6 @@ class MarkdownShape:
 class I18nStats:
     pairs: int
     canonical_only: int
-    digests: int
     sections: int
     machine_tokens: int
 
@@ -210,18 +209,29 @@ def chinese_banner(canonical: str, translation: str) -> str:
             "如有歧义，以英文版为准。")
 
 
-def _clean_manifest_path(raw: object, what: str) -> str:
-    """Require a repo-relative POSIX path (or glob) with no traversal.
+def is_clean_relative_path(raw: str) -> bool:
+    """True for a relative POSIX path (or glob) that cannot leave its root.
 
-    Backslashes, absolute paths, drive letters, and `.`/`..` segments are
-    rejected: they alias real paths past the duplicate check and can reach
-    outside the repository entirely.
+    Backslashes, absolute paths, `~` home expansion, drive letters, and
+    empty / `.` / `..` segments are all rejected: each one aliases a real
+    path past a duplicate check or reaches outside the tree the path is
+    meant to stay in. One trailing `/` (a directory, e.g. a preset's
+    `ADRs/`) is allowed. Shared by the language manifest and the preset
+    `glossary_paths` check so "clean path" has exactly one definition.
     """
+    if not raw.strip():
+        return False
+    if "\\" in raw or raw.startswith(("/", "~")) or ":" in raw.split("/", 1)[0]:
+        return False
+    parts = raw[:-1].split("/") if raw.endswith("/") else raw.split("/")
+    return not any(part in ("", ".", "..") for part in parts)
+
+
+def _clean_manifest_path(raw: object, what: str) -> str:
+    """Require a repo-relative POSIX path (or glob) with no traversal."""
     if not isinstance(raw, str) or not raw.strip():
         raise I18nError(f"{what} must be a non-empty string path")
-    if ("\\" in raw or raw.startswith("/")
-            or ":" in raw.split("/", 1)[0]
-            or any(part in ("", ".", "..") for part in raw.split("/"))):
+    if not is_clean_relative_path(raw):
         raise I18nError(
             f"{what} must be a clean repo-relative POSIX path: {raw!r}")
     return raw
@@ -715,7 +725,6 @@ def validate_i18n(repo: Path, required_keys: tuple[str, ...],
     return I18nStats(
         pairs=len(pairs),
         canonical_only=canonical_only,
-        digests=len(pairs),
         sections=sections,
         machine_tokens=compared_tokens,
     )

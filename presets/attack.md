@@ -124,8 +124,11 @@ Notable preset-specific notes:
 - Otherwise:
   - `score ≥ 11` AND `artifact_defense = empty/insufficient` →
     **CONFIRMED**
-  - `8 ≤ score ≤ 10` AND `artifact_defense` partially addresses →
-    **MARGINAL** (author-judgment list)
+  - `8 ≤ score ≤ 10` → **MARGINAL** (author-judgment list), whether
+    `artifact_defense` is empty or only partially addresses the
+    critique — a defense that *adequately* answers it was already
+    caught by REFUTED-first above, so no score in this band is left
+    without a verdict
   - `score ≤ 7` → **REFUTED** (this preset's `pruned` role — the only
     label the engine has for a low-score prune; `DEAD-END` belongs to
     `brainstorm`'s `verdict_enum`, not this one). Greyed and kept in

@@ -12,25 +12,12 @@ Run with no arguments; exits non-zero on any test failure.
 
 from __future__ import annotations
 
-import functools
-import sys
 from pathlib import Path
 
-# tools/ holds the modules under test and is deliberately NOT a package: CI
-# runs `python tools/validate_plugin.py`, which works only because Python puts
-# the script's own directory on sys.path[0]. From tools/tests/ that no longer
-# happens, so add tools/ explicitly. Derived from __file__, never absolute.
-TOOLS = Path(__file__).resolve().parent.parent
-REPO = TOOLS.parent
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
+from _harness import REPO, expose_to_pytest  # puts tools/ on sys.path first
 
-import validate_plugin as vp  # noqa: E402 — requires the sys.path setup above
-from _frontmatter import (  # noqa: E402 — same
-    FrontmatterError,
-    parse_frontmatter,
-    split_frontmatter,
-)
+import validate_plugin as vp
+from _frontmatter import FrontmatterError, parse_frontmatter, split_frontmatter
 
 _failures: list[str] = []
 # Counted at call time, never hard-coded, so the summary line cannot claim
@@ -280,6 +267,26 @@ def test_schema_rejections() -> None:
                               "output_artifacts:\n  primary: out.md\n"
                               "  secondary:\n    rejected: rejected.md"))
 
+    # `glossary_paths` (optional) names files the §2.0 grill Reads from the
+    # project root, so it gets the artifact-name confinement: `../../etc/passwd`
+    # used to validate — a preset could point the engine anywhere on disk.
+    def with_glossary(block: str) -> str:
+        return _replace_once(VALID, "output_artifacts:",
+                             f"glossary_paths:\n{block}output_artifacts:")
+
+    expect_pass("glossary_paths: a directory and a dot-directory file",
+                with_glossary("  - ADRs/\n  - .github/CODEOWNERS\n"))
+    expect_fail("glossary_paths entry climbs out of the project",
+                with_glossary("  - ../../etc/passwd\n"), "glossary_paths[0]")
+    expect_fail("absolute glossary path",
+                with_glossary("  - /etc/shadow\n"), "glossary_paths[0]")
+    expect_fail("home-relative glossary path",
+                with_glossary("  - ~/.ssh/config\n"), "glossary_paths[0]")
+    expect_fail("glossary_paths is a scalar, not a list",
+                _replace_once(VALID, "output_artifacts:",
+                              "glossary_paths: FACTS.md\noutput_artifacts:"),
+                "must be a non-empty list")
+
 
 def test_frontmatter_regressions() -> None:
     """Parser-level positive cases: subset constructs must parse exactly."""
@@ -406,7 +413,7 @@ def test_section_reference_patterns() -> None:
 
 
 # Ordered exactly as `main()` runs them, captured BEFORE the pytest wrapping
-# below so the script runner keeps the plain, non-raising originals.
+# so the script runner keeps the plain, non-raising originals.
 _TESTS = (
     test_shipped_presets,
     test_schema_rejections,
@@ -415,34 +422,7 @@ _TESTS = (
     test_heading_slugs,
     test_section_reference_patterns,
 )
-
-
-def _pytest_visible(fn):
-    """Re-raise, as an assertion, whatever `fn` recorded in `_failures`.
-
-    Every function above reports by appending to a module-level list that only
-    `main()` inspects. pytest never calls `main()`, so each collected `test_*`
-    returned normally and passed unconditionally: injecting `root_kind: BOGUS`
-    into a shipped preset still produced `13 passed` from `pytest` while
-    `python tools/tests/test_validate.py` correctly exited 1. A green pytest
-    run was therefore evidence of nothing.
-
-    Only the failures this call added are raised, so one broken check does not
-    smear its diagnostic across every later test.
-    """
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        before = len(_failures)
-        fn(*args, **kwargs)
-        added = _failures[before:]
-        if added:
-            raise AssertionError("\n".join(added))
-    return wrapper
-
-
-for _name, _fn in list(globals().items()):
-    if _name.startswith("test_") and callable(_fn):
-        globals()[_name] = _pytest_visible(_fn)
+expose_to_pytest(globals(), _failures)
 
 
 def main() -> int:

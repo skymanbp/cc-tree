@@ -144,8 +144,8 @@ design-specific notes:
 
 ## Verdict mapping detail
 
-- `score ≥ 11` AND no violated hard constraint (F = 0) →
-  **RECOMMENDED**
+- `score ≥ 11` AND no violated hard constraint (a violation scores
+  `F = 0`) → **RECOMMENDED**
 - `8 ≤ score ≤ 10` AND no violated hard constraint → **VIABLE**
 - `score ≤ 7` OR any violated hard constraint → **NOT-RECOMMENDED**
   (this preset's `pruned` role; record the reason in the verdict —

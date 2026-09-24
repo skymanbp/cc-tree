@@ -3,6 +3,87 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## Unreleased
+
+Structure audit: three validator crashes fixed, two confinement checks
+added, the verdict tables of two presets closed, and a slimmer runtime
+prompt. No engine rule changed; every runtime edit removes an ambiguity or
+restores something the docs already stated.
+
+### Fixed (validator)
+
+- **An unclosed code fence in any document crashed `check_crossrefs`.**
+  The fence-aware scanner raises `I18nError`, which only `check_i18n`
+  translated; the cross-ref sub-checks that share the scanner let it
+  escape as a raw traceback. It is now a named check failure
+  (`<file>: unclosed Markdown code fence`).
+- **A non-object `metadata` in `marketplace.json` crashed
+  `check_manifests`** with an `AttributeError` instead of a diagnostic.
+- **A dot-directory under `skills/` was reported as a skill with its
+  `SKILL.md` missing.** `check_skills` now applies the same `is_skipped`
+  rule as every other scan — the `.pytest_cache` lesson, one directory
+  over.
+
+### Added (checks)
+
+- **`glossary_paths` is confined to the project.** The §2.0 grill `Read`s
+  each entry from the project root, yet `../../etc/passwd`, `/etc/shadow`
+  and `~/.ssh/config` all validated. Entries must now be clean
+  project-relative paths (a trailing `/` for a directory is allowed),
+  judged by the same `is_clean_relative_path` rule `docs/languages.json`
+  already used, so "clean path" has one definition.
+- **A relative link must stay inside the repository.** `](../../x.md)`
+  resolves on the author's disk and is dead in every other checkout;
+  `](/etc/hosts)` is absolute, so `src.parent /` was discarded and the
+  target "existed". Judged before existence, so the diagnostic names the
+  real defect.
+- **The CI job token is read-only** (`permissions: contents: read`).
+- A test per rule above, diagnostic pinned: five preset-schema cases in
+  `test_validate.py`, four check-group cases in `test_checks.py`.
+
+### Changed (runtime prompt)
+
+- **`presets/attack.md` had no verdict for `8 ≤ score ≤ 10` with an empty
+  `artifact_defense`.** MARGINAL required a *partial* defense, CONFIRMED
+  required `≥ 11`, REFUTED required `≤ 7`, so a score-9 critique the
+  artifact never addresses fell through every rule. The band is now
+  MARGINAL unconditionally; an adequate defense is still REFUTED-first.
+- **`presets/code-audit.md`: `score ≤ 7` with `X = 0` matched both
+  MARGINAL ("OR `X = 0`") and REFUTED.** The `X = 0` clause now applies
+  only above the REFUTED band.
+- **`presets/design.md`'s "(F = 0)"** now reads "a violation scores
+  `F = 0`", so the parenthetical cannot be read as the RECOMMENDED
+  condition.
+- **`skills/tree/SKILL.md`'s description shrank by nearly a third.** It had
+  accumulated all four presets' "Use when" triggers — the description
+  pollution `docs/EVALUATION.md` rejected Path 2 for; those triggers
+  already live in the command wrappers, which is where Path 3 put them.
+  The skill's and `tree-chain`'s `argument-hint`s drop their trailing
+  prose (the bodies say it). The "not a chat interface" note now names
+  the §2.0 grill as the one prompting carve-out, matching §F6.
+- **Wrapper hints harmonized.** `attack` advertises `--glossary` and
+  `--no-grill` (the shipped example runs it with `--no-grill`); `design`
+  advertises `--seed-from` — how `tree-chain` wires stage 2 — and
+  `--no-grill`; `code-audit` advertises `--no-grill`.
+- **`docs/ENGINE.md` §7.3 wrote the framing placeholder as `§3.X`**, which
+  is also the external cross-check's real ID; now `§3.<A–L>`. §8's tool
+  table and a §9 anti-pattern said "width ≥ 5" for the §8.1 threshold,
+  which §0 defines as the final leaf count; now "fan-out ≥ 5". Chinese
+  parallel mirrored, digest refreshed.
+
+### Changed (tooling)
+
+- **`tools/tests/_harness.py`** holds the `sys.path` bootstrap and the
+  pytest-visibility wrapper once, instead of one copy per suite.
+- `_frontmatter.py`'s two flow-map scanners share one quote tracker;
+  `validate_plugin.py` gets one `_require_frontmatter` helper in place of
+  three "no YAML frontmatter" copies and a single-return `check_commands`;
+  the i18n summary drops its `digests` count, which could never differ
+  from `pairs`.
+- **`tools/README.md`** maps the toolchain: which check reads what, in
+  which order, and which suite proves it. `docs/presets.md` lists the
+  `glossary_paths` rule as its 11th.
+
 ## v0.7.2 — 2026-09-03
 
 Documentation only. No preset, command, skill, runtime prompt, or

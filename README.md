@@ -348,7 +348,7 @@ across Python 3.11 and 3.13:
 | presets | any of the preset schema rules (§10–§11) |
 | commands | a command without a description, or a preset shipped without its wrapper |
 | tools | a Python file that does not parse |
-| cross-refs | dead `#anchor`s, unresolvable relative links, out-of-bounds example citations, undocumented command flags, malformed field profiles, dead `§N` references |
+| cross-refs | dead `#anchor`s, relative links that are unresolvable or escape the repository, out-of-bounds example citations, undocumented command flags, malformed field profiles, dead `§N` references |
 | i18n | an unregistered document, a stale digest, diverged headings or fences, a thin or English-copy translation, a dropped machine token |
 
 Three self-test suites back them, plus a CI step that regenerates the radial diagram and diffs it,
@@ -363,7 +363,7 @@ so the committed SVG cannot drift from [`tools/gen_radial_tree.py`](tools/gen_ra
 Reproduce the whole gate locally — these are the five steps
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs, in this order, on every pull request
 and every push to `main` (the validate job runs the whole sequence twice, once on Python 3.11 and
-once on 3.13). Snapshot at HEAD, 2026-09-03; the per-run counts move with the corpus, so they are
+once on 3.13). Snapshot at HEAD, 2026-09-24; the per-run counts move with the corpus, so they are
 reported, never asserted:
 
 ```
@@ -372,19 +372,19 @@ $ python tools/validate_plugin.py
   [ok] skills OK (1 skills)
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
-  [ok] tools/**/*.py syntax OK (7 files)
-  [ok] cross-refs OK (240 links / 13 anchors, 9 example citations, 42 command flags, 1 field profiles, 404 section refs)
-  [ok] i18n OK (8 pairs, 22 canonical-only docs, 8 digests, 171 aligned sections, 514 machine-token checks)
+  [ok] tools/**/*.py syntax OK (8 files)
+  [ok] cross-refs OK (251 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 410 section refs)
+  [ok] i18n OK (8 pairs, 23 canonical-only docs, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 
 $ python tools/tests/test_validate.py
-test_validate: all schema tests passed (4 shipped presets + 6 positive + 20 negative + 20 parser cases)
+test_validate: all schema tests passed (4 shipped presets + 7 positive + 24 negative + 20 parser cases)
 
 $ python tools/tests/test_i18n.py
 test_i18n: all 43 multilingual cases passed
 
 $ python tools/tests/test_checks.py
-test_checks: all check-group tests passed (7 clean + 40 rejection cases)
+test_checks: all check-group tests passed (8 clean + 43 rejection cases)
 
 $ cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
 $ python tools/gen_radial_tree.py

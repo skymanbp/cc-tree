@@ -17,15 +17,17 @@ Checks:
      §10-§11, docs/presets.md §1): name (= file basename) + description +
      root_kind (known kind) + subject_label + verdict_enum (exactly the 4
      roles) + convergence_metric (a verdict role) + score_dims (exactly 5,
-     each key/name/desc) + node_schema (exactly 12) + output_artifacts.primary.
+     each key/name/desc) + node_schema (exactly 12) + output_artifacts.primary
+     + (if present) glossary_paths confined to the project root.
   5. Every commands/<name>.md starts with a YAML frontmatter block that
      declares `description:`.
   6. tools/**/*.py all parse as valid Python (ast.parse, no runtime imports).
-  7. Cross-file consistency: every relative Markdown link resolves on disk
-     and, when it carries a `#fragment`, points at a real heading;
-     `examples/` line citations stay in bounds, command `argument-hint`
-     flags are documented outside frontmatter, field profiles match the
-     schema, and every `§N` / `§FN` prose reference names a real section.
+  7. Cross-file consistency: every relative Markdown link stays inside the
+     repository, resolves on disk and, when it carries a `#fragment`, points
+     at a real heading; `examples/` line citations stay in bounds, command
+     `argument-hint` flags are documented outside frontmatter, field
+     profiles match the schema, and every `§N` / `§FN` prose reference
+     names a real section.
   8. docs/languages.json controls English-canonical / Chinese-parallel
      documentation, source digests, structure, and machine-token parity.
 """
@@ -38,10 +40,11 @@ import re
 import sys
 from pathlib import Path
 
-from _frontmatter import FrontmatterError, parse_frontmatter, split_frontmatter
+from _frontmatter import FrontmatterError, split_frontmatter
 from _i18n import (
     FLAG_RE,
     I18nError,
+    is_clean_relative_path,
     is_skipped,
     load_manifest,
     scan_markdown,
@@ -89,20 +92,21 @@ def _read_json_object(path: Path) -> dict:
     return data
 
 
-def _read_frontmatter(path: Path) -> dict | None:
-    """Parse a file's frontmatter, converting parser rejections into
-    check failures that name the offending file."""
-    try:
-        return parse_frontmatter(path.read_text(encoding="utf-8"))
-    except FrontmatterError as e:
-        fail(f"{path}: frontmatter: {e}")
-
-
 def _read_split(path: Path) -> tuple[dict | None, str]:
+    """Parse a file into (frontmatter, body), converting parser rejections
+    into check failures that name the offending file."""
     try:
         return split_frontmatter(path.read_text(encoding="utf-8"))
     except FrontmatterError as e:
         fail(f"{path}: frontmatter: {e}")
+
+
+def _require_frontmatter(path: Path) -> dict:
+    """The file's parsed frontmatter; a file without one is a failure."""
+    fm, _ = _read_split(path)
+    if fm is None:
+        fail(f"{path} has no YAML frontmatter (--- ... ---) at top")
+    return fm
 
 
 def check_manifests() -> str:
@@ -114,7 +118,10 @@ def check_manifests() -> str:
             fail(f"plugin.json '{key}' must be a non-empty string "
                  f"(got {value!r})")
     plugin_v = plugin["version"]
-    market_v = market.get("metadata", {}).get("version")
+    meta = market.get("metadata")
+    if not isinstance(meta, dict):
+        fail(f"marketplace.json 'metadata' must be an object (got {meta!r})")
+    market_v = meta.get("version")
     if market_v != plugin_v:
         fail(f"marketplace.json metadata.version ({market_v!r}) != "
              f"plugin.json version ({plugin_v!r})")
@@ -152,9 +159,7 @@ def check_manifests() -> str:
 
 def _check_md_frontmatter(path: Path, required_keys: tuple[str, ...],
                           name_must_match: str | None) -> None:
-    fm = _read_frontmatter(path)
-    if fm is None:
-        fail(f"{path} has no YAML frontmatter (--- ... ---) at top")
+    fm = _require_frontmatter(path)
     for key in required_keys:
         if key not in fm or not fm[key]:
             fail(f"{path} frontmatter missing '{key}:'")
@@ -167,7 +172,11 @@ def check_skills() -> str:
     skills_dir = REPO / "skills"
     if not skills_dir.is_dir():
         fail(f"{skills_dir} missing")
-    skill_dirs = sorted(p for p in skills_dir.iterdir() if p.is_dir())
+    # Same skip rule as every other scan: a `skills/.cache/` left by a tool
+    # is not a skill directory with its SKILL.md missing.
+    skill_dirs = sorted(
+        p for p in skills_dir.iterdir()
+        if p.is_dir() and not is_skipped((*p.relative_to(REPO).parts, "SKILL.md")))
     if not skill_dirs:
         fail("skills/ has no skill directories")
     for sd in skill_dirs:
@@ -281,6 +290,26 @@ def _validate_artifacts(fm: dict, pfail) -> None:
                   "bare *.md filename (no path separators)")
 
 
+def _validate_glossary_paths(fm: dict, pfail) -> None:
+    """Optional-key rule: `glossary_paths` entries are paths the §2.0 grill
+    `Read`s from the project root (docs/ENGINE.md §2.0), so they get the
+    same confinement as artifact names — `..`, an absolute path, `~`, or a
+    drive letter would point the engine outside the project. Absent is
+    fine (the engine falls back to FACTS.md / glossary.md / CLAUDE.md);
+    present-but-malformed is rejected rather than silently ignored."""
+    paths = fm.get("glossary_paths")
+    if paths is None:
+        return
+    if not isinstance(paths, list) or not paths:
+        pfail(f"glossary_paths must be a non-empty list when present (got {paths!r})")
+    for idx, entry in enumerate(paths):
+        _req_str(entry, f"glossary_paths[{idx}]", pfail)
+        if not is_clean_relative_path(entry):
+            pfail(f"glossary_paths[{idx}]={entry!r} must be a clean "
+                  "project-relative path (no '..', absolute path, '~', or "
+                  "drive letter)")
+
+
 def validate_preset_schema(path: Path, fm: dict) -> None:
     """Enforce the preset compliance rules promised in docs/ENGINE.md §10-§11
     and docs/presets.md §1. `fm` is the parsed frontmatter mapping."""
@@ -292,6 +321,7 @@ def validate_preset_schema(path: Path, fm: dict) -> None:
     _validate_score_dims(fm, pfail)
     _validate_node_schema(fm, pfail)
     _validate_artifacts(fm, pfail)
+    _validate_glossary_paths(fm, pfail)
 
 
 def check_presets() -> str:
@@ -302,10 +332,7 @@ def check_presets() -> str:
     if not files:
         fail(f"{presets_dir} has no preset .md files (other than README.md)")
     for f in files:
-        fm = _read_frontmatter(f)
-        if fm is None:
-            fail(f"{f} has no YAML frontmatter (--- ... ---) at top")
-        validate_preset_schema(f, fm)
+        validate_preset_schema(f, _require_frontmatter(f))
     return f"presets OK ({len(files)} presets, frontmatter schema)"
 
 
@@ -332,10 +359,6 @@ def check_commands() -> str:
             fail(f"presets/{preset.name} has no command wrapper "
                  f"commands/{preset.stem}.md")
         wrappers += 1
-    if not commands_dir.is_dir():
-        return "commands OK (no commands/ dir — optional)"
-    if not files:
-        return "commands OK (no command .md files — optional)"
     return f"commands OK ({len(files)} commands, {wrappers} preset wrappers)"
 
 
@@ -386,17 +409,25 @@ def _content_md_files() -> list[Path]:
             if not is_skipped(p.relative_to(REPO).parts)]
 
 
-def _headings(text: str) -> list[tuple[int, str]]:
-    """Fence-aware `(level, title)` pairs.
+def _headings(text: str, where: str = "<text>") -> list[tuple[int, str]]:
+    """Fence-aware `(level, title)` pairs of the document `text`, read from
+    `where` (named in the diagnostic).
 
     Delegates to `_i18n.scan_markdown` so the repository has exactly one
     heading scanner. The private `^#{1,6}\\s+` regex this replaced ran over raw
     text with no fence tracking, so `# === Slot 1: root type ===` inside a
     YAML example fence counted as a heading — feeding pseudo-entries into the
     §-namespace, the anchor slug table, and the field-profile section check
-    (9 phantom headings in ENGINE.md alone, 4 per preset).
+    (9 phantom headings in ENGINE.md alone, 3–4 per preset).
+
+    A malformed document (an unclosed fence) is a check failure like any
+    other: the scanner's `I18nError` used to escape `check_crossrefs` as a
+    raw traceback, since only `check_i18n` translated that exception.
     """
-    shape = scan_markdown(text)
+    try:
+        shape = scan_markdown(text)
+    except I18nError as e:
+        fail(f"{where}: {e}")
     return [(level, title) for (level, _marker), title
             in zip(shape.headings, shape.heading_titles)]
 
@@ -409,13 +440,13 @@ def _slugify(heading: str) -> str:
     return text.replace(" ", "-")
 
 
-def _heading_slugs(text: str) -> set[str]:
+def _heading_slugs(text: str, where: str = "<text>") -> set[str]:
     """All GitHub-resolvable heading slugs in `text`, including the `-1`,
     `-2`, … suffixes GitHub appends to repeated headings — without them a
     perfectly valid `#repeat-1` link was reported as dead."""
     counts: dict[str, int] = {}
     slugs: set[str] = set()
-    for _level, heading in _headings(text):
+    for _level, heading in _headings(text, where):
         base = _slugify(heading)
         seen = counts.get(base, 0)
         counts[base] = seen + 1
@@ -435,10 +466,16 @@ def _check_links(md_files: list[Path]) -> tuple[int, int]:
     all. That is precisely the class a file move breaks, so a restructure could
     strand a hundred links with CI still green.
 
+    A target must also stay inside the repository: `](../../elsewhere.md)`
+    may resolve on the author's disk, yet it is dead in every other checkout
+    and on GitHub, and `](/etc/hosts)` — absolute, so `src.parent /` is
+    discarded — is not a relative link at all.
+
     Skipped: absolute URLs, `mailto:`, and pure-fragment links (`](#L42)`),
     which the framing docs use as illustrative pseudo-references.
     """
     links = anchors = 0
+    root = REPO.resolve()
     slug_cache: dict[Path, set[str]] = {}
     for src in md_files:
         text = _strip_inline_code(src.read_text(encoding="utf-8"))
@@ -449,6 +486,8 @@ def _check_links(md_files: list[Path]) -> tuple[int, int]:
             if not target_rel:
                 continue
             target = (src.parent / target_rel).resolve()
+            if not target.is_relative_to(root):
+                fail(f"{src}: link escapes the repository: {raw}")
             # Directory links (`](../presets/)`) are legitimate targets.
             if not target.exists():
                 fail(f"{src}: link target missing: {raw}")
@@ -457,7 +496,7 @@ def _check_links(md_files: list[Path]) -> tuple[int, int]:
                 continue
             if target not in slug_cache:
                 slug_cache[target] = _heading_slugs(
-                    target.read_text(encoding="utf-8"))
+                    target.read_text(encoding="utf-8"), str(target))
             if frag.lower() not in slug_cache[target]:
                 fail(f"{src}: dead anchor #{frag} -> {target_rel} "
                      f"(no heading slugs match)")
@@ -616,7 +655,7 @@ def _check_section_refs(md_files: list[Path]) -> int:
     for src in _section_id_sources():
         if not src.is_file():
             continue
-        for _level, heading in _headings(src.read_text(encoding="utf-8")):
+        for _level, heading in _headings(src.read_text(encoding="utf-8"), str(src)):
             m = _SECTION_ID_RE.match(heading.strip())
             if m:
                 valid.add(m.group(1).upper())
@@ -650,8 +689,7 @@ def _check_field_profiles() -> int:
         # not the field-profile schema, so they must be skipped here.
         if p.name == "README.md" or p.name.startswith("_") or p.name.endswith(".zh.md"):
             continue
-        text = p.read_text(encoding="utf-8")
-        fm = _read_frontmatter(p)
+        fm, body = _read_split(p)
         if fm is None:
             fail(f"{p} has no YAML frontmatter")
         if fm.get("field") != p.stem:
@@ -665,7 +703,7 @@ def _check_field_profiles() -> int:
         # profiles write "Reviewer concerns — feeds §3.C ..."), so the
         # required name matches as a whole-word prefix of the title.
         h2_titles = [title.strip() for level, title
-                     in _headings(text) if level == 2]
+                     in _headings(body, str(p)) if level == 2]
         for title in required_sections:
             if not any(t == title or t.startswith(title + " ")
                        for t in h2_titles):
@@ -708,8 +746,7 @@ def check_i18n() -> str:
     except (I18nError, FrontmatterError) as exc:
         fail(f"i18n: {exc}")
     return (f"i18n OK ({stats.pairs} pairs, {stats.canonical_only} "
-            f"canonical-only docs, {stats.digests} digests, "
-            f"{stats.sections} aligned sections, "
+            f"canonical-only docs, {stats.sections} aligned sections, "
             f"{stats.machine_tokens} machine-token checks)")
 
 

@@ -140,6 +140,11 @@ treats as a defect.)
     `secondary` value is not a bare `*.md` filename — every artifact is
     written under the run's `<out>/`, so a separator or `..` would let a
     preset write outside it.
+11. `glossary_paths`, when present, is not a non-empty list of clean
+    project-relative paths — the §2.0 grill `Read`s each entry from the
+    project root, so `..`, an absolute path, `~`, or a drive letter would
+    send the engine outside it. A trailing `/` (a directory such as
+    `ADRs/`) is fine.
 
 CI runs the validator on every push; broken presets block the
 merge. `tools/tests/test_validate.py` proves each rejection with a

@@ -1,8 +1,8 @@
 ---
 name: tree
-description: Universal radial-tree exploration engine. Loads a preset, builds a §2 baseline, then recursively applies 12 framing passes per node until stable convergence (no new high-verdict branches over the last 2 rounds + all 12 framings exercised + all leaves complete). Width × depth × rounds default to ∞; resource caps are opt-in. Hard ban on `defer / future-work / TODO / NEEDS-MORE-INFO` leaves — every leaf must be fully derived before counting. Use when 用户说 "brainstorm" / "attack" / "design exploration" / "code audit" / "explore options" / "find what's wrong" / "what should we build" / "tree of thoughts" / 想做穷尽的发散探索 / 想做多角度审查 / 想对一个工件 adversarial critique / 想做设计空间探索. Prefer the per-preset commands (`/cc-tree:brainstorm`, `/cc-tree:attack`, `/cc-tree:design`, `/cc-tree:code-audit`) when the use-case matches; call this skill directly with `--preset <name|path>` to override or supply a custom preset.
+description: Universal radial-tree exploration engine — loads a preset, grounds a root, expands every node through 12 framing passes, derives each child in 12 evidence-bearing fields, scores it, and recurses on `advances` leaves until substantive convergence (or a user cap). Caps default to ∞; `defer / TODO / NEEDS-MORE-INFO` leaves are hard-banned. Use when the user wants the engine itself — a custom preset via `--preset <path>`, explicit control of a run, or "tree of thoughts" / 穷尽的树状探索 in general; for the four shipped use-cases prefer `/cc-tree:brainstorm`, `/cc-tree:attack`, `/cc-tree:design`, `/cc-tree:code-audit`, whose descriptions carry the per-use-case triggers.
 disable-model-invocation: false
-argument-hint: "<root> --preset <name|path> [--lang <tag|auto>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--field <name|path>] [--seed-from <primary.md>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R] — `<root>` is a topic string, file path, problem statement, or design prompt; `--preset` is required (use `brainstorm` / `attack` / `design` / `code-audit` for shipped presets, or a path to your own .md)"
+argument-hint: "<root> --preset <name|path> [--lang <tag|auto>] [--width N|∞] [--depth N|∞] [--rounds N|conv] [--max-branches N|∞] [--out <dir>] [--glossary <path>] [--field <name|path>] [--seed-from <primary.md>] [--no-grill] [--no-online] [--min-frameworks N] [--min-novelty-ratio R]"
 ---
 
 # tree — universal radial-tree exploration engine
@@ -16,8 +16,9 @@ argument-hint: "<root> --preset <name|path> [--lang <tag|auto>] [--width N|∞] 
 > vocabulary — all parameterized via a **preset** file.
 
 > **What this skill is NOT.** Not a one-shot LLM call that returns a
-> bulleted list. Not a chat interface — once `/cc-tree:tree` is
-> invoked, the engine runs to convergence without further prompts.
+> bulleted list. Not a chat interface — once the §2.0 glossary grill
+> has settled terminology and the root is written, the engine runs to
+> convergence without further prompts (§F6).
 > Not bundled with a model — pure prompt-engineering on top of Claude
 > Code's existing model setting.
 

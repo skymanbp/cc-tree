@@ -802,7 +802,7 @@ and [`chaining.md`](chaining.md) depends on them.
 
 ```markdown
 ### <id>  <subject_statement[:80]>
-- **parent**: <parent_id> | **framing**: §3.X | **score**: d1=_ d2=_ d3=_ d4=_ d5=_ → total=_
+- **parent**: <parent_id> | **framing**: §3.<A–L> | **score**: d1=_ d2=_ d3=_ d4=_ d5=_ → total=_
 - **verdict**: <advances|kept|pruned|blocked label>
 - **<field-2>**: …
 - **<field-3>**: …  (or `→ nodes/<id>.md` if long)
@@ -875,7 +875,7 @@ inspection) but cannot weaken the universal mapping.
 | §3 framing pass — code / data check | `Read` (full file) / `Grep` / `Bash` (run repro) | Reading only the diff or a search hit |
 | §4 numerical self-check | `Bash + python (sympy / numpy)` | "Easy to verify" / "obvious by inspection" |
 | §4 artifact_defense / mitigation_present check (attack/code-audit) | `Grep` across ≥ 5 major sections + `Read` each hit | Only checking adjacent paragraphs |
-| Parallel framing pass for width ≥ 5 | `Agent(Explore)` or `Agent(general-purpose)` sub-agents | Sequential when wall-clock matters |
+| Parallel framing pass for fan-out ≥ 5 | `Agent(Explore)` or `Agent(general-purpose)` sub-agents | Sequential when wall-clock matters |
 | Incremental tree write | direct `Write` / `Edit` on `tree.md` + `tree.json` | Batching to "end of run" |
 
 ### 8.1 Sub-agent dispatch (MANDATORY when a node's expected fan-out ≥ 5)
@@ -939,7 +939,7 @@ In addition to the eight §0.5 forbidden patterns:
   combinations; check adjacent fields; check non-English sources if
   the preset's domain warrants it.
 - ❌ **"User didn't ask for parallelism, run §3 sequentially."** At
-  width ≥ 5, sub-agent dispatch is a performance necessity, not a
+  fan-out ≥ 5, sub-agent dispatch is a performance necessity, not a
   preference.
 - ❌ **"Tree too big to display, I'll trim."** User asked for
   exhaustive; trim is a violation of `--width` / `--depth` semantics.

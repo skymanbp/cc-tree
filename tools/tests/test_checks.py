@@ -21,29 +21,16 @@ Run with no arguments; exits non-zero on any test failure.
 from __future__ import annotations
 
 import contextlib
-import functools
 import io
 import json
 import re
-import sys
 import tempfile
 from pathlib import Path
 
-# tools/ holds the modules under test and is deliberately NOT a package: CI
-# runs `python tools/validate_plugin.py`, which works only because Python puts
-# the script's own directory on sys.path[0]. From tools/tests/ that no longer
-# happens, so add tools/ explicitly. Derived from __file__, never absolute.
-TOOLS = Path(__file__).resolve().parent.parent
-REPO = TOOLS.parent
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
+from _harness import expose_to_pytest  # puts tools/ on sys.path first
 
-import validate_plugin as vp  # noqa: E402 — requires the sys.path setup above
-from _i18n import (  # noqa: E402 — same
-    chinese_banner,
-    english_banner,
-    source_digest,
-)
+import validate_plugin as vp
+from _i18n import chinese_banner, english_banner, source_digest
 
 _failures: list[str] = []
 _n_pass = 0
@@ -406,6 +393,13 @@ def test_manifests() -> None:
         lambda r: _patch_json(r, ".claude-plugin/marketplace.json",
                               lambda d: d["plugins"][0].update(name="other")),
         "has no entry named")
+    # A string where the object belongs used to escape as an AttributeError
+    # traceback from `.get`, not as a check failure.
+    expect_reject(
+        "marketplace metadata is not an object",
+        lambda r: _patch_json(r, ".claude-plugin/marketplace.json",
+                              lambda d: d.update(metadata="0.1.0")),
+        "'metadata' must be an object")
     expect_reject(
         "keywords drift between the two manifests",
         lambda r: _patch_json(r, ".claude-plugin/marketplace.json",
@@ -456,6 +450,11 @@ def test_skills() -> None:
         lambda r: _edit(r, "skills/tree/SKILL.md",
                         "name: tree", "name: tree\nname: tree"),
         "duplicate key")
+    # Tool state under skills/ is not a skill: `skills/.cache/` used to be
+    # reported as a skill directory with its SKILL.md missing.
+    expect_clean(
+        "a dot-directory under skills/ is skipped",
+        lambda r: _write(r, "skills/.cache/junk.txt", ""))
 
 
 def test_presets_and_commands() -> None:
@@ -531,6 +530,21 @@ def test_crossrefs() -> None:
         lambda r: _edit(r, "commands/attack.md",
                         "(../presets/attack.md)", "(../presets/attack.md#nope)"),
         "dead anchor")
+    # Judged before existence: a target outside the checkout is wrong even
+    # when it happens to exist on this machine (it is dead on every other).
+    expect_reject(
+        "a relative link climbs out of the repository",
+        lambda r: _edit(r, "commands/attack.md",
+                        "(../presets/attack.md)", "(../../escape.md)"),
+        "escapes the repository")
+    # An unclosed fence is a malformed document, reported like any other
+    # defect; the scanner's I18nError used to escape as a raw traceback.
+    expect_reject(
+        "an unclosed code fence fails cleanly",
+        lambda r: _write(r, "docs/ENGINE.md",
+                         (r / "docs" / "ENGINE.md").read_text(encoding="utf-8")
+                         + "\n```python\nunclosed\n"),
+        "unclosed Markdown code fence")
     expect_reject(
         "an example citation runs past the end of its target",
         lambda r: _edit(r, "examples/attack/notes.md",
@@ -653,7 +667,7 @@ def test_main_group_list_is_complete() -> None:
 
 
 # Ordered exactly as `main()` runs them, captured BEFORE the pytest wrapping
-# below so the script runner keeps the plain, non-raising originals.
+# so the script runner keeps the plain, non-raising originals.
 _TESTS = (
     test_fixture_is_clean,
     test_manifests,
@@ -665,29 +679,7 @@ _TESTS = (
     test_main_reports_every_group,
     test_main_group_list_is_complete,
 )
-
-
-def _pytest_visible(fn):
-    """Re-raise, as an assertion, whatever `fn` recorded in `_failures`.
-
-    Same contract as the sibling suites: reporting goes into a module-level
-    list that only `main()` reads, so a collected `test_*` would otherwise
-    pass unconditionally under pytest. Only the failures this call added are
-    raised.
-    """
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        before = len(_failures)
-        fn(*args, **kwargs)
-        added = _failures[before:]
-        if added:
-            raise AssertionError("\n".join(added))
-    return wrapper
-
-
-for _name, _fn in list(globals().items()):
-    if _name.startswith("test_") and callable(_fn):
-        globals()[_name] = _pytest_visible(_fn)
+expose_to_pytest(globals(), _failures)
 
 
 def main() -> int:

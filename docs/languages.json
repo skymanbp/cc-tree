@@ -70,6 +70,10 @@
       "reason": "Contributor workflow references English-only tooling output, file paths, and CI step names."
     },
     {
+      "path": "tools/README.md",
+      "reason": "Toolchain map for contributors; it names English-only module, function, and check identifiers."
+    },
+    {
       "path": "LICENSE",
       "reason": "The legal license text is not translated by this project."
     },

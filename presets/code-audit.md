@@ -173,8 +173,9 @@ The 12 framings translate to security/perf/correctness contexts:
   severity. Document in `refuted.md` as a positive record.
 - `score ≥ 11` AND `mitigation_present = empty/insufficient` AND
   `exploit_likelihood (X) ≥ 1` → **CONFIRMED**
-- `8 ≤ score ≤ 10` OR `X = 0` (only theoretical) → **MARGINAL**
-  (context-dependent)
+- `8 ≤ score ≤ 10`, or `score ≥ 11` with `X = 0` (only theoretical) →
+  **MARGINAL** (context-dependent). A `score ≤ 7` node is REFUTED below
+  whatever its `X`, so the two rules never overlap.
 - `score ≤ 7` → **REFUTED** (this preset's `pruned` role; `DEAD-END`
   is `brainstorm`'s label and is not in this `verdict_enum`). Kept in
   `tree.md`; only findings the code was actually shown to mitigate go

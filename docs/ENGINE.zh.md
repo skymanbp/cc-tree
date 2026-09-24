@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: c5f6936062efce0368ae687b89c776a007fe9c2c1c30d40b7be9222789fd0266 -->
+<!-- i18n-source-sha256: b3743bfd10e07dcbb639892cd697b4297da97df5ecb4c8d73c9290a28b95e66e -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -711,7 +711,7 @@ blocked)`。映射规则为：
 
 ```markdown
 ### <id>  <subject_statement[:80]>
-- **parent**: <parent_id> | **framing**: §3.X | **score**: d1=_ d2=_ d3=_ d4=_ d5=_ → total=_
+- **parent**: <parent_id> | **framing**: §3.<A–L> | **score**: d1=_ d2=_ d3=_ d4=_ d5=_ → total=_
 - **verdict**: <advances|kept|pruned|blocked label>
 - **<field-2>**: …
 - **<field-3>**: …  (or `→ nodes/<id>.md` if long)
@@ -782,7 +782,7 @@ blocked)`。映射规则为：
 | §3 框架视角 pass —— 代码 / 数据核查 | `Read`（完整文件）/ `Grep` / `Bash`（运行复现） | 只读 diff 或一个搜索命中 |
 | §4 数值自检 | `Bash + python (sympy / numpy)` | "易于验证" / "一眼可知" |
 | §4 artifact_defense / mitigation_present 核查（attack/code-audit） | `Grep` 横跨 ≥ 5 个主要章节 + 对每个命中 `Read` | 只检查相邻段落 |
-| 宽度 ≥ 5 时的并行框架视角 pass | `Agent(Explore)` 或 `Agent(general-purpose)` 子代理 | 在墙钟时间要紧时仍然串行 |
+| 扇出 ≥ 5 时的并行框架视角 pass | `Agent(Explore)` 或 `Agent(general-purpose)` 子代理 | 在墙钟时间要紧时仍然串行 |
 | 增量树写入 | 在 `tree.md` + `tree.json` 上直接 `Write` / `Edit` | 攒到"运行结束时"再批量写 |
 
 ### 8.1 Sub-agent dispatch (MANDATORY when a node's expected fan-out ≥ 5)（子代理派发，当节点预期扇出 ≥ 5 时强制）
@@ -833,7 +833,7 @@ blocked)`。映射规则为：
   输出。
 - ❌ **"`WebSearch` 没返回任何东西 → 它是新颖的。"** 试 ≥ 3 个关键词
   组合；检查相邻字段；若预设领域有此必要则检查非英文来源。
-- ❌ **"用户没要求并行，串行运行 §3。"** 在宽度 ≥ 5 时，子代理派发是
+- ❌ **"用户没要求并行，串行运行 §3。"** 在扇出 ≥ 5 时，子代理派发是
   性能上的必需，而非偏好。
 - ❌ **"树太大显示不下，我裁剪一下。"** 用户要的是穷尽；裁剪违反
   `--width` / `--depth` 语义。

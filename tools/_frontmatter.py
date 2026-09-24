@@ -103,30 +103,35 @@ def _unquote(v: str) -> str:
     return v
 
 
-def _split_commas(s: str) -> list[str]:
-    """Split a flow-map body on commas at brace/bracket depth 0, ignoring
-    commas inside quotes or nested `{}` / `[]`."""
-    parts: list[str] = []
-    buf: list[str] = []
+def _unquoted_chars(s: str):
+    """Yield `(index, char)` for every character of `s` that sits outside a
+    single- or double-quoted span. The one quote tracker both flow-map
+    scanners below share, so a quoting rule cannot drift between them."""
     in_single = in_double = False
-    depth = 0
-    for c in s:
+    for i, c in enumerate(s):
         if c == "'" and not in_double:
             in_single = not in_single
         elif c == '"' and not in_single:
             in_double = not in_double
         elif not in_single and not in_double:
-            if c in "{[":
-                depth += 1
-            elif c in "}]":
-                depth -= 1
-            elif c == "," and depth == 0:
-                parts.append("".join(buf))
-                buf = []
-                continue
-        buf.append(c)
-    if buf:
-        parts.append("".join(buf))
+            yield i, c
+
+
+def _split_commas(s: str) -> list[str]:
+    """Split a flow-map body on commas at brace/bracket depth 0, ignoring
+    commas inside quotes or nested `{}` / `[]`."""
+    parts: list[str] = []
+    depth = start = 0
+    for i, c in _unquoted_chars(s):
+        if c in "{[":
+            depth += 1
+        elif c in "}]":
+            depth -= 1
+        elif c == "," and depth == 0:
+            parts.append(s[start:i])
+            start = i + 1
+    if s[start:]:
+        parts.append(s[start:])
     return parts
 
 
@@ -135,20 +140,14 @@ def _find_flow_map_end(s: str) -> int:
 
     Returns -1 if the braces never balance (malformed flow map).
     """
-    in_single = in_double = False
     depth = 0
-    for i, c in enumerate(s):
-        if c == "'" and not in_double:
-            in_single = not in_single
-        elif c == '"' and not in_single:
-            in_double = not in_double
-        elif not in_single and not in_double:
-            if c == "{":
-                depth += 1
-            elif c == "}":
-                depth -= 1
-                if depth == 0:
-                    return i
+    for i, c in _unquoted_chars(s):
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return i
     return -1
 
 

@@ -1,6 +1,6 @@
 ---
 description: Cross-preset chaining — run several cc-tree presets in sequence, piping each stage's top-K primary deliverable into the next via --seed-from. The canonical pipeline is brainstorm → design → attack (diverge on directions, design the best into options, attack the winner before committing). Each stage converges independently; the top-K cut between stages is always logged, never silent. 中文触发：跨 preset 串联流水线，把每阶段 top-K 主产物喂给下一阶段。
-argument-hint: "<root> [--lang <tag|auto>] [--stages brainstorm,design,attack] [--top-k N] [--width N|∞] [--depth N|∞] [--out <dir>] [--field <name|path>] [--no-online] — `<root>` feeds the FIRST stage; later stages consume the prior stage's primary deliverable (as seeds or as the root artifact, per docs/chaining.md 'Root vs seeds')"
+argument-hint: "<root> [--lang <tag|auto>] [--stages brainstorm,design,attack] [--top-k N] [--width N|∞] [--depth N|∞] [--out <dir>] [--field <name|path>] [--no-online]"
 ---
 
 Run a chain of `cc-tree` presets, threading each stage's primary

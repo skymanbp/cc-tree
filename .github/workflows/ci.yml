@@ -12,6 +12,10 @@ on:
   # get a verdict for that commit short of pushing another one.
   workflow_dispatch:
 
+# The workflow only reads the checkout; deny the job token everything else.
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: validate plugin (py${{ matrix.python-version }})

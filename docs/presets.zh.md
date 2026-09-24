@@ -1,7 +1,7 @@
 # 撰写一个 cc-tree preset
 
 > 语言：中文。英文规范版：[`docs/presets.md`](presets.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 667add2206e38a48243b332524493c88bc6791eb55905b891b8a5304d1a02a9d -->
+<!-- i18n-source-sha256: 77b46c5dcd2e4351f977b0fa9c01d6a4e03457d31aacade882045adbc4fcd79c -->
 
 一个 preset 是单个 `.md` 文件，它为一个用例定制那台通用引擎
 （[`ENGINE.md`](ENGINE.md)）。它提供六个可覆盖的槽位（词汇 + 配方），
@@ -134,6 +134,10 @@ glossary_paths:
 10. `output_artifacts` 没有非空的 `primary`，或任何 `primary` /
     `secondary` 取值不是裸的 `*.md` 文件名 —— 每份产物都写在本次运行的
     `<out>/` 之下，所以路径分隔符或 `..` 会让 preset 写到目录之外去。
+11. `glossary_paths` 若存在，却不是一个由干净的项目相对路径组成的非空
+    列表 —— §2.0 术语 grill 会从项目根目录 `Read` 其中每一项，所以
+    `..`、绝对路径、`~` 或盘符都会把引擎带到项目之外。结尾的 `/`
+    （目录，例如 `ADRs/`）没有问题。
 
 CI 在每次推送时运行验证器；损坏的 preset 会阻止合并。
 `tools/tests/test_validate.py` 用负例逐条证明这些拒绝确实生效，

@@ -35,7 +35,7 @@ remain the authority, because they are what CI runs.
 | `field-profiles/<name>.md` | Domain lenses | **contract** — `--field <name>` resolves here |
 | `docs/` | Engine spec, framings, authoring guides, rationale, `languages.json` | free, but every path is registered in `docs/languages.json` |
 | `examples/` | Worked input + expected output fixtures | free; citations into them are bounds-checked |
-| `tools/` | Validators and generators | **anchored** — each script derives the repo root as its own parent's parent |
+| `tools/` | Validators and generators — [`tools/README.md`](tools/README.md) maps how they fit together | **anchored** — each script derives the repo root as its own parent's parent |
 | `tools/tests/` | Self-tests for the above | anchored one level deeper |
 
 ## The five invariants that trip people up
@@ -43,8 +43,10 @@ remain the authority, because they are what CI runs.
 **1. A preset is schema-validated.** Exactly 12 `node_schema` entries,
 exactly 5 `score_dims` (each with a distinct 1–3 letter `key`), exactly the
 4 `verdict_enum` roles with distinct labels, a `convergence_metric` naming
-one of those roles, and `output_artifacts` values that are bare `*.md`
-filenames. The full rule set is `docs/ENGINE.md` §10–§11 and
+one of those roles, `output_artifacts` values that are bare `*.md`
+filenames, and — if declared — `glossary_paths` entries that are clean
+project-relative paths (no `..`, absolute path, `~`, or drive letter). The
+full rule set is `docs/ENGINE.md` §10–§11 and
 [`docs/presets.md`](docs/presets.md).
 
 **2. A preset needs its command wrapper.** Shipping `presets/foo.md`

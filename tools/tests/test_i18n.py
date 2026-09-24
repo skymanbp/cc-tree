@@ -9,24 +9,15 @@ this checkout. It has no dependencies outside the Python standard library.
 from __future__ import annotations
 
 import copy
-import functools
 import json
 import re
-import sys
 import tempfile
 from pathlib import Path
 
-# tools/ holds the modules under test and is deliberately NOT a package: CI
-# runs `python tools/validate_plugin.py`, which works only because Python puts
-# the script's own directory on sys.path[0]. From tools/tests/ that no longer
-# happens, so add tools/ explicitly. Derived from __file__, never absolute.
-TOOLS = Path(__file__).resolve().parent.parent
-REPO = TOOLS.parent
-if str(TOOLS) not in sys.path:
-    sys.path.insert(0, str(TOOLS))
+from _harness import REPO, expose_to_pytest  # puts tools/ on sys.path first
 
-import validate_plugin as vp  # noqa: E402 — requires the sys.path setup above
-from _i18n import (  # noqa: E402 — same
+import validate_plugin as vp
+from _i18n import (
     I18nError,
     build_token_sets,
     chinese_banner,
@@ -619,7 +610,7 @@ def test_shipped_pairs() -> None:
 
 
 # Ordered exactly as `main()` runs them, captured BEFORE the pytest wrapping
-# below so the script runner keeps the plain, non-raising originals.
+# so the script runner keeps the plain, non-raising originals.
 _TESTS = (
     test_text_primitives,
     test_manifest_validation,
@@ -629,29 +620,7 @@ _TESTS = (
     test_command_flags,
     test_shipped_pairs,
 )
-
-
-def _pytest_visible(fn):
-    """Re-raise, as an assertion, whatever `fn` recorded in `_failures`.
-
-    Same defect as in test_validate.py: reporting goes into a module-level list
-    that only `main()` reads, so every collected `test_*` passed unconditionally
-    under pytest while the script runner correctly failed. Only the failures
-    this call added are raised.
-    """
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        before = len(_failures)
-        fn(*args, **kwargs)
-        added = _failures[before:]
-        if added:
-            raise AssertionError("\n".join(added))
-    return wrapper
-
-
-for _name, _fn in list(globals().items()):
-    if _name.startswith("test_") and callable(_fn):
-        globals()[_name] = _pytest_visible(_fn)
+expose_to_pytest(globals(), _failures)
 
 
 def main() -> int:
