@@ -60,8 +60,8 @@ All five are the *same engine*. A preset changes the vocabulary, never the loop 
 
 - **Not a one-shot brainstorm tool.** The engine is recursive and convergence-terminated; a real
   run takes minutes to hours.
-- **Not a chat interface.** Once invoked it runs to convergence without further prompting (§F6).
-  You steer with flags on the next invocation.
+- **Not a chat interface.** Only the §2.0 glossary grill may ask questions, before the root exists;
+  then it runs to convergence unprompted (§F6). You steer with flags on the next invocation.
 - **Not a substitute for a domain expert.** It produces a cited, structured exploration; a human
   still decides which leaves to act on.
 - **Not bundled with a model.** It is pure prompt engineering on top of your existing Claude Code
@@ -373,7 +373,7 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (8 files)
-  [ok] cross-refs OK (251 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 411 section refs)
+  [ok] cross-refs OK (253 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 411 section refs)
   [ok] i18n OK (8 pairs, 23 canonical-only docs, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 

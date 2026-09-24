@@ -2,8 +2,8 @@
 """Behavioral tests for the seven top-level check groups in validate_plugin.
 
 Why this file exists: a coverage trace of the other two suites showed that
-17 of `validate_plugin.py`'s 35 functions were never entered — including
-`check_manifests`, `check_crossrefs`, `check_i18n`, every cross-file
+17 of `validate_plugin.py`'s 35 functions at v0.7.1 were never entered —
+including `check_manifests`, `check_crossrefs`, `check_i18n`, every cross-file
 sub-check, and `main` itself. Everything those functions enforce could have
 been reduced to a no-op (a bad regex, a renamed directory, an over-eager
 skip rule) with the whole CI suite still printing OK. The shipped repository
@@ -427,7 +427,7 @@ def test_manifests() -> None:
 
 
 def test_skills() -> None:
-    """check_skills + _check_md_frontmatter + _read_frontmatter."""
+    """check_skills + _check_md_frontmatter + _require_frontmatter."""
     expect_reject(
         "skills/ directory missing",
         lambda r: ((r / "skills" / "tree" / "SKILL.md").unlink(),

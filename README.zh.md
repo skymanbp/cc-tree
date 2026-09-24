@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 20d8eaa6c661bf7311ec63f01777ac9184a2cc29acd1b32996e51769591e5321 -->
+<!-- i18n-source-sha256: b064144a0e7310d5e58a6b624cdd64b54272ee0eef64b6f33c6cb93bf909c582 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -59,8 +59,8 @@ claude plugin install cc-tree@cc-tree
 
 - **不是一次性的头脑风暴工具。** 引擎是递归的、以收敛终止的；一次真实运行要花几分钟到
   几小时。
-- **不是聊天界面。** 一旦调用就跑到收敛，中途不再追问（§F6）。你通过下一次调用的 flag
-  来操舵。
+- **不是聊天界面。** 只有 §2.0 术语拷问前奏可能在根节点写出之前向你提问；之后一路跑到收敛，
+  中途不再追问（§F6）。你通过下一次调用的 flag 来操舵。
 - **不能替代领域专家。** 它产出的是带引用的结构化探索；该行动哪些叶子，仍然由人来决定。
 - **不捆绑任何模型。** 它是纯粹的提示词工程，跑在你现有的 Claude Code 模型设置之上。
 - **不是 linter。** `code-audit` 找的正是静态分析器找不到的东西：依赖威胁模型的、
@@ -358,7 +358,7 @@ $ python tools/validate_plugin.py
   [ok] presets OK (4 presets, frontmatter schema)
   [ok] commands OK (5 commands, 4 preset wrappers)
   [ok] tools/**/*.py syntax OK (8 files)
-  [ok] cross-refs OK (251 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 411 section refs)
+  [ok] cross-refs OK (253 links / 13 anchors, 9 example citations, 47 command flags, 1 field profiles, 411 section refs)
   [ok] i18n OK (8 pairs, 23 canonical-only docs, 171 aligned sections, 514 machine-token checks)
 validate_plugin: all checks passed
 

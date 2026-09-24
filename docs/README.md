@@ -69,4 +69,5 @@ python tools/tests/test_checks.py   # every check group vs a synthetic repo
 ```
 
 Details, including how to refresh a translation digest, are in
-[`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+[`../CONTRIBUTING.md`](../CONTRIBUTING.md); which check reads what, and
+which suite proves it, is mapped in [`../tools/README.md`](../tools/README.md).

@@ -56,11 +56,11 @@ restores something the docs already stated.
   condition.
 - **`skills/tree/SKILL.md`'s description shrank by nearly a third.** It had
   accumulated all four presets' "Use when" triggers — the description
-  pollution `docs/EVALUATION.md` rejected Path 2 for; those triggers
-  already live in the command wrappers, which is where Path 3 put them.
-  The skill's and `tree-chain`'s `argument-hint`s drop their trailing
-  prose (the bodies say it). The "not a chat interface" note now names
-  the §2.0 grill as the one prompting carve-out, matching §F6.
+  pollution `docs/EVALUATION.md` rejected Path 2 for; they live in the
+  command wrappers, where Path 3 put them. The skill's and `tree-chain`'s
+  `argument-hint`s drop their trailing prose (the bodies say it). Its "not
+  a chat interface" note, both READMEs, and `docs/EVALUATION.md` now name
+  the §2.0 grill as the one prompting carve-out (§F6).
 - **Wrapper hints harmonized.** `attack` advertises `--glossary` and
   `--no-grill` (the shipped example runs it with `--no-grill`); `design`
   advertises `--seed-from` — how `tree-chain` wires stage 2 — and
@@ -80,9 +80,9 @@ restores something the docs already stated.
   three "no YAML frontmatter" copies and a single-return `check_commands`;
   the i18n summary drops its `digests` count, which could never differ
   from `pairs`.
-- **`tools/README.md`** maps the toolchain: which check reads what, in
-  which order, and which suite proves it. `docs/presets.md` lists the
-  `glossary_paths` rule as its 11th.
+- **`tools/README.md`** maps which check reads what, in which order, and
+  which suite proves it; `CONTRIBUTING.md` and the docs index link it.
+  `docs/presets.md` lists the `glossary_paths` rule as its 11th.
 
 ## v0.7.2 — 2026-09-03
 

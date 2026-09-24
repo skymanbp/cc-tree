@@ -37,7 +37,7 @@ jobs:
       - name: Multilingual contract self-tests (pairs + digests + negative cases)
         run: python tools/tests/test_i18n.py
       # Every check group against a synthetic repository. The suites above
-      # exercise the schema and i18n internals; without this one, 17 of
+      # exercise the schema and i18n internals; before this one (v0.7.1), 17 of
       # validate_plugin.py's 35 functions — including main() and every
       # cross-file sub-check — were never entered by any test, so they could
       # have been reduced to no-ops with CI still green.

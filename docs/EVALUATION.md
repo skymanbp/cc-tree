@@ -204,9 +204,11 @@ path the user supplies (or skips entirely).
   convergence-terminated; expect minutes to hours per run depending on
   width / depth.
 - Not a chat interface. It's full-auto by design; the user supplies
-  the root and (optionally) flags, then the engine runs to convergence
-  without further prompting. Mid-run intervention is via flag overrides
-  on the next invocation, not interactive Q&A.
+  the root and (optionally) flags, and once the §2.0 glossary grill —
+  the one step that may ask a question, before the root exists — has
+  settled terminology, the engine runs to convergence without further
+  prompting. Mid-run intervention is via flag overrides on the next
+  invocation, not interactive Q&A.
 - Not a substitute for a domain expert. The output is a structured
   exploration tree with file:line-cited evidence at every node; a human
   still decides which leaves to act on.

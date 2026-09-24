@@ -1,7 +1,7 @@
 # cc-tree documentation
 
 > 语言：中文。英文规范版：[`docs/README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: 82919ee18c2c1ae19dd863c44751b0bc1bf4e78782914c90c985e27dbfc835c6 -->
+<!-- i18n-source-sha256: 34971c4f0827a74370fbb1cfa3a3408e32c94be9483a9a7410662a9e3eb0aaae -->
 
 这里收录了所有用于**规定、讲解、论证**这台引擎的文档。项目总览在上一层的
 [`../README.md`](../README.md)；本页是其余文档的带注索引。
@@ -64,4 +64,5 @@ python tools/tests/test_checks.py   # every check group vs a synthetic repo
 ```
 
 细节（包括如何刷新译文摘要）见
-[`../CONTRIBUTING.md`](../CONTRIBUTING.md)。
+[`../CONTRIBUTING.md`](../CONTRIBUTING.md)；哪项检查读什么、由哪套测试证明，
+见 [`../tools/README.md`](../tools/README.md) 里的工具链地图。
