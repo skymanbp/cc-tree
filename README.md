@@ -97,20 +97,6 @@ a <code>blocked</code> tip until it is completed, per §0.1), and <strong>n</str
 the tree). Diagram source:
 <a href="tools/gen_radial_tree.py"><code>tools/gen_radial_tree.py</code></a>.</sub>
 
-```
-  the tree grows OUTWARD from one root. a branch can WIN, hit a DEAD END, or
-  keep BRANCHING and be judged again — no single winner, wins at any depth:
-
-    ROOT ──┬── pruned                      (dead end at depth 1)
-           ├── advances                    (a win at depth 1)
-           └── advances ──┬── pruned        (this branch keeps going…)
-                          └── advances ──┬── advances   (…a deeper win)
-                                         └── blocked
-
-  each node → 12 framings (§3.A–§3.L) → 12-field derivation → score → verdict;
-  branches that keep advancing grow deeper; pruned / blocked ones stop.
-```
-
 ### 2.2 The five irreducible steps
 
 All five are specified in [`docs/ENGINE.md`](docs/ENGINE.md) and binding on every preset.
@@ -389,7 +375,7 @@ test_checks: all check-group tests passed (8 clean + 43 rejection cases)
 $ cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
 $ python tools/gen_radial_tree.py
 wrote <repo>/docs/assets/cc-tree-radial-tree.svg
-leaves(width) = 23 internal = 11 n = 35 max depth = 4
+tips = 23 width = 21 internal = 11 n = 35 max depth = 4
 $ diff -u /tmp/committed.svg docs/assets/cc-tree-radial-tree.svg
 ```
 
@@ -644,7 +630,39 @@ output can be read as a coverage claim at all.
 
 ## 8 · Repository map and documentation index
 
-### 8.1 Repository map
+### 8.1 Architecture and repository map
+
+Two halves that never mix. The runtime is Markdown that Claude Code loads when you type a command;
+the verification side is Python that only CI and contributors run, and it checks every runtime
+file without ever being loaded by a run.
+
+```mermaid
+flowchart TB
+    U(["you"])
+    U -->|"/cc-tree:brainstorm · attack · design · code-audit"| CMD["commands/*.md<br/>one wrapper per preset"]
+    U -->|"/cc-tree:tree --preset"| SK
+    U -->|"/cc-tree:tree-chain"| CH["commands/tree-chain.md<br/>stage sequencer"]
+    CMD --> SK["skills/tree/SKILL.md<br/>the engine skill"]
+    CH -->|"one run per stage,<br/>top-K via --seed-from"| SK
+    SK -->|"reads in full before the first node"| LOAD
+    subgraph LOAD ["the contract a run obeys"]
+        direction LR
+        EN["docs/ENGINE.md<br/>§0–§11, binding"]
+        PR["presets/*.md<br/>vocabulary + §2 recipe"]
+        FR["docs/framings.md<br/>12 framing prompts"]
+        FP["field-profiles/*.md<br/>optional, --field"]
+    end
+    SK ==>|"incremental write per node"| OUT[("run directory<br/>tree.md · tree.json · primary.md · REPORT.md")]
+    subgraph VERIFY ["repo-side only: never loaded by a run"]
+        direction LR
+        CI["GitHub Actions<br/>Python 3.11 + 3.13"] --> VP["tools/validate_plugin.py<br/>7 check groups"]
+        CI --> TS["tools/tests/<br/>3 self-test suites"]
+        CI --> GEN["tools/gen_radial_tree.py<br/>regenerate + diff the SVG"]
+    end
+    VP -.->|"checks every runtime file"| LOAD
+```
+
+On disk:
 
 ```
 cc-tree/
@@ -702,7 +720,7 @@ dispatch in v0.2.0, multi-language output in v0.4.0.
   Whether those dimensions are *orthogonal*, or the rubric self-consistent, is a human judgment.
   Rationale: [`docs/EVALUATION.md`](docs/EVALUATION.md), "Open questions" item 1.
 - **More shipped presets.** Four cover the cases with a concrete need; `architecture-review` and
-  `risk-analysis` are the obvious next two, each one ~150-line file with no engine change.
+  `risk-analysis` are the obvious next two, each one ~200-line file with no engine change.
   Tracking: [#1](https://github.com/skymanbp/cc-tree/issues/1), a `research` / literature-review
   preset.
 - **More field profiles.** Only `physics` ships. The template and its schema check are in place;

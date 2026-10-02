@@ -1,18 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1360" viewBox="0 0 1440 1360" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1250" viewBox="0 0 1440 1250" font-family="Helvetica, Arial, sans-serif">
 <defs>
-<radialGradient id="g_brainstorm" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#b6d7a8" stop-opacity="0.12"/><stop offset="100%" stop-color="#b6d7a8" stop-opacity="0.72"/></radialGradient>
-<radialGradient id="g_attack" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#ea9999" stop-opacity="0.12"/><stop offset="100%" stop-color="#ea9999" stop-opacity="0.72"/></radialGradient>
-<radialGradient id="g_design" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#d5c6ec" stop-opacity="0.12"/><stop offset="100%" stop-color="#d5c6ec" stop-opacity="0.72"/></radialGradient>
-<radialGradient id="g_code-audit" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#e0cba8" stop-opacity="0.12"/><stop offset="100%" stop-color="#e0cba8" stop-opacity="0.72"/></radialGradient>
-<marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#888"/></marker>
+<style>
+.bg{fill:#ffffff}.ink{fill:#222}.sub{fill:#666}.body{fill:#444}.muted{fill:#888}
+.card{fill:#ffffff;stroke:#bbb}.halo{fill:#ffffff;fill-opacity:.82}
+.ring{stroke:#dadada}.lead{stroke:#999}.leadfill{fill:#888}.tick{fill:#aaa}
+.hole{fill:#ffffff}.s0{stop-opacity:.12}.s1{stop-opacity:.72}
+@media (prefers-color-scheme: dark){
+.bg{fill:#0d1117}.ink{fill:#e6edf3}.sub{fill:#9da7b3}.body{fill:#c9d1d9}
+.muted{fill:#8b949e}.card{fill:#161b22;stroke:#3d444d}
+.halo{fill:#0d1117;fill-opacity:.8}.ring{stroke:#30363d}.lead{stroke:#6e7681}
+.leadfill{fill:#6e7681}.tick{fill:#6e7681}.hole{fill:#0d1117}
+.s0{stop-opacity:.06}.s1{stop-opacity:.34}}
+</style>
+<radialGradient id="g_brainstorm" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#b6d7a8" class="s0"/><stop offset="100%" stop-color="#b6d7a8" class="s1"/></radialGradient>
+<radialGradient id="g_attack" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#ea9999" class="s0"/><stop offset="100%" stop-color="#ea9999" class="s1"/></radialGradient>
+<radialGradient id="g_design" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#d5c6ec" class="s0"/><stop offset="100%" stop-color="#d5c6ec" class="s1"/></radialGradient>
+<radialGradient id="g_code-audit" gradientUnits="userSpaceOnUse" fx="720.0" fy="660.0" cx="720.0" cy="660.0" r="418.0"><stop offset="0%" stop-color="#e0cba8" class="s0"/><stop offset="100%" stop-color="#e0cba8" class="s1"/></radialGradient>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" class="leadfill"/></marker>
 </defs>
-<rect width="1440" height="1360" fill="#ffffff"/>
-<text x="720.0" y="48" text-anchor="middle" font-size="30" font-weight="700" fill="#222">cc-tree &#8212; a phylogenetic tree of thoughts</text>
-<text x="720.0" y="76" text-anchor="middle" font-size="16" fill="#666">one universal radial-tree engine &#183; four swappable presets &#183; mid-run snapshot: many directions win, some dead-end, the rest keep branching &#8212; no single winner</text>
-<circle cx="720.0" cy="660.0" r="172.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
-<circle cx="720.0" cy="660.0" r="254.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
-<circle cx="720.0" cy="660.0" r="336.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
-<circle cx="720.0" cy="660.0" r="418.0" fill="none" stroke="#dadada" stroke-width="1" stroke-dasharray="2 6"/>
+<rect width="1440" height="1250" class="bg"/>
+<text x="720.0" y="48" text-anchor="middle" font-size="30" font-weight="700" class="ink">cc-tree &#8212; a phylogenetic tree of thoughts</text>
+<text x="720.0" y="76" text-anchor="middle" font-size="16" class="sub">one universal radial-tree engine &#183; four swappable presets &#183; mid-run snapshot: many directions win, some dead-end, the rest keep branching &#8212; no single winner</text>
+<circle cx="720.0" cy="660.0" r="172.0" fill="none" class="ring" stroke-width="1" stroke-dasharray="2 6"/>
+<circle cx="720.0" cy="660.0" r="254.0" fill="none" class="ring" stroke-width="1" stroke-dasharray="2 6"/>
+<circle cx="720.0" cy="660.0" r="336.0" fill="none" class="ring" stroke-width="1" stroke-dasharray="2 6"/>
+<circle cx="720.0" cy="660.0" r="418.0" fill="none" class="ring" stroke-width="1" stroke-dasharray="2 6"/>
 <path d="M 571.56,1067.83 A 434.00 434.00 0 0 1 286.07,652.43 L 662.01,658.99 A 58.00 58.00 0 0 0 700.16,714.50 Z" fill="url(#g_brainstorm)" stroke="none"/>
 <path d="M 297.12,562.37 A 434.00 434.00 0 0 1 674.63,228.38 L 713.94,602.32 A 58.00 58.00 0 0 0 663.49,646.95 Z" fill="url(#g_attack)" stroke="none"/>
 <path d="M 765.37,228.38 A 434.00 434.00 0 0 1 1142.88,562.37 L 776.51,646.95 A 58.00 58.00 0 0 0 726.06,602.32 Z" fill="url(#g_design)" stroke="none"/>
@@ -21,7 +33,7 @@
 <line x1="677.4" y1="699.3" x2="652.4" y2="722.4" stroke="#6aa84f" stroke-width="2.6"/>
 <line x1="670.7" y1="737.7" x2="627.9" y2="805.3" stroke="#6aa84f" stroke-width="1.9"/>
 <circle cx="627.9" cy="805.3" r="2.6" fill="#6aa84f"/>
-<circle cx="619.3" cy="818.8" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M615.7,815.2 L622.9,822.4 M615.7,822.4 L622.9,815.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="619.3" cy="818.8" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M615.7,815.2 L622.9,822.4 M615.7,822.4 L622.9,815.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
 <line x1="656.2" y1="726.2" x2="600.7" y2="783.9" stroke="#6aa84f" stroke-width="1.9"/>
 <path d="M 609.25,791.60 A 172.00 172.00 0 0 1 592.60,775.56" fill="none" stroke="#6aa84f" stroke-width="2.0"/>
 <line x1="609.3" y1="791.6" x2="556.5" y2="854.3" stroke="#6aa84f" stroke-width="1.9"/>
@@ -29,13 +41,13 @@
 <circle cx="546.1" cy="866.6" r="8.0" fill="#2e7d32"/><path d="M542.5,866.6 L545.3,869.8 L550.1,863.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="592.6" y1="775.6" x2="531.9" y2="830.6" stroke="#6aa84f" stroke-width="1.9"/>
 <circle cx="531.9" cy="830.6" r="2.6" fill="#6aa84f"/>
-<circle cx="520.0" cy="841.4" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M516.4,837.8 L523.6,845.0 M516.4,845.0 L523.6,837.8" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="600.7" cy="783.9" r="4.2" fill="#fff" stroke="#6aa84f" stroke-width="2.0"/>
+<circle cx="520.0" cy="841.4" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M516.4,837.8 L523.6,845.0 M516.4,845.0 L523.6,837.8" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="600.7" cy="783.9" r="4.2" class="hole" stroke="#6aa84f" stroke-width="2.0"/>
 <line x1="638.6" y1="702.8" x2="567.8" y2="740.1" stroke="#6aa84f" stroke-width="1.9"/>
 <path d="M 578.25,757.42 A 172.00 172.00 0 0 1 559.43,721.67" fill="none" stroke="#6aa84f" stroke-width="2.0"/>
 <line x1="578.3" y1="757.4" x2="510.7" y2="803.9" stroke="#6aa84f" stroke-width="1.9"/>
 <circle cx="510.7" cy="803.9" r="2.6" fill="#6aa84f"/>
-<circle cx="497.5" cy="812.9" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M493.9,809.3 L501.1,816.5 M493.9,816.5 L501.1,809.3" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="497.5" cy="812.9" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M493.9,809.3 L501.1,816.5 M493.9,816.5 L501.1,809.3" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
 <line x1="559.4" y1="721.7" x2="482.9" y2="751.1" stroke="#6aa84f" stroke-width="1.9"/>
 <path d="M 493.27,774.49 A 254.00 254.00 0 0 1 474.92,726.72" fill="none" stroke="#6aa84f" stroke-width="2.0"/>
 <line x1="493.3" y1="774.5" x2="420.1" y2="811.4" stroke="#6aa84f" stroke-width="1.9"/>
@@ -48,11 +60,11 @@
 <circle cx="309.8" cy="801.9" r="8.0" fill="#2e7d32"/><path d="M306.2,801.9 L309.0,805.1 L313.8,798.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="390.6" y1="726.3" x2="310.2" y2="742.4" stroke="#6aa84f" stroke-width="1.9"/>
 <circle cx="310.2" cy="742.4" r="2.6" fill="#6aa84f"/>
-<circle cx="294.5" cy="745.6" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M290.9,742.0 L298.1,749.2 M290.9,749.2 L298.1,742.0" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="395.8" cy="748.3" r="4.2" fill="#fff" stroke="#6aa84f" stroke-width="2.0"/>
-<circle cx="482.9" cy="751.1" r="4.2" fill="#fff" stroke="#6aa84f" stroke-width="2.0"/>
-<circle cx="567.8" cy="740.1" r="4.2" fill="#fff" stroke="#6aa84f" stroke-width="2.0"/>
-<rect x="260.6" y="896.4" width="164.0" height="46" rx="9" fill="#ffffff" fill-opacity="0.82"/>
+<circle cx="294.5" cy="745.6" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M290.9,742.0 L298.1,749.2 M290.9,749.2 L298.1,742.0" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="395.8" cy="748.3" r="4.2" class="hole" stroke="#6aa84f" stroke-width="2.0"/>
+<circle cx="482.9" cy="751.1" r="4.2" class="hole" stroke="#6aa84f" stroke-width="2.0"/>
+<circle cx="567.8" cy="740.1" r="4.2" class="hole" stroke="#6aa84f" stroke-width="2.0"/>
+<rect x="260.6" y="896.4" width="164.0" height="46" rx="9" class="halo"/>
 <text x="342.6" y="919.4" text-anchor="middle" font-size="22" font-weight="700" fill="#6aa84f">brainstorm</text>
 <text x="342.6" y="935.4" text-anchor="middle" font-size="11.5" fill="#6aa84f">advances = PROMISING</text>
 <path d="M 640.74,613.29 A 92.00 92.00 0 0 1 680.01,577.14" fill="none" stroke="#cc4125" stroke-width="2.4"/>
@@ -65,10 +77,10 @@
 <line x1="579.1" y1="561.3" x2="512.0" y2="514.3" stroke="#cc4125" stroke-width="1.9"/>
 <circle cx="512.0" cy="514.3" r="2.6" fill="#cc4125"/>
 <circle cx="498.9" cy="505.1" r="8.0" fill="#cc0000"/><line x1="494.9" y1="509.1" x2="502.9" y2="501.1" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-<circle cx="571.8" cy="572.7" r="4.2" fill="#fff" stroke="#cc4125" stroke-width="2.0"/>
+<circle cx="571.8" cy="572.7" r="4.2" class="hole" stroke="#cc4125" stroke-width="2.0"/>
 <line x1="653.8" y1="596.1" x2="596.3" y2="540.5" stroke="#cc4125" stroke-width="1.9"/>
 <circle cx="596.3" cy="540.5" r="2.6" fill="#cc4125"/>
-<circle cx="584.8" cy="529.4" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M581.2,525.8 L588.4,533.0 M581.2,533.0 L588.4,525.8" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="584.8" cy="529.4" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M581.2,525.8 L588.4,533.0 M581.2,533.0 L588.4,525.8" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
 <line x1="680.0" y1="577.1" x2="645.2" y2="505.1" stroke="#cc4125" stroke-width="1.9"/>
 <path d="M 627.57,514.95 A 172.00 172.00 0 0 1 663.95,497.39" fill="none" stroke="#cc4125" stroke-width="2.0"/>
 <line x1="627.6" y1="514.9" x2="583.5" y2="445.8" stroke="#cc4125" stroke-width="1.9"/>
@@ -78,13 +90,13 @@
 <circle cx="508.1" cy="378.9" r="8.0" fill="#2e7d32"/><path d="M504.5,378.9 L507.3,382.1 L512.1,375.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="600.7" y1="435.8" x2="562.2" y2="363.4" stroke="#cc4125" stroke-width="1.9"/>
 <circle cx="562.2" cy="363.4" r="2.6" fill="#cc4125"/>
-<circle cx="554.7" cy="349.2" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M551.1,345.6 L558.3,352.8 M551.1,352.8 L558.3,345.6" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="583.5" cy="445.8" r="4.2" fill="#fff" stroke="#cc4125" stroke-width="2.0"/>
+<circle cx="554.7" cy="349.2" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M551.1,345.6 L558.3,352.8 M551.1,352.8 L558.3,345.6" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="583.5" cy="445.8" r="4.2" class="hole" stroke="#cc4125" stroke-width="2.0"/>
 <line x1="664.0" y1="497.4" x2="637.2" y2="419.9" stroke="#cc4125" stroke-width="1.9"/>
 <circle cx="637.2" cy="419.9" r="2.6" fill="#cc4125"/>
 <circle cx="632.0" cy="404.7" r="8.0" fill="#e69138"/><line x1="628.4" y1="402.5" x2="635.6" y2="402.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><line x1="628.4" y1="407.0" x2="635.6" y2="407.0" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="645.2" cy="505.1" r="4.2" fill="#fff" stroke="#cc4125" stroke-width="2.0"/>
-<rect x="334.5" y="294.0" width="164.0" height="46" rx="9" fill="#ffffff" fill-opacity="0.82"/>
+<circle cx="645.2" cy="505.1" r="4.2" class="hole" stroke="#cc4125" stroke-width="2.0"/>
+<rect x="334.5" y="294.0" width="164.0" height="46" rx="9" class="halo"/>
 <text x="416.5" y="317.0" text-anchor="middle" font-size="22" font-weight="700" fill="#cc4125">attack</text>
 <text x="416.5" y="333.0" text-anchor="middle" font-size="11.5" fill="#cc4125">advances = CONFIRMED</text>
 <path d="M 753.37,574.26 A 92.00 92.00 0 0 1 801.03,616.43" fill="none" stroke="#8e7cc3" stroke-width="2.4"/>
@@ -99,12 +111,12 @@
 <circle cx="873.9" cy="438.2" r="8.0" fill="#2e7d32"/><path d="M870.3,438.2 L873.1,441.4 L877.9,435.0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="848.3" y1="545.5" x2="909.5" y2="490.8" stroke="#8e7cc3" stroke-width="1.9"/>
 <circle cx="909.5" cy="490.8" r="2.6" fill="#8e7cc3"/>
-<circle cx="921.4" cy="480.2" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M917.8,476.6 L925.0,483.8 M917.8,483.8 L925.0,476.6" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="834.0" cy="531.2" r="4.2" fill="#fff" stroke="#8e7cc3" stroke-width="2.0"/>
+<circle cx="921.4" cy="480.2" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M917.8,476.6 L925.0,483.8 M917.8,483.8 L925.0,476.6" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="834.0" cy="531.2" r="4.2" class="hole" stroke="#8e7cc3" stroke-width="2.0"/>
 <line x1="801.0" y1="616.4" x2="871.5" y2="578.5" stroke="#8e7cc3" stroke-width="1.9"/>
 <circle cx="871.5" cy="578.5" r="2.6" fill="#8e7cc3"/>
-<circle cx="885.6" cy="571.0" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M882.0,567.4 L889.2,574.6 M882.0,574.6 L889.2,567.4" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<rect x="934.5" y="294.0" width="178.0" height="46" rx="9" fill="#ffffff" fill-opacity="0.82"/>
+<circle cx="885.6" cy="571.0" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M882.0,567.4 L889.2,574.6 M882.0,574.6 L889.2,567.4" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="934.5" y="294.0" width="178.0" height="46" rx="9" class="halo"/>
 <text x="1023.5" y="317.0" text-anchor="middle" font-size="22" font-weight="700" fill="#8e7cc3">design</text>
 <text x="1023.5" y="333.0" text-anchor="middle" font-size="11.5" fill="#8e7cc3">advances = RECOMMENDED</text>
 <path d="M 808.21,686.15 A 92.00 92.00 0 0 1 770.13,737.14" fill="none" stroke="#a6794c" stroke-width="2.4"/>
@@ -116,8 +128,8 @@
 <circle cx="984.1" cy="716.2" r="8.0" fill="#2e7d32"/><path d="M980.5,716.2 L983.3,719.4 L988.1,713.0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="880.6" y1="721.7" x2="957.1" y2="751.1" stroke="#a6794c" stroke-width="1.9"/>
 <circle cx="957.1" cy="751.1" r="2.6" fill="#a6794c"/>
-<circle cx="972.0" cy="756.8" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M968.4,753.2 L975.6,760.4 M968.4,760.4 L975.6,753.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="884.9" cy="708.9" r="4.2" fill="#fff" stroke="#a6794c" stroke-width="2.0"/>
+<circle cx="972.0" cy="756.8" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M968.4,753.2 L975.6,760.4 M968.4,760.4 L975.6,753.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="884.9" cy="708.9" r="4.2" class="hole" stroke="#a6794c" stroke-width="2.0"/>
 <line x1="789.2" y1="720.7" x2="849.3" y2="773.4" stroke="#a6794c" stroke-width="1.9"/>
 <path d="M 861.75,757.42 A 172.00 172.00 0 0 1 835.11,787.80" fill="none" stroke="#a6794c" stroke-width="2.0"/>
 <line x1="861.7" y1="757.4" x2="929.3" y2="803.9" stroke="#a6794c" stroke-width="1.9"/>
@@ -128,15 +140,15 @@
 <line x1="917.4" y1="819.8" x2="981.1" y2="871.4" stroke="#a6794c" stroke-width="1.9"/>
 <circle cx="981.1" cy="871.4" r="2.6" fill="#a6794c"/>
 <circle cx="993.6" cy="881.5" r="8.0" fill="#2e7d32"/><path d="M990.0,881.5 L992.8,884.7 L997.6,878.3" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="929.3" cy="803.9" r="4.2" fill="#fff" stroke="#a6794c" stroke-width="2.0"/>
+<circle cx="929.3" cy="803.9" r="4.2" class="hole" stroke="#a6794c" stroke-width="2.0"/>
 <line x1="835.1" y1="787.8" x2="890.0" y2="848.7" stroke="#a6794c" stroke-width="1.9"/>
 <circle cx="890.0" cy="848.7" r="2.6" fill="#a6794c"/>
 <circle cx="900.7" cy="860.6" r="8.0" fill="#e69138"/><line x1="897.1" y1="858.4" x2="904.3" y2="858.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><line x1="897.1" y1="862.9" x2="904.3" y2="862.9" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-<circle cx="849.3" cy="773.4" r="4.2" fill="#fff" stroke="#a6794c" stroke-width="2.0"/>
+<circle cx="849.3" cy="773.4" r="4.2" class="hole" stroke="#a6794c" stroke-width="2.0"/>
 <line x1="770.1" y1="737.1" x2="813.7" y2="804.2" stroke="#a6794c" stroke-width="1.9"/>
 <circle cx="813.7" cy="804.2" r="2.6" fill="#a6794c"/>
-<circle cx="822.4" cy="817.6" r="8.0" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M818.8,814.0 L826.0,821.2 M818.8,821.2 L826.0,814.0" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<rect x="1015.4" y="896.4" width="164.0" height="46" rx="9" fill="#ffffff" fill-opacity="0.82"/>
+<circle cx="822.4" cy="817.6" r="8.0" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M818.8,814.0 L826.0,821.2 M818.8,821.2 L826.0,814.0" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="1015.4" y="896.4" width="164.0" height="46" rx="9" class="halo"/>
 <text x="1097.4" y="919.4" text-anchor="middle" font-size="22" font-weight="700" fill="#a6794c">code-audit</text>
 <text x="1097.4" y="935.4" text-anchor="middle" font-size="11.5" fill="#a6794c">advances = CONFIRMED</text>
 <circle cx="720.0" cy="660.0" r="50.0" fill="#37474f"/>
@@ -144,61 +156,61 @@
 <text x="720.0" y="652.0" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">ROOT</text>
 <text x="720.0" y="671.0" text-anchor="middle" font-size="10.5" fill="#cfd8dc">topic &#183; artifact</text>
 <text x="720.0" y="685.0" text-anchor="middle" font-size="10.5" fill="#cfd8dc">code &#183; design</text>
-<circle cx="705.0" cy="831.3" r="2.4" fill="#aaa"/>
-<text x="693.0" y="835.3" text-anchor="end" font-size="11.5" fill="#888">depth 1</text>
-<circle cx="697.9" cy="913.0" r="2.4" fill="#aaa"/>
-<text x="685.9" y="917.0" text-anchor="end" font-size="11.5" fill="#888">depth 2</text>
-<circle cx="690.7" cy="994.7" r="2.4" fill="#aaa"/>
-<text x="678.7" y="998.7" text-anchor="end" font-size="11.5" fill="#888">depth 3</text>
-<circle cx="683.6" cy="1076.4" r="2.4" fill="#aaa"/>
-<text x="671.6" y="1080.4" text-anchor="end" font-size="11.5" fill="#888">depth 4</text>
-<rect x="34" y="150" width="264" height="110" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="48" y="174" font-size="15.5" font-weight="700" fill="#222">root — the input</text>
-<text x="48" y="196" font-size="12.5" fill="#444">What you hand the engine:</text>
-<text x="48" y="214" font-size="12.5" fill="#444">a topic, an artifact (file / doc),</text>
-<text x="48" y="232" font-size="12.5" fill="#444">a code path, or a design prompt.</text>
-<text x="48" y="250" font-size="12.5" fill="#444">The whole tree grows from it.</text>
-<rect x="34" y="516" width="264" height="110" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="48" y="540" font-size="15.5" font-weight="700" fill="#222">12 framings (§3.A–§3.L)</text>
-<text x="48" y="562" font-size="12.5" fill="#444">Each node is expanded by the</text>
-<text x="48" y="580" font-size="12.5" fill="#444">same 12 framing passes —</text>
-<text x="48" y="598" font-size="12.5" fill="#444">first-principles, inversion,</text>
-<text x="48" y="616" font-size="12.5" fill="#444">red-team, contrarian, high-risk…</text>
-<line x1="298.0" y1="571.0" x2="571.8" y2="572.7" stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>
-<rect x="1142" y="476" width="264" height="130" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="1156" y="500" font-size="15.5" font-weight="700" fill="#222">node — one thought</text>
-<text x="1156" y="522" font-size="12.5" fill="#444">One idea / critique / option /</text>
-<text x="1156" y="540" font-size="12.5" fill="#444">finding. Every node gets the</text>
-<text x="1156" y="558" font-size="12.5" fill="#444">same 12-field derivation, is</text>
-<text x="1156" y="576" font-size="12.5" fill="#444">scored on 5 dims, and earns a</text>
-<text x="1156" y="594" font-size="12.5" fill="#444">verdict. No hedging, no defer.</text>
-<line x1="1142.0" y1="541.0" x2="834.0" y2="531.2" stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>
-<rect x="34" y="1000" width="312" height="130" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="48" y="1024" font-size="15.5" font-weight="700" fill="#222">depth — concentric rings</text>
-<text x="48" y="1046" font-size="12.5" fill="#444">How far a node sits from the root.</text>
-<text x="48" y="1064" font-size="12.5" fill="#444">A branch grows while it keeps</text>
-<text x="48" y="1082" font-size="12.5" fill="#444">advancing; it stops when it wins,</text>
-<text x="48" y="1100" font-size="12.5" fill="#444">dead-ends, or is pruned — so the</text>
-<text x="48" y="1118" font-size="12.5" fill="#444">branches reach uneven depth.</text>
-<rect x="570" y="94" width="300" height="92" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="584" y="118" font-size="15.5" font-weight="700" fill="#222">width — how many tips</text>
-<text x="584" y="140" font-size="12.5" fill="#444">Terminal leaves delivered, wherever</text>
-<text x="584" y="158" font-size="12.5" fill="#444">they land — blocked tips excluded</text>
-<text x="584" y="176" font-size="12.5" fill="#444">until resolved. Set by convergence.</text>
-<line x1="720.0" y1="186" x2="720.0" y2="236.0" stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>
-<rect x="1142" y="1000" width="264" height="110" rx="9" fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>
-<text x="1156" y="1024" font-size="15.5" font-weight="700" fill="#222">n — total nodes</text>
-<text x="1156" y="1046" font-size="12.5" fill="#444">Every node in the tree: root +</text>
-<text x="1156" y="1064" font-size="12.5" fill="#444">internal + leaves. Here n = 35</text>
-<text x="1156" y="1082" font-size="12.5" fill="#444">(width = 21 of 23 tips; depth 4).</text>
-<text x="1156" y="1100" font-size="12.5" fill="#444">Streamed incrementally to tree.json.</text>
-<text x="720.0" y="1188" text-anchor="middle" font-size="13.5" font-weight="700" fill="#333">every leaf is a verdict — a branch can win, dead-end, or keep branching (open node = re-expanded):</text>
+<circle cx="705.0" cy="831.3" r="2.4" class="tick"/>
+<text x="693.0" y="835.3" text-anchor="end" font-size="11.5" class="muted">depth 1</text>
+<circle cx="697.9" cy="913.0" r="2.4" class="tick"/>
+<text x="685.9" y="917.0" text-anchor="end" font-size="11.5" class="muted">depth 2</text>
+<circle cx="690.7" cy="994.7" r="2.4" class="tick"/>
+<text x="678.7" y="998.7" text-anchor="end" font-size="11.5" class="muted">depth 3</text>
+<circle cx="683.6" cy="1076.4" r="2.4" class="tick"/>
+<text x="671.6" y="1080.4" text-anchor="end" font-size="11.5" class="muted">depth 4</text>
+<rect x="34" y="150" width="264" height="110" rx="9" class="card" stroke-width="1.2"/>
+<text x="48" y="174" font-size="15.5" font-weight="700" class="ink">root — the input</text>
+<text x="48" y="196" font-size="12.5" class="body">What you hand the engine:</text>
+<text x="48" y="214" font-size="12.5" class="body">a topic, an artifact (file / doc),</text>
+<text x="48" y="232" font-size="12.5" class="body">a code path, or a design prompt.</text>
+<text x="48" y="250" font-size="12.5" class="body">The whole tree grows from it.</text>
+<rect x="34" y="516" width="264" height="110" rx="9" class="card" stroke-width="1.2"/>
+<text x="48" y="540" font-size="15.5" font-weight="700" class="ink">12 framings (§3.A–§3.L)</text>
+<text x="48" y="562" font-size="12.5" class="body">Each node is expanded by the</text>
+<text x="48" y="580" font-size="12.5" class="body">same 12 framing passes —</text>
+<text x="48" y="598" font-size="12.5" class="body">first-principles, inversion,</text>
+<text x="48" y="616" font-size="12.5" class="body">red-team, contrarian, high-risk…</text>
+<line x1="298.0" y1="571.0" x2="571.8" y2="572.7" class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>
+<rect x="1142" y="476" width="264" height="130" rx="9" class="card" stroke-width="1.2"/>
+<text x="1156" y="500" font-size="15.5" font-weight="700" class="ink">node — one thought</text>
+<text x="1156" y="522" font-size="12.5" class="body">One idea / critique / option /</text>
+<text x="1156" y="540" font-size="12.5" class="body">finding. Every node gets the</text>
+<text x="1156" y="558" font-size="12.5" class="body">same 12-field derivation, is</text>
+<text x="1156" y="576" font-size="12.5" class="body">scored on 5 dims, and earns a</text>
+<text x="1156" y="594" font-size="12.5" class="body">verdict. No hedging, no defer.</text>
+<line x1="1142.0" y1="541.0" x2="834.0" y2="531.2" class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>
+<rect x="34" y="1000" width="312" height="130" rx="9" class="card" stroke-width="1.2"/>
+<text x="48" y="1024" font-size="15.5" font-weight="700" class="ink">depth — concentric rings</text>
+<text x="48" y="1046" font-size="12.5" class="body">How far a node sits from the root.</text>
+<text x="48" y="1064" font-size="12.5" class="body">Only an advances leaf re-expands;</text>
+<text x="48" y="1082" font-size="12.5" class="body">kept and pruned leaves stop where</text>
+<text x="48" y="1100" font-size="12.5" class="body">they are scored — so branches</text>
+<text x="48" y="1118" font-size="12.5" class="body">reach uneven depth.</text>
+<rect x="570" y="94" width="300" height="92" rx="9" class="card" stroke-width="1.2"/>
+<text x="584" y="118" font-size="15.5" font-weight="700" class="ink">width — how many tips</text>
+<text x="584" y="140" font-size="12.5" class="body">Terminal leaves delivered, wherever</text>
+<text x="584" y="158" font-size="12.5" class="body">they land — blocked tips excluded</text>
+<text x="584" y="176" font-size="12.5" class="body">until resolved. Set by convergence.</text>
+<line x1="720.0" y1="186" x2="720.0" y2="236.0" class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>
+<rect x="1142" y="1000" width="264" height="110" rx="9" class="card" stroke-width="1.2"/>
+<text x="1156" y="1024" font-size="15.5" font-weight="700" class="ink">n — total nodes</text>
+<text x="1156" y="1046" font-size="12.5" class="body">Every node in the tree: root +</text>
+<text x="1156" y="1064" font-size="12.5" class="body">internal + leaves. Here n = 35</text>
+<text x="1156" y="1082" font-size="12.5" class="body">(width = 21 of 23 tips; depth 4).</text>
+<text x="1156" y="1100" font-size="12.5" class="body">Streamed incrementally to tree.json.</text>
+<text x="720.0" y="1188" text-anchor="middle" font-size="13.5" font-weight="700" class="ink">every leaf is a verdict — a branch can win, dead-end, or keep branching (open node = re-expanded):</text>
 <circle cx="200.0" cy="1214.0" r="8.5" fill="#2e7d32"/><path d="M196.2,1214.0 L199.2,1217.4 L204.2,1210.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="216.0" y="1219" font-size="12.5" fill="#444">advances — a win (or re-expands)</text>
+<text x="216.0" y="1219" font-size="12.5" class="body">advances — a win (or re-expands)</text>
 <circle cx="470.0" cy="1214.0" r="8.5" fill="#e69138"/><line x1="466.2" y1="1211.6" x2="473.8" y2="1211.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><line x1="466.2" y1="1216.4" x2="473.8" y2="1216.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-<text x="486.0" y="1219" font-size="12.5" fill="#444">kept — held for reference</text>
-<circle cx="750.0" cy="1214.0" r="8.5" fill="#fff" stroke="#9e9e9e" stroke-width="1.8"/><path d="M746.2,1210.2 L753.8,1217.8 M746.2,1217.8 L753.8,1210.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
-<text x="766.0" y="1219" font-size="12.5" fill="#444">pruned — a dead end</text>
+<text x="486.0" y="1219" font-size="12.5" class="body">kept — held for reference</text>
+<circle cx="750.0" cy="1214.0" r="8.5" class="hole" stroke="#9e9e9e" stroke-width="1.8"/><path d="M746.2,1210.2 L753.8,1217.8 M746.2,1217.8 L753.8,1210.2" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+<text x="766.0" y="1219" font-size="12.5" class="body">pruned — a dead end</text>
 <circle cx="1040.0" cy="1214.0" r="8.5" fill="#cc0000"/><line x1="1035.8" y1="1218.2" x2="1044.2" y2="1209.8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-<text x="1056.0" y="1219" font-size="12.5" fill="#444">blocked — must be resolved</text>
+<text x="1056.0" y="1219" font-size="12.5" class="body">blocked — must be resolved</text>
 </svg>

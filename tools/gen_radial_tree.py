@@ -28,7 +28,7 @@ import os
 import xml.etree.ElementTree as ET
 
 # ---- canvas + geometry ----------------------------------------------------
-W, H = 1440, 1360
+W, H = 1440, 1250              # the legend strip ends near y=1222
 CX, CY = 720.0, 660.0          # centre of the radial tree
 ROOT_R = 50.0                  # root circle radius
 RING0 = 92.0                   # radius of the root's "shoulder" connector arc
@@ -40,6 +40,26 @@ def esc(s: str) -> str:
     """XML-escape text/attribute content. Current literals are safe, but an
     unescaped `&` or `<` in a future label would silently emit malformed XML."""
     return html.escape(str(s), quote=True)
+
+
+# ---- theme --------------------------------------------------------------
+# Neutral ink, cards, rings and leader lines are CSS classes rather than
+# literal fills, so the SVG follows the viewer's colour scheme: GitHub shows a
+# README image in an <img>, where the SVG's own prefers-color-scheme query
+# still applies. The old literal-white canvas rendered as a glaring block on
+# a dark page. Preset and verdict colours stay literal: they read on both.
+THEME_CSS = """
+.bg{fill:#ffffff}.ink{fill:#222}.sub{fill:#666}.body{fill:#444}.muted{fill:#888}
+.card{fill:#ffffff;stroke:#bbb}.halo{fill:#ffffff;fill-opacity:.82}
+.ring{stroke:#dadada}.lead{stroke:#999}.leadfill{fill:#888}.tick{fill:#aaa}
+.hole{fill:#ffffff}.s0{stop-opacity:.12}.s1{stop-opacity:.72}
+@media (prefers-color-scheme: dark){
+.bg{fill:#0d1117}.ink{fill:#e6edf3}.sub{fill:#9da7b3}.body{fill:#c9d1d9}
+.muted{fill:#8b949e}.card{fill:#161b22;stroke:#3d444d}
+.halo{fill:#0d1117;fill-opacity:.8}.ring{stroke:#30363d}.lead{stroke:#6e7681}
+.leadfill{fill:#6e7681}.tick{fill:#6e7681}.hole{fill:#0d1117}
+.s0{stop-opacity:.06}.s1{stop-opacity:.34}}
+"""
 
 
 # Angle convention: 0 deg = up (12 o'clock), increasing CLOCKWISE.
@@ -138,7 +158,7 @@ def verdict_marker(x, y, code, R=8.0):
     c = VERDICT[code]["color"]
     s = []
     if code == "P":  # pruned: hollow circle with an x
-        s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" fill="#fff" '
+        s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" class="hole" '
                  f'stroke="{c}" stroke-width="1.8"/>')
         d = R * 0.45
         s.append(f'<path d="M{x-d:.1f},{y-d:.1f} L{x+d:.1f},{y+d:.1f} '
@@ -234,29 +254,30 @@ def build() -> tuple[str, dict]:
 
     # defs
     add('<defs>')
+    add(f'<style>{THEME_CSS}</style>')
     for p in PRESETS:
         add(f'<radialGradient id="g_{esc(p["name"])}" gradientUnits="userSpaceOnUse" '
             f'fx="{CX}" fy="{CY}" cx="{CX}" cy="{CY}" r="{RMAX}">'
-            f'<stop offset="0%" stop-color="{p["fill"]}" stop-opacity="0.12"/>'
-            f'<stop offset="100%" stop-color="{p["fill"]}" stop-opacity="0.72"/>'
+            f'<stop offset="0%" stop-color="{p["fill"]}" class="s0"/>'
+            f'<stop offset="100%" stop-color="{p["fill"]}" class="s1"/>'
             f'</radialGradient>')
     add('<marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" '
-        'orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#888"/></marker>')
+        'orient="auto"><path d="M0,0 L7,3 L0,6 Z" class="leadfill"/></marker>')
     add('</defs>')
 
-    add(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
+    add(f'<rect width="{W}" height="{H}" class="bg"/>')
 
     # ---- title ----------------------------------------------------------
     add(f'<text x="{CX}" y="48" text-anchor="middle" font-size="30" '
-        f'font-weight="700" fill="#222">cc-tree &#8212; a phylogenetic tree of thoughts</text>')
-    add(f'<text x="{CX}" y="76" text-anchor="middle" font-size="16" fill="#666">'
+        f'font-weight="700" class="ink">cc-tree &#8212; a phylogenetic tree of thoughts</text>')
+    add(f'<text x="{CX}" y="76" text-anchor="middle" font-size="16" class="sub">'
         f'one universal radial-tree engine &#183; four swappable presets &#183; '
         f'mid-run snapshot: many directions win, some dead-end, the rest keep '
         f'branching &#8212; no single winner</text>')
 
     # ---- depth ring guides (dashed) --------------------------------------
     for r in RING.values():
-        add(f'<circle cx="{CX}" cy="{CY}" r="{r}" fill="none" stroke="#dadada" '
+        add(f'<circle cx="{CX}" cy="{CY}" r="{r}" fill="none" class="ring" '
             f'stroke-width="1" stroke-dasharray="2 6"/>')
 
     # ---- coloured clade wedges -------------------------------------------
@@ -285,7 +306,7 @@ def build() -> tuple[str, dict]:
                 f'stroke="{color}" stroke-width="1.9"/>')
             draw_subtree(c, depth + 1, color)
         nx, ny = pt(node["angle"], r)          # internal node-dot (it re-expanded)
-        add(f'<circle cx="{nx:.1f}" cy="{ny:.1f}" r="4.2" fill="#fff" '
+        add(f'<circle cx="{nx:.1f}" cy="{ny:.1f}" r="4.2" class="hole" '
             f'stroke="{color}" stroke-width="2.0"/>')
 
     total_leaves = 0     # drawn tips, every verdict
@@ -335,7 +356,7 @@ def build() -> tuple[str, dict]:
         sub = f'advances = {p["advances"]}'
         halo_w = max(11.5 * len(p["name"]), 7.0 * len(sub)) + 24
         add(f'<rect x="{lx-halo_w/2:.1f}" y="{ly-23:.1f}" width="{halo_w:.1f}" '
-            f'height="46" rx="9" fill="#ffffff" fill-opacity="0.82"/>')
+            f'height="46" rx="9" class="halo"/>')
         add(f'<text x="{lx:.1f}" y="{ly:.1f}" text-anchor="middle" font-size="22" '
             f'font-weight="700" fill="{p["color"]}">{esc(p["name"])}</text>')
         add(f'<text x="{lx:.1f}" y="{ly + 16:.1f}" text-anchor="middle" '
@@ -358,19 +379,19 @@ def build() -> tuple[str, dict]:
     for r, lbl in [(RING[1], "depth 1"), (RING[2], "depth 2"),
                    (RING[3], "depth 3"), (RING[4], "depth 4")]:
         px, py = pt(ruler, r)
-        add(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="2.4" fill="#aaa"/>')
+        add(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="2.4" class="tick"/>')
         add(f'<text x="{px-12:.1f}" y="{py+4:.1f}" text-anchor="end" font-size="11.5" '
-            f'fill="#888">{lbl}</text>')
+            f'class="muted">{lbl}</text>')
 
     # ======================  ANNOTATION CALL-OUTS  ========================
-    def callout(x, y, w, h, title, lines, anchor_xy=None, title_color="#222"):
+    def callout(x, y, w, h, title, lines, anchor_xy=None):
         add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" '
-            f'fill="#ffffff" stroke="#bbb" stroke-width="1.2"/>')
+            f'class="card" stroke-width="1.2"/>')
         add(f'<text x="{x+14}" y="{y+24}" font-size="15.5" font-weight="700" '
-            f'fill="{title_color}">{esc(title)}</text>')
+            f'class="ink">{esc(title)}</text>')
         for i, ln in enumerate(lines):
             add(f'<text x="{x+14}" y="{y+46+i*18}" font-size="12.5" '
-                f'fill="#444">{esc(ln)}</text>')
+                f'class="body">{esc(ln)}</text>')
         if anchor_xy:
             ex, ey = anchor_xy
             if y < ey < y + h:                  # anchor roughly level -> exit a side
@@ -380,7 +401,7 @@ def build() -> tuple[str, dict]:
                 by = y + h if ey > y + h / 2 else y
                 bx = min(max(ex, x + 18), x + w - 18)
             add(f'<line x1="{bx:.1f}" y1="{by:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" '
-                f'stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>')
+                f'class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>')
 
     # root callout (top-left). No leader line: the centre is already labelled
     # "ROOT", and a corner arrow would have to cut across the attack clade.
@@ -420,10 +441,10 @@ def build() -> tuple[str, dict]:
     # here would only collide with the "depth N" labels).
     callout(34, 1000, 312, 130, "depth — concentric rings",
             ["How far a node sits from the root.",
-             "A branch grows while it keeps",
-             "advancing; it stops when it wins,",
-             "dead-ends, or is pruned — so the",
-             "branches reach uneven depth."])
+             "Only an advances leaf re-expands;",
+             "kept and pruned leaves stop where",
+             "they are scored — so branches",
+             "reach uneven depth."])
 
     # width callout (top centre, small) -> outer rings (top gap, angle 0)
     # ENGINE.md §0.1: a `blocked` tip is never a terminal leaf — it must be
@@ -437,7 +458,7 @@ def build() -> tuple[str, dict]:
              "until resolved. Set by convergence."])
     wx, wy = pt(0, RMAX + 6)
     add(f'<line x1="{CX}" y1="186" x2="{wx:.1f}" y2="{wy:.1f}" '
-        f'stroke="#999" stroke-width="1.3" marker-end="url(#arrow)"/>')
+        f'class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>')
 
     # n callout (bottom-right)
     n_total = total_leaves + total_internal + 1
@@ -452,16 +473,16 @@ def build() -> tuple[str, dict]:
     # ---- verdict legend (bottom strip) -----------------------------------
     ly0 = 1188
     add(f'<text x="{CX}" y="{ly0}" text-anchor="middle" font-size="13.5" '
-        f'font-weight="700" fill="#333">every leaf is a verdict — a branch can '
+        f'font-weight="700" class="ink">every leaf is a verdict — a branch can '
         f'win, dead-end, or keep branching (open node = re-expanded):</text>')
     cols = [CX - 520, CX - 250, CX + 30, CX + 320]
     for code, cxp in zip(("A", "K", "P", "B"), cols):
         add(verdict_marker(cxp, ly0 + 26, code, R=8.5))
         add(f'<text x="{cxp + 16:.1f}" y="{ly0 + 31}" font-size="12.5" '
-            f'fill="#444">{esc(VERDICT[code]["label"])}</text>')
+            f'class="body">{esc(VERDICT[code]["label"])}</text>')
 
     add('</svg>')
-    stats = dict(leaves=total_leaves, internal=total_internal,
+    stats = dict(leaves=total_leaves, width=width, internal=total_internal,
                  n=n_total, max_depth=deepest)
     return "\n".join(svg), stats
 
@@ -476,8 +497,9 @@ def main() -> int:
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(svg_text)
     print("wrote", out_path)
-    print("leaves(width) =", stats["leaves"], "internal =", stats["internal"],
-          "n =", stats["n"], "max depth =", stats["max_depth"])
+    print("tips =", stats["leaves"], "width =", stats["width"],
+          "internal =", stats["internal"], "n =", stats["n"],
+          "max depth =", stats["max_depth"])
     return 0
 
 

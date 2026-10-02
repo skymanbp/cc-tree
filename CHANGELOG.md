@@ -3,6 +3,34 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
+## Unreleased
+
+### Fixed (docs)
+
+- **The code-audit node was called `audit-finding`** in `docs/ENGINE.md` §0
+  (and its Chinese parallel) and in `skills/tree/SKILL.md`'s `subject_label`
+  examples; `presets/code-audit.md` declares `subject_label: finding`.
+- **Size estimates matched no shipped file.** A new preset was "~150 lines"
+  (README, `docs/EVALUATION.md`) and a command wrapper "~15 lines"
+  (`docs/EVALUATION.md`); the shipped presets run 170–239 lines and the four
+  preset wrappers 20–25. Now ~200 and ~20.
+
+### Changed (diagram and README)
+
+- **The radial diagram follows the viewer's colour scheme.** Neutral ink,
+  cards, rings and leaders are CSS classes with a `prefers-color-scheme: dark`
+  override, so it no longer renders as a white block on a dark GitHub page;
+  the canvas lost a 110 px dead band under the legend.
+- **The depth call-out named one verdict twice.** "Dead-ends, or is pruned"
+  are the same `pruned` role, and `kept` was missing; it now says only an
+  `advances` leaf re-expands while `kept` and `pruned` stop where scored.
+- **The generator printed `leaves(width) = 23`.** By the picture's own
+  definition (and ENGINE §0.1) blocked tips are not width, so it now prints
+  `tips = 23 width = 21`, matching the `n` call-out.
+- **README §8.1 gained an architecture diagram** (Mermaid): what a run loads,
+  what it writes, and the repo-side verification that never ships to a run.
+  The ASCII tree under the radial diagram, which restated the picture, is gone.
+
 ## v0.7.3 — 2026-09-24
 
 Structure audit: three validator crashes fixed, two confinement checks

@@ -7,7 +7,7 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: a5c067751e7fdf985f9a29e8c1233f8f7c22a0180a4aef3112bbb7ea7ab583c8 -->
+<!-- i18n-source-sha256: 799724e98ea7feaf6f94c95b044a71daeea1da57c7b9eeee2db3423cab4aef76 -->
 
 **cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
 一台通用的放射状树探索引擎，四个可替换的 preset：发散式头脑风暴、对抗式批评、设计空间探索、
@@ -91,20 +91,6 @@ is a run still in flight.](docs/assets/cc-tree-radial-tree.svg)
 而不是手工挑一个上限；按 §0.1，<code>blocked</code> 树梢在被推进到完整之前一律不计入），
 以及 <strong>n</strong>（树中节点总数）。图的源码：
 <a href="tools/gen_radial_tree.py"><code>tools/gen_radial_tree.py</code></a>。</sub>
-
-```
-  the tree grows OUTWARD from one root. a branch can WIN, hit a DEAD END, or
-  keep BRANCHING and be judged again — no single winner, wins at any depth:
-
-    ROOT ──┬── pruned                      (dead end at depth 1)
-           ├── advances                    (a win at depth 1)
-           └── advances ──┬── pruned        (this branch keeps going…)
-                          └── advances ──┬── advances   (…a deeper win)
-                                         └── blocked
-
-  each node → 12 framings (§3.A–§3.L) → 12-field derivation → score → verdict;
-  branches that keep advancing grow deeper; pruned / blocked ones stop.
-```
 
 ### 2.2 五个不可再分的步骤
 
@@ -374,7 +360,7 @@ test_checks: all check-group tests passed (8 clean + 43 rejection cases)
 $ cp docs/assets/cc-tree-radial-tree.svg /tmp/committed.svg
 $ python tools/gen_radial_tree.py
 wrote <repo>/docs/assets/cc-tree-radial-tree.svg
-leaves(width) = 23 internal = 11 n = 35 max depth = 4
+tips = 23 width = 21 internal = 11 n = 35 max depth = 4
 $ diff -u /tmp/committed.svg docs/assets/cc-tree-radial-tree.svg
 ```
 
@@ -614,7 +600,38 @@ import 标准库以外的任何东西，这就是 `python tools/validate_plugin.
 
 ## 8 · 仓库地图与文档索引
 
-### 8.1 仓库地图
+### 8.1 架构与仓库地图
+
+两半，互不掺杂。运行时是 Markdown，你敲下命令时由 Claude Code 加载；验证侧是 Python，只有 CI
+和贡献者会跑它 —— 它检查每一个运行时文件，但任何一次运行都不会加载它。
+
+```mermaid
+flowchart TB
+    U(["you"])
+    U -->|"/cc-tree:brainstorm · attack · design · code-audit"| CMD["commands/*.md<br/>one wrapper per preset"]
+    U -->|"/cc-tree:tree --preset"| SK
+    U -->|"/cc-tree:tree-chain"| CH["commands/tree-chain.md<br/>stage sequencer"]
+    CMD --> SK["skills/tree/SKILL.md<br/>the engine skill"]
+    CH -->|"one run per stage,<br/>top-K via --seed-from"| SK
+    SK -->|"reads in full before the first node"| LOAD
+    subgraph LOAD ["the contract a run obeys"]
+        direction LR
+        EN["docs/ENGINE.md<br/>§0–§11, binding"]
+        PR["presets/*.md<br/>vocabulary + §2 recipe"]
+        FR["docs/framings.md<br/>12 framing prompts"]
+        FP["field-profiles/*.md<br/>optional, --field"]
+    end
+    SK ==>|"incremental write per node"| OUT[("run directory<br/>tree.md · tree.json · primary.md · REPORT.md")]
+    subgraph VERIFY ["repo-side only: never loaded by a run"]
+        direction LR
+        CI["GitHub Actions<br/>Python 3.11 + 3.13"] --> VP["tools/validate_plugin.py<br/>7 check groups"]
+        CI --> TS["tools/tests/<br/>3 self-test suites"]
+        CI --> GEN["tools/gen_radial_tree.py<br/>regenerate + diff the SVG"]
+    end
+    VP -.->|"checks every runtime file"| LOAD
+```
+
+落到磁盘上是这样：
 
 ```
 cc-tree/
@@ -671,7 +688,7 @@ cc-tree/
   自洽，仍然是人的判断。理由见 [`docs/EVALUATION.md`](docs/EVALUATION.md) 的
   "Open questions" 第 1 条。
 - **更多自带 preset。** 四个覆盖了有具体需求的场景；`architecture-review` 与
-  `risk-analysis` 是最显然的下两个，各自只是一份 ~150 行文件，无需改引擎。登记在
+  `risk-analysis` 是最显然的下两个，各自只是一份 ~200 行文件，无需改引擎。登记在
   [#1](https://github.com/skymanbp/cc-tree/issues/1)：一个 `research` / 文献综述 preset。
 - **更多领域档案。** 目前只自带 `physics`。模板和它的 schema 检查都已就位；档案本身是内容
   工作。登记在 [#2](https://github.com/skymanbp/cc-tree/issues/2)：安全、机器学习、前端、
