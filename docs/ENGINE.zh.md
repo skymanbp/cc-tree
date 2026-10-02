@@ -1,7 +1,7 @@
 # cc-tree ENGINE specification（引擎规范）
 
 > 语言：中文。英文规范版：[`docs/ENGINE.md`](ENGINE.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: b3743bfd10e07dcbb639892cd697b4297da97df5ecb4c8d73c9290a28b95e66e -->
+<!-- i18n-source-sha256: c0352275c2808a983622dcab60a6b6b7bc9626c01d2097a16b178bc067478a8e -->
 
 > 本文档是**引擎契约（engine contract）**。`/cc-tree:tree` 技能在会话开始时
 > 读取本文件（连同当前激活的预设（preset）和 `framings.md`），并将每一节
@@ -18,7 +18,7 @@
   `root_kind` 字段决定是哪一种。
 - **depth（同心环）** = 一个节点距离根有多少轮框架视角（framing）递归。
 - **node（任意点）** = 一个*想法* / *批判（critique）* / *选项（option）* /
-  *审计发现（audit-finding）*——具体由预设的 `subject_label` 称呼它们。每个
+  *审计发现（finding）*——具体由预设的 `subject_label` 称呼它们。每个
   节点都遵循同一个 12 字段 schema（§4）。
 - **width（最外层弧）** = 最终交付的终端叶节点（leaf）数量。宽度由 §6 收敛
   决定，而非人为指定的上限。

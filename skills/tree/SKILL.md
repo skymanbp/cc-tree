@@ -93,7 +93,7 @@ Open the preset file. Extract from its YAML frontmatter:
 - `name`, `description`, `use-when` (informational)
 - `root_kind` — `topic | artifact | code | design-prompt`
 - `subject_label` — what each tree node is called (`idea`, `critique`,
-  `option`, `audit-finding`, …)
+  `option`, `finding`, …)
 - `verdict_enum` — 4-tuple: `advances / kept / pruned / blocked`
 - `convergence_metric` — which verdict *role* counts toward the §6.1
   condition-2 ratio.

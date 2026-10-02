@@ -1,6 +1,6 @@
 # Why cc-tree, and why this shape
 
-Started: 2026-05-25 · Last updated: 2026-09-24
+Started: 2026-05-25 · Last updated: 2026-10-02
 Author: skymanbp
 
 A living design record, not a dated snapshot: the "Open questions" and
@@ -72,7 +72,7 @@ out to be brittle.
 The skill (`/cc-tree:tree`) is the engine. Its `description:` only
 needs to say "loads a preset and runs the universal exploration loop";
 the *use-when* triggers move into the per-preset slash-commands
-(`/cc-tree:brainstorm`, `:attack`, etc.). Each command is ~15 lines and
+(`/cc-tree:brainstorm`, `:attack`, etc.). Each command is ~20 lines and
 just dispatches to the skill with a preset preselected.
 
 Benefits:
@@ -84,7 +84,7 @@ Benefits:
    about presets. A power user can call `/cc-tree:tree <root> --preset
    ./my-custom.md` and override any slot.
 3. **New use-cases are cheap.** Adding a fifth preset (e.g. for
-   `architecture-review` or `risk-analysis`) is a single ~150-line
+   `architecture-review` or `risk-analysis`) is a single ~200-line
    file; no engine changes needed.
 4. **Skill description stays sharp.** The skill's description is one
    short paragraph; the per-preset descriptions in the commands give

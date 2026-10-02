@@ -18,7 +18,7 @@ is a phylogenetic tree growing outward from one root:
 - **depth** (concentric rings) = how many framing-recursion rounds
   away from root a node sits.
 - **node** (any point) = one *idea* / *critique* / *option* /
-  *audit-finding* — whatever the preset's `subject_label` calls them.
+  *finding* — whatever the preset's `subject_label` calls them.
   Every node has the same 12-field schema (§4).
 - **width** (the outermost arc) = the final number of terminal leaves
   delivered. Width is decided by §6 convergence, not by a hand-picked
