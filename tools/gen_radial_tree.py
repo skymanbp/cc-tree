@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Generate the cc-tree "phylogenetic tree of thoughts" radial diagram (SVG).
+"""Generate the cc-tree radial diagram (SVG): one converged run, drawn as a tree.
 
-The picture is a circular cladogram, the same shape as a radial tree-of-life:
-one ROOT at the centre, depth growing outward as concentric rings, four
-coloured "clades" = the four shipped presets, and terminal leaves (tips)
-scattered at *different* depths — because that is the whole point of the
-engine: only leaves that score "advances" re-expand into the next ring, so
-some branches die after one round (an idea that didn't pan out) while others
-keep advancing and run to full depth (a direction worth chasing). The branch
-lengths are therefore uneven, exactly like the limbs of a real phylogenetic
-tree. Annotated to define the engine's modules: root / node / depth / width /
-n / the 12 framings / leaf verdicts.
+The picture is a circular cladogram — the shape of a radial tree of life —
+of ONE run of ONE preset, in the engine's own terms (docs/ENGINE.md):
 
-The depicted tree is an **illustrative mid-run snapshot**, not a converged
-final state: it shows `advances` leaves still on the live frontier and
-`blocked` leaves awaiting completion, both of which ENGINE.md §0.1/§6 forbid
-in a *finished* tree (every `advances` leaf re-expanded, no `blocked`
-terminals). The hard-coded model is intentional — this is documentation art,
-not a renderer for real run output.
+- the ROOT sits at the centre; depth grows outward as concentric rings;
+- every expansion runs all 12 framings (§3.A–§3.L), so every node that grew
+  has 12 children, one per framing (§0.1 allows more; the picture keeps 12);
+- a node grows children only when at least one of them scores `advances`
+  (§0.1), and only `advances` nodes are re-expanded (§5.3) — so branches stop
+  at different rings;
+- the run is CONVERGED (§6.1): every `advances` node was re-expanded, the ones
+  whose re-expansion found no `advances` child are tips, no tip is `blocked`,
+  and a §3.K high-risk branch exists.
+
+`validate_model()` enforces exactly those rules on the hard-coded tree, so an
+edit that draws a state the engine cannot reach fails before anything is
+written. The four presets are not clades of one tree — a run uses one preset —
+so they appear as the vocabulary table under the tree (§5.2).
 
 Run:  python3 tools/gen_radial_tree.py
 Out:  docs/assets/cc-tree-radial-tree.svg
@@ -28,45 +28,43 @@ import os
 import xml.etree.ElementTree as ET
 
 # ---- canvas + geometry ----------------------------------------------------
-W, H = 1440, 1250              # the legend strip ends near y=1222
-CX, CY = 720.0, 660.0          # centre of the radial tree
-ROOT_R = 50.0                  # root circle radius
-RING0 = 92.0                   # radius of the root's "shoulder" connector arc
-RING = {1: 172.0, 2: 254.0, 3: 336.0, 4: 418.0}   # radius per depth
-RMAX = RING[4]
+W, H = 1440, 1215
+CX, CY = 720.0, 610.0          # centre of the radial tree
+ROOT_R = 46.0                  # root circle radius
+RING = {1: 150.0, 2: 285.0, 3: 410.0}    # radius per depth
+SPAN = (287.0, 613.0)          # tips spread clockwise over this; the gap left of the
+                               # root (253-287 deg) carries the root arrow and the ruler
+RULER = 279.0                  # angle of the depth ruler, inside the gap
+D1_WEIGHT = 1.5                # a depth-1 tip gets this much more room: ring 1 is short
+TIP_OFF = 16.0                 # verdict marker sits this far outside its tip
+FRAMINGS = "ABCDEFGHIJKL"      # §3.A–§3.L
 
 
 def esc(s: str) -> str:
-    """XML-escape text/attribute content. Current literals are safe, but an
-    unescaped `&` or `<` in a future label would silently emit malformed XML."""
+    """XML-escape text/attribute content."""
     return html.escape(str(s), quote=True)
 
 
-# ---- theme --------------------------------------------------------------
-# Neutral ink, cards, rings and leader lines are CSS classes rather than
-# literal fills, so the SVG follows the viewer's colour scheme: GitHub shows a
-# README image in an <img>, where the SVG's own prefers-color-scheme query
-# still applies. The old literal-white canvas rendered as a glaring block on
-# a dark page. Preset and verdict colours stay literal: they read on both.
+# ---- theme ----------------------------------------------------------------
+# Neutral ink, cards, rings and leader lines are CSS classes so the SVG follows
+# the viewer's colour scheme (GitHub shows a README image in an <img>, where the
+# SVG's own prefers-color-scheme query still applies). Branch and verdict
+# colours are literal: they read on both.
 THEME_CSS = """
 .bg{fill:#ffffff}.ink{fill:#222}.sub{fill:#666}.body{fill:#444}.muted{fill:#888}
-.card{fill:#ffffff;stroke:#bbb}.halo{fill:#ffffff;fill-opacity:.82}
-.ring{stroke:#dadada}.lead{stroke:#999}.leadfill{fill:#888}.tick{fill:#aaa}
-.hole{fill:#ffffff}.s0{stop-opacity:.12}.s1{stop-opacity:.72}
+.card{fill:#ffffff;stroke:#bbb}.ring{stroke:#d4d4d4}.lead{stroke:#888}
+.leadfill{fill:#888}.tick{fill:#999}.hole{fill:#ffffff}.rule{stroke:#ddd}
 @media (prefers-color-scheme: dark){
 .bg{fill:#0d1117}.ink{fill:#e6edf3}.sub{fill:#9da7b3}.body{fill:#c9d1d9}
-.muted{fill:#8b949e}.card{fill:#161b22;stroke:#3d444d}
-.halo{fill:#0d1117;fill-opacity:.8}.ring{stroke:#30363d}.lead{stroke:#6e7681}
-.leadfill{fill:#6e7681}.tick{fill:#6e7681}.hole{fill:#0d1117}
-.s0{stop-opacity:.06}.s1{stop-opacity:.34}}
+.muted{fill:#8b949e}.card{fill:#161b22;stroke:#3d444d}.ring{stroke:#30363d}
+.lead{stroke:#8b949e}.leadfill{fill:#8b949e}.tick{fill:#6e7681}.hole{fill:#0d1117}
+.rule{stroke:#30363d}}
 """
+BRANCH = "#3d85c6"
 
 
-# Angle convention: 0 deg = up (12 o'clock), increasing CLOCKWISE.
-# NOTE: arc()/annulus_sector()/set_angles() assume each wedge stays within
-# one revolution and never crosses the 0°/360° seam; the shipped wedges
-# (6-77, 89-160, 200-271, 283-354) respect that. A seam-crossing or >180°
-# wedge would need normalized angles and recomputed sweep/large-arc flags.
+# Angle convention: 0 deg = up (12 o'clock), increasing CLOCKWISE. Angles stay
+# unwrapped (an arc from 300 to 400 is fine): pt() goes through sin/cos.
 def pt(theta_deg, r):
     a = math.radians(theta_deg)
     return (CX + r * math.sin(a), CY - r * math.cos(a))
@@ -77,413 +75,304 @@ def fmt(p):
 
 
 def arc(a1, a2, r):
-    """SVG path for an arc at radius r from angle a1 to a2 (clockwise convention)."""
-    if abs(a2 - a1) < 1e-6:
-        return ""  # degenerate single-child arc -> nothing to draw
-    sweep = 1 if a2 >= a1 else 0
-    large = 1 if abs(a2 - a1) > 180 else 0
-    return f"M {fmt(pt(a1, r))} A {r:.2f} {r:.2f} 0 {large} {sweep} {fmt(pt(a2, r))}"
+    """SVG path for an arc at radius r from angle a1 to a2 (a1 <= a2, clockwise)."""
+    if a2 - a1 < 1e-6:
+        return ""
+    large = 1 if a2 - a1 > 180 else 0
+    return f"M {fmt(pt(a1, r))} A {r:.2f} {r:.2f} 0 {large} 1 {fmt(pt(a2, r))}"
 
 
-def annulus_sector(a1, a2, r_in, r_out):
-    """Filled annulus-sector path (a coloured 'clade' wedge)."""
-    return (f"M {fmt(pt(a1, r_out))} "
-            f"A {r_out:.2f} {r_out:.2f} 0 0 1 {fmt(pt(a2, r_out))} "
-            f"L {fmt(pt(a2, r_in))} "
-            f"A {r_in:.2f} {r_in:.2f} 0 0 0 {fmt(pt(a1, r_in))} Z")
-
-
-# ---- tree spec ------------------------------------------------------------
-# Verdict codes: A=advances, K=kept, P=pruned, B=blocked.
-# An *internal* node is one that scored "advances" and therefore re-expanded;
-# we render it with the small open node-dot. A *leaf* (no children) carries a
-# verdict glyph: A-leaves are the live frontier (they would re-expand next
-# round); K/P/B leaves are terminal by decision — a mid-run state, per the
-# module docstring.
-def lf(v):            # leaf
+# ---- the run --------------------------------------------------------------
+# Verdict codes: A=advances, K=kept, P=pruned, B=blocked (§5.2 roles).
+# grow(...) is an `advances` node that was re-expanded and kept its 12
+# children; a leaf is a tip. The tree below: the root's 12 framings give three
+# `advances` children — A and D grow, K's re-expansion finds nothing new and it
+# stays a tip (the §3.K high-risk branch §6.1 condition 5 asks for); A's
+# children give two more, one of which (A·C) grows once more.
+def leaf(v):
     return {"v": v, "children": []}
 
 
-def br(*kids):        # internal node that advanced and re-expanded
-    return {"v": "A", "children": list(kids)}
+def grow(verdicts):
+    """An `advances` node with one child per framing; a verdict code per child,
+    or a nested grow(...) for a child that grew in turn."""
+    kids = [k if isinstance(k, dict) else leaf(k) for k in verdicts]
+    return {"v": "A", "children": kids}
 
 
-# Each preset's depth-1 children. There is NO single winner: a branch can end
-# in "advances" (a direction that paid off — several of these, at different
-# depths), dead-end in "pruned"/"blocked", or keep branching and be judged
-# again. The shapes deliberately differ in how deep they grow:
-#   design     -> shallow: wins early, max depth 2
-#   brainstorm -> a deep spine that runs to full depth 4
-#   attack / code-audit -> mixed, max depth 3
+ROOT = {"v": None, "children": grow([
+    grow(["P", "K", grow(["K", "P", "A", "P", "K", "A", "P", "K", "P", "P", "K", "P"]),
+          "K", "P", "A", "P", "K", "P", "A", "K", "P"]),     # A: first-principles
+    "P",                                                       # B: inversion
+    "K",                                                       # C: cross-disciplinary
+    grow(["K", "A", "P", "P", "K", "P", "K", "P", "P", "K", "P", "P"]),  # D: red team
+    "P", "K", "P", "K", "P", "K",                               # E–J
+    "A",                                                       # K: high-risk, exhausted
+    "P",                                                       # L: meta
+])["children"]}
+
+# Preset vocabulary for the four roles (ENGINE.md §5.2, verbatim).
 PRESETS = [
-    dict(name="brainstorm", advances="PROMISING", color="#6aa84f", fill="#b6d7a8",
-         wedge=(200, 271),
-         tree=[lf("P"),                                   # tried, dead end at depth 1
-               br(lf("A"), lf("P")),                      # one direction wins, one dies
-               br(lf("P"),                                # branch on...
-                  br(lf("A"),                             # ...a win at depth 3...
-                     br(lf("A"), lf("P"))))]),            # ...and again to full depth 4
-    dict(name="attack", advances="CONFIRMED", color="#cc4125", fill="#ea9999",
-         wedge=(283, 354),
-         tree=[br(lf("A"), lf("B")),
-               lf("P"),
-               br(br(lf("A"), lf("P")), lf("K"))]),
-    dict(name="design", advances="RECOMMENDED", color="#8e7cc3", fill="#d5c6ec",
-         wedge=(6, 77),
-         tree=[lf("A"),
-               br(lf("A"), lf("P")),
-               lf("P")]),
-    dict(name="code-audit", advances="CONFIRMED", color="#a6794c", fill="#e0cba8",
-         wedge=(89, 160),
-         tree=[br(lf("A"), lf("P")),
-               br(br(lf("B"), lf("A")), lf("K")),
-               lf("P")]),
+    ("brainstorm", "#6aa84f", ("PROMISING", "MARGINAL", "DEAD-END", "NEEDS-MORE-INFO")),
+    ("attack", "#cc4125", ("CONFIRMED", "MARGINAL", "REFUTED", "INCOMPLETE_FORBIDDEN")),
+    ("design", "#8e7cc3", ("RECOMMENDED", "VIABLE", "NOT-RECOMMENDED", "NEEDS-MORE-INFO")),
+    ("code-audit", "#a6794c", ("CONFIRMED", "MARGINAL", "REFUTED", "INCOMPLETE_FORBIDDEN")),
 ]
 
-# One source per verdict for both the marker colour and the legend wording.
-# There used to be two: these `label` strings were never read, while `build()`
-# rendered a second, differently-worded local dict — so the "authoritative"
-# labels here quietly disagreed with what the SVG actually said. Labels are
-# kept short deliberately; the legend strip overflows past ~34 characters.
 VERDICT = {
-    "A": dict(color="#2e7d32", label="advances — a win (or re-expands)"),
-    "K": dict(color="#e69138", label="kept — held for reference"),
-    "P": dict(color="#9e9e9e", label="pruned — a dead end"),
-    "B": dict(color="#cc0000", label="blocked — must be resolved"),
+    "A": dict(color="#2e7d32", role="advances",
+              text="advances — score ≥ 11; re-expanded. A tip only once its own re-expansion found nothing new"),
+    "K": dict(color="#e69138", role="kept",
+              text="kept — score 8–10; stays in the tree, not re-expanded"),
+    "P": dict(color="#9e9e9e", role="pruned",
+              text="pruned — score ≤ 7; derivation kept for reference, not re-expanded"),
+    "B": dict(color="#cc0000", role="blocked",
+              text="blocked — incomplete; must be finished, never counts as a tip (none left once converged)"),
 }
 
 
-def verdict_marker(x, y, code, R=8.0):
+def verdict_marker(x, y, code, R=7.0):
     """Font-independent drawn marker so it renders identically everywhere."""
     c = VERDICT[code]["color"]
-    s = []
     if code == "P":  # pruned: hollow circle with an x
-        s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" class="hole" '
-                 f'stroke="{c}" stroke-width="1.8"/>')
         d = R * 0.45
-        s.append(f'<path d="M{x-d:.1f},{y-d:.1f} L{x+d:.1f},{y+d:.1f} '
-                 f'M{x-d:.1f},{y+d:.1f} L{x+d:.1f},{y-d:.1f}" '
-                 f'stroke="{c}" stroke-width="1.8" stroke-linecap="round"/>')
-        return "".join(s)
-    s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" fill="{c}"/>')
+        return (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" class="hole" '
+                f'stroke="{c}" stroke-width="1.7"/>'
+                f'<path d="M{x-d:.1f},{y-d:.1f} L{x+d:.1f},{y+d:.1f} '
+                f'M{x-d:.1f},{y+d:.1f} L{x+d:.1f},{y-d:.1f}" '
+                f'stroke="{c}" stroke-width="1.7" stroke-linecap="round"/>')
+    s = [f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{R:.1f}" fill="{c}"/>']
     if code == "A":   # advances: white check
         s.append(f'<path d="M{x-R*0.45:.1f},{y:.1f} L{x-R*0.1:.1f},{y+R*0.4:.1f} '
                  f'L{x+R*0.5:.1f},{y-R*0.4:.1f}" fill="none" stroke="#fff" '
-                 f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
+                 f'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>')
     elif code == "K":  # kept: white equals sign
-        for dy in (-R*0.28, R*0.28):
-            s.append(f'<line x1="{x-R*0.45:.1f}" y1="{y+dy:.1f}" '
-                     f'x2="{x+R*0.45:.1f}" y2="{y+dy:.1f}" stroke="#fff" '
-                     f'stroke-width="1.8" stroke-linecap="round"/>')
-    elif code == "B":  # blocked: white slash (no-entry)
+        for dy in (-R * 0.28, R * 0.28):
+            s.append(f'<line x1="{x-R*0.45:.1f}" y1="{y+dy:.1f}" x2="{x+R*0.45:.1f}" '
+                     f'y2="{y+dy:.1f}" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>')
+    elif code == "B":  # blocked: white slash
         d = R * 0.5
-        s.append(f'<line x1="{x-d:.1f}" y1="{y+d:.1f}" x2="{x+d:.1f}" '
-                 f'y2="{y-d:.1f}" stroke="#fff" stroke-width="2" '
-                 f'stroke-linecap="round"/>')
+        s.append(f'<line x1="{x-d:.1f}" y1="{y+d:.1f}" x2="{x+d:.1f}" y2="{y-d:.1f}" '
+                 f'stroke="#fff" stroke-width="1.9" stroke-linecap="round"/>')
     return "".join(s)
 
 
-# ---- layout helpers -------------------------------------------------------
-def collect_leaves(node, out):
-    if node["children"]:
-        for c in node["children"]:
-            collect_leaves(c, out)
-    else:
-        out.append(node)
-
-
-def set_angles(node):
-    """Post-order: leaf angles are pre-assigned; internal = mean of children."""
-    if not node["children"]:
-        return node["angle"]
-    node["angle"] = sum(set_angles(c) for c in node["children"]) / len(node["children"])
-    return node["angle"]
-
-
-def count_internal(node):
-    if not node["children"]:
-        return 0
-    return 1 + sum(count_internal(c) for c in node["children"])
-
-
-def max_depth(node, d=1):
-    if not node["children"]:
-        return d
-    return max(max_depth(c, d + 1) for c in node["children"])
+# ---- model checks -----------------------------------------------------------
+def walk(node, depth=0):
+    yield node, depth
+    for c in node["children"]:
+        yield from walk(c, depth + 1)
 
 
 def validate_model():
-    """The hard-coded model must fit the fixed geometry: a subtree deeper
-    than the ring table raised KeyError(5) mid-render, an empty tree hit
-    min([]) at the shoulder arc, and an unknown verdict code raised
-    KeyError inside verdict_marker."""
-    ring_cap = max(RING)
-    for p in PRESETS:
-        if not p["tree"]:
-            raise ValueError(f"preset {p['name']!r}: tree must not be empty")
-        for child in p["tree"]:
-            d = max_depth(child)
-            if d > ring_cap:
-                raise ValueError(
-                    f"preset {p['name']!r}: depth {d} exceeds ring table "
-                    f"(max {ring_cap})")
-            stack = [child]
-            while stack:
-                node = stack.pop()
-                if node["v"] not in VERDICT:
-                    raise ValueError(
-                        f"preset {p['name']!r}: unknown verdict {node['v']!r}")
-                stack.extend(node["children"])
-        a1, a2 = p["wedge"]
-        if not (0 <= a1 < a2 <= 360) or (a2 - a1) > 180:
-            raise ValueError(
-                f"preset {p['name']!r}: wedge {p['wedge']} must be within "
-                "one revolution, ascending, and ≤ 180° (see angle-helper note)")
+    """Refuse a tree the engine could not have produced at convergence."""
+    if not ROOT["children"]:
+        raise ValueError("the root must have grown")
+    for node, depth in walk(ROOT):
+        kids = node["children"]
+        if depth > max(RING):
+            raise ValueError(f"depth {depth} exceeds the ring table (max {max(RING)})")
+        if node["v"] is not None and node["v"] not in VERDICT:
+            raise ValueError(f"unknown verdict {node['v']!r}")
+        if node["v"] == "B":
+            raise ValueError("a converged tree has no blocked node (§6.1 condition 1)")
+        if kids:
+            if node["v"] not in (None, "A"):
+                raise ValueError("only an advances node is re-expanded (§5.3)")
+            if len(kids) != len(FRAMINGS):
+                raise ValueError("an expansion yields one child per framing (§0.1)")
+            if not any(k["v"] == "A" for k in kids):
+                raise ValueError("a node grows children only if one of them advances (§0.1)")
+    # §6.1 condition 5 asks for a scored §3.K (high-risk) branch: the root's K child.
+    if ROOT["children"][FRAMINGS.index("K")]["v"] not in VERDICT:
+        raise ValueError("no scored §3.K branch")
+
+
+# ---- layout -------------------------------------------------------------
+def layout():
+    """Tips spread evenly over SPAN in tree order; a parent sits at the middle
+    of its children's angles."""
+    tips = [(n, d) for n, d in walk(ROOT) if not n["children"]]
+    weights = [D1_WEIGHT if d == 1 else 1.0 for _, d in tips]
+    lo, hi = SPAN
+    step = (hi - lo) / sum(weights)
+    at = lo
+    for (t, _), w in zip(tips, weights):
+        t["angle"] = at + step * w / 2
+        at += step * w
+
+    def settle(node):
+        if node["children"]:
+            angles = [settle(c) for c in node["children"]]
+            node["angle"] = (min(angles) + max(angles)) / 2
+        return node["angle"]
+    settle(ROOT)
+    return [t for t, _ in tips]
 
 
 def build() -> tuple[str, dict]:
     """Render the SVG; returns (svg_text, stats)."""
     validate_model()
+    tips = layout()
+    nodes = list(walk(ROOT))
+    n_total = len(nodes)
+    width = sum(1 for t in tips if t["v"] != "B")
+    depth = max(d for _, d in nodes)
     svg = []
-
-    def add(s):
-        svg.append(s)
+    add = svg.append
 
     add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
         f'viewBox="0 0 {W} {H}" font-family="Helvetica, Arial, sans-serif">')
-
-    # defs
-    add('<defs>')
-    add(f'<style>{THEME_CSS}</style>')
-    for p in PRESETS:
-        add(f'<radialGradient id="g_{esc(p["name"])}" gradientUnits="userSpaceOnUse" '
-            f'fx="{CX}" fy="{CY}" cx="{CX}" cy="{CY}" r="{RMAX}">'
-            f'<stop offset="0%" stop-color="{p["fill"]}" class="s0"/>'
-            f'<stop offset="100%" stop-color="{p["fill"]}" class="s1"/>'
-            f'</radialGradient>')
-    add('<marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" '
-        'orient="auto"><path d="M0,0 L7,3 L0,6 Z" class="leadfill"/></marker>')
-    add('</defs>')
-
+    add(f'<defs><style>{THEME_CSS}</style>'
+        '<marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" '
+        'orient="auto"><path d="M0,0 L7,3 L0,6 Z" class="leadfill"/></marker></defs>')
     add(f'<rect width="{W}" height="{H}" class="bg"/>')
 
     # ---- title ----------------------------------------------------------
-    add(f'<text x="{CX}" y="48" text-anchor="middle" font-size="30" '
-        f'font-weight="700" class="ink">cc-tree &#8212; a phylogenetic tree of thoughts</text>')
-    add(f'<text x="{CX}" y="76" text-anchor="middle" font-size="16" class="sub">'
-        f'one universal radial-tree engine &#183; four swappable presets &#183; '
-        f'mid-run snapshot: many directions win, some dead-end, the rest keep '
-        f'branching &#8212; no single winner</text>')
+    add(f'<text x="{CX}" y="44" text-anchor="middle" font-size="28" font-weight="700" '
+        f'class="ink">cc-tree &#8212; one run, grown as a radial tree</text>')
+    add(f'<text x="{CX}" y="72" text-anchor="middle" font-size="15" class="sub">'
+        f'every expansion tries all 12 framings &#183; only advances children grow further '
+        f'&#183; it stops on §6 convergence, not a node budget</text>')
+    add(f'<text x="{CX}" y="96" text-anchor="middle" font-size="14" font-weight="700" '
+        f'class="body">this run: CONVERGED &#183; n = {n_total} nodes &#183; width = {width} tips '
+        f'&#183; depth {depth}</text>')
 
-    # ---- depth ring guides (dashed) --------------------------------------
-    for r in RING.values():
+    # ---- depth rings + ruler ----------------------------------------------
+    for d, r in RING.items():
         add(f'<circle cx="{CX}" cy="{CY}" r="{r}" fill="none" class="ring" '
             f'stroke-width="1" stroke-dasharray="2 6"/>')
-
-    # ---- coloured clade wedges -------------------------------------------
-    for p in PRESETS:
-        a1, a2 = p["wedge"]
-        add(f'<path d="{annulus_sector(a1, a2, ROOT_R + 8, RMAX + 16)}" '
-            f'fill="url(#g_{esc(p["name"])})" stroke="none"/>')
-
-    # ---- draw each preset subtree ----------------------------------------
-    def draw_subtree(node, depth, color):
-        r = RING[depth]
-        if not node["children"]:               # leaf: tip dot + verdict glyph
-            x, y = pt(node["angle"], r)
-            add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="{color}"/>')
-            gx, gy = pt(node["angle"], r + 16)
-            add(verdict_marker(gx, gy, node["v"], R=8))
-            return
-        cr = RING[depth + 1]
-        cangles = [c["angle"] for c in node["children"]]
-        add(f'<path d="{arc(min(cangles), max(cangles), r)}" fill="none" '
-            f'stroke="{color}" stroke-width="2.0"/>')
-        for c in node["children"]:
-            x1, y1 = pt(c["angle"], r)
-            x2, y2 = pt(c["angle"], cr)
-            add(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
-                f'stroke="{color}" stroke-width="1.9"/>')
-            draw_subtree(c, depth + 1, color)
-        nx, ny = pt(node["angle"], r)          # internal node-dot (it re-expanded)
-        add(f'<circle cx="{nx:.1f}" cy="{ny:.1f}" r="4.2" class="hole" '
-            f'stroke="{color}" stroke-width="2.0"/>')
-
-    total_leaves = 0     # drawn tips, every verdict
-    total_blocked = 0    # tips whose verdict is `blocked` (see below)
-    total_internal = 0
-    deepest = 1
-    for p in PRESETS:
-        a1, a2 = p["wedge"]
-        leaves = []
-        for child in p["tree"]:
-            collect_leaves(child, leaves)
-        n_leaf = len(leaves)
-        total_blocked += sum(1 for leaf in leaves if leaf["v"] == "B")
-        span = a2 - a1
-        margin = span * 0.12
-        lo, hi = a1 + margin, a2 - margin
-        for i, leaf in enumerate(leaves):
-            leaf["angle"] = lo + (hi - lo) * (i + 0.5) / n_leaf
-        for child in p["tree"]:
-            set_angles(child)
-        total_internal += sum(count_internal(c) for c in p["tree"])
-        total_leaves += n_leaf
-        deepest = max([deepest] + [max_depth(c) for c in p["tree"]])
-
-        # root "shoulder" arc spanning the depth-1 children + stub from root
-        d1_angles = [c["angle"] for c in p["tree"]]
-        add(f'<path d="{arc(min(d1_angles), max(d1_angles), RING0)}" fill="none" '
-            f'stroke="{p["color"]}" stroke-width="2.4"/>')
-        mid = (min(d1_angles) + max(d1_angles)) / 2
-        rx, ry = pt(mid, ROOT_R + 8)
-        sx, sy = pt(mid, RING0)
-        add(f'<line x1="{rx:.1f}" y1="{ry:.1f}" x2="{sx:.1f}" y2="{sy:.1f}" '
-            f'stroke="{p["color"]}" stroke-width="2.6"/>')
-        for child in p["tree"]:
-            x1, y1 = pt(child["angle"], RING0)
-            x2, y2 = pt(child["angle"], RING[1])
-            add(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
-                f'stroke="{p["color"]}" stroke-width="1.9"/>')
-            draw_subtree(child, 1, p["color"])
-
-        # preset label: a clade name on the OUTER RIM at the wedge mid-angle,
-        # beyond every leaf (RMAX is the deepest any branch can reach), so it
-        # can never sit on a branch or a verdict glyph however the clade grew.
-        lang = (a1 + a2) / 2
-        label_r = RMAX + 40
-        lx, ly = pt(lang, label_r)
-        sub = f'advances = {p["advances"]}'
-        halo_w = max(11.5 * len(p["name"]), 7.0 * len(sub)) + 24
-        add(f'<rect x="{lx-halo_w/2:.1f}" y="{ly-23:.1f}" width="{halo_w:.1f}" '
-            f'height="46" rx="9" class="halo"/>')
-        add(f'<text x="{lx:.1f}" y="{ly:.1f}" text-anchor="middle" font-size="22" '
-            f'font-weight="700" fill="{p["color"]}">{esc(p["name"])}</text>')
-        add(f'<text x="{lx:.1f}" y="{ly + 16:.1f}" text-anchor="middle" '
-            f'font-size="11.5" fill="{p["color"]}">{esc(sub)}</text>')
-
-    # ---- ROOT at the centre ----------------------------------------------
-    add(f'<circle cx="{CX}" cy="{CY}" r="{ROOT_R}" fill="#37474f"/>')
-    add(f'<circle cx="{CX}" cy="{CY}" r="{ROOT_R}" fill="none" stroke="#fff" '
-        f'stroke-width="2" stroke-dasharray="3 3"/>')
-    add(f'<text x="{CX}" y="{CY-8}" text-anchor="middle" font-size="20" '
-        f'font-weight="700" fill="#fff">ROOT</text>')
-    add(f'<text x="{CX}" y="{CY+11}" text-anchor="middle" font-size="10.5" '
-        f'fill="#cfd8dc">topic &#183; artifact</text>')
-    add(f'<text x="{CX}" y="{CY+25}" text-anchor="middle" font-size="10.5" '
-        f'fill="#cfd8dc">code &#183; design</text>')
-
-    # ---- radial depth ruler (bottom gap, ~185 deg) -----------------------
-    # (depth 0 is the ROOT itself at the centre, so the ruler starts at 1)
-    ruler = 185
-    for r, lbl in [(RING[1], "depth 1"), (RING[2], "depth 2"),
-                   (RING[3], "depth 3"), (RING[4], "depth 4")]:
-        px, py = pt(ruler, r)
+        px, py = pt(RULER, r)
         add(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="2.4" class="tick"/>')
-        add(f'<text x="{px-12:.1f}" y="{py+4:.1f}" text-anchor="end" font-size="11.5" '
-            f'class="muted">{lbl}</text>')
+        add(f'<text x="{px-8:.1f}" y="{py-6:.1f}" text-anchor="end" font-size="12" '
+            f'class="muted">depth {d}</text>')
 
-    # ======================  ANNOTATION CALL-OUTS  ========================
-    def callout(x, y, w, h, title, lines, anchor_xy=None):
-        add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" '
-            f'class="card" stroke-width="1.2"/>')
-        add(f'<text x="{x+14}" y="{y+24}" font-size="15.5" font-weight="700" '
+    # ---- branches ----------------------------------------------------------
+    def draw(node, d):
+        r = RING[d] if d else ROOT_R
+        if node["children"]:
+            cang = [c["angle"] for c in node["children"]]
+            if d:  # the parent's own arc, spanning its children
+                add(f'<path d="{arc(min(cang), max(cang), r)}" fill="none" '
+                    f'stroke="{BRANCH}" stroke-width="2"/>')
+            for c in node["children"]:
+                x1, y1 = pt(c["angle"], r)
+                x2, y2 = pt(c["angle"], RING[d + 1])
+                add(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                    f'stroke="{BRANCH}" stroke-width="1.8"/>')
+                draw(c, d + 1)
+            if d:  # open dot: an advances node that grew children
+                x, y = pt(node["angle"], r)
+                add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" class="hole" '
+                    f'stroke="{BRANCH}" stroke-width="2.2"/>')
+        else:
+            x, y = pt(node["angle"], r)
+            add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.5" fill="{BRANCH}"/>')
+            gx, gy = pt(node["angle"], r + TIP_OFF)
+            add(verdict_marker(gx, gy, node["v"]))
+    draw(ROOT, 0)
+
+    # framing letters on the root's twelve children: beyond the verdict marker
+    # on a tip, beside the open dot on a node that grew (off its branch line)
+    for letter, c in zip(FRAMINGS, ROOT["children"]):
+        if c["children"]:
+            lx, ly = pt(c["angle"] + 5, RING[1] - 16)
+        else:
+            lx, ly = pt(c["angle"], RING[1] + TIP_OFF + 17)
+        add(f'<text x="{lx:.1f}" y="{ly+4:.1f}" text-anchor="middle" font-size="12" '
+            f'font-weight="700" class="body">{letter}</text>')
+
+    # ---- ROOT -------------------------------------------------------------
+    add(f'<circle cx="{CX}" cy="{CY}" r="{ROOT_R}" fill="#37474f"/>')
+    add(f'<text x="{CX}" y="{CY-4}" text-anchor="middle" font-size="18" font-weight="700" '
+        f'fill="#fff">ROOT</text>')
+    add(f'<text x="{CX}" y="{CY+14}" text-anchor="middle" font-size="10" '
+        f'fill="#cfd8dc">your input</text>')
+
+    # ---- call-outs: every arrow ends on the thing it names ------------------
+    def callout(x, y, w, title, lines, target=None, side=None):
+        h = 34 + 18 * len(lines)
+        add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" class="card" '
+            f'stroke-width="1.2"/>')
+        add(f'<text x="{x+14}" y="{y+24}" font-size="15" font-weight="700" '
             f'class="ink">{esc(title)}</text>')
         for i, ln in enumerate(lines):
-            add(f'<text x="{x+14}" y="{y+46+i*18}" font-size="12.5" '
-                f'class="body">{esc(ln)}</text>')
-        if anchor_xy:
-            ex, ey = anchor_xy
-            if y < ey < y + h:                  # anchor roughly level -> exit a side
-                bx = x + w if ex > x + w else x
-                by = y + h / 2
-            else:                               # exit top or bottom edge
-                by = y + h if ey > y + h / 2 else y
-                bx = min(max(ex, x + 18), x + w - 18)
-            add(f'<line x1="{bx:.1f}" y1="{by:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" '
-                f'class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>')
+            add(f'<text x="{x+14}" y="{y+44+i*18}" font-size="12.5" class="body">{esc(ln)}</text>')
+        if target:
+            tx, ty = target
+            bx = {"right": x + w, "left": x}.get(side, min(max(tx, x + 18), x + w - 18))
+            by = {"bottom": y + h, "top": y}.get(side, y + h / 2)
+            add(f'<line x1="{bx:.1f}" y1="{by:.1f}" x2="{tx:.1f}" y2="{ty:.1f}" class="lead" '
+                f'stroke-width="1.3" marker-end="url(#arrow)"/>')
 
-    # root callout (top-left). No leader line: the centre is already labelled
-    # "ROOT", and a corner arrow would have to cut across the attack clade.
-    callout(34, 150, 264, 110, "root — the input",
-            ["What you hand the engine:",
-             "a topic, an artifact (file / doc),",
-             "a code path, or a design prompt.",
-             "The whole tree grows from it."])
+    # Arrow targets sit on the tree's outer edge, so no leader crosses a branch:
+    # the node callout points at the last advances tip among A's children (upper
+    # right), the width callout at a tip of D (lower right), the framings
+    # callout at the letter of a depth-1 tip in the lower left.
+    a_node = ROOT["children"][0]
+    node_tip = [c for c in a_node["children"] if c["v"] == "A" and not c["children"]][-1]
+    d_node = ROOT["children"][FRAMINGS.index("D")]
+    width_tip = d_node["children"][len(d_node["children"]) * 2 // 3]
+    h_child = ROOT["children"][FRAMINGS.index("H")]
 
-    def preset(name):
-        return next(p for p in PRESETS if p["name"] == name)
+    callout(30, int(CY) - 52, 300, "root — your input",
+            ["A topic, a document, a code path or a",
+             "design prompt. Depth 0; the tree grows",
+             "outward from it."],
+            target=pt(270, ROOT_R + 4), side="right")
+    callout(30, 840, 300, "12 framings (§3.A–§3.L)",
+            ["Every expansion runs all twelve, so a",
+             "node that grows gets one child per",
+             "framing — here the root's are lettered",
+             "A–L: first-principles, inversion, … ,",
+             "K high-risk, L meta."],
+            target=pt(h_child["angle"], RING[1] + TIP_OFF + 26), side="top")
+    callout(W - 330, 150, 300, "node — one thought",
+            ["An idea, critique, option or finding with",
+             "the same 12-field derivation (§4), five",
+             "0–3 scores (§5.1) and a verdict (§5.2).",
+             "An open dot is an advances node that",
+             "grew its own twelve children."],
+            target=pt(node_tip["angle"], RING[2] + TIP_OFF + 9), side="bottom")
+    callout(30, 300, 300, "depth — the rings",
+            ["How far a node is from the root. Only",
+             "advances nodes grow outward, so",
+             "branches stop on different rings; this",
+             f"run reaches depth {depth}."],
+            target=pt(RULER, RING[3] + 4), side="bottom")
+    callout(W - 330, 900, 300, "width — the tips",
+            [f"Every terminal tip, wherever it lands: {width}",
+             "here. kept and pruned tips count where",
+             "they stop; an advances tip counts once",
+             "its re-expansion found nothing new;",
+             "a blocked node never counts."],
+            target=pt(width_tip["angle"], RING[2] + TIP_OFF + 9), side="left")
 
-    # 12-framings callout (left, at root level) -> a depth-1 node in the
-    # attack clade; the leader runs horizontally through the empty left gap,
-    # so it crosses no branches.
-    fram_anchor = pt(preset("attack")["tree"][0]["angle"], RING[1])
-    callout(34, 516, 264, 110, "12 framings (§3.A–§3.L)",
-            ["Each node is expanded by the",
-             "same 12 framing passes —",
-             "first-principles, inversion,",
-             "red-team, contrarian, high-risk…"],
-            fram_anchor)
+    # ---- legend: the four roles, then the preset vocabulary ----------------
+    y0 = 1078
+    add(f'<line x1="60" y1="{y0-22}" x2="{W-60}" y2="{y0-22}" class="rule" stroke-width="1"/>')
+    for i, code in enumerate(("A", "K", "P", "B")):
+        yy = y0 + i * 24
+        add(verdict_marker(80, yy - 4, code))
+        add(f'<text x="96" y="{yy}" font-size="13" class="body">{esc(VERDICT[code]["text"])}</text>')
+    add(f'<circle cx="80" cy="{y0 + 4*24 - 4}" r="5" class="hole" stroke="{BRANCH}" stroke-width="2.2"/>')
+    add(f'<text x="96" y="{y0 + 4*24}" font-size="13" class="body">open dot — an advances '
+        f'node that grew children (only advances nodes grow)</text>')
 
-    # node callout (right, at root level) -> a depth-1 node in the design
-    # clade; the leader runs horizontally through the empty right gap.
-    node_anchor = pt(preset("design")["tree"][1]["angle"], RING[1])
-    callout(W - 298, 476, 264, 130, "node — one thought",
-            ["One idea / critique / option /",
-             "finding. Every node gets the",
-             "same 12-field derivation, is",
-             "scored on 5 dims, and earns a",
-             "verdict. No hedging, no defer."],
-            node_anchor)
-
-    # depth callout (bottom-left). No leader line — the depth ruler and the
-    # concentric rings right beside it already carry the meaning (an arrow
-    # here would only collide with the "depth N" labels).
-    callout(34, 1000, 312, 130, "depth — concentric rings",
-            ["How far a node sits from the root.",
-             "Only an advances leaf re-expands;",
-             "kept and pruned leaves stop where",
-             "they are scored — so branches",
-             "reach uneven depth."])
-
-    # width callout (top centre, small) -> outer rings (top gap, angle 0)
-    # ENGINE.md §0.1: a `blocked` tip is never a terminal leaf — it must be
-    # driven to completion first — so it cannot be counted toward width. This
-    # snapshot is a run in flight (a converged tree has no blocked tip at all,
-    # §6.1 condition 1), which is why the two numbers differ here.
-    wc_w = 300
-    callout(int(CX - wc_w / 2), 94, wc_w, 92, "width — how many tips",
-            ["Terminal leaves delivered, wherever",
-             "they land — blocked tips excluded",
-             "until resolved. Set by convergence."])
-    wx, wy = pt(0, RMAX + 6)
-    add(f'<line x1="{CX}" y1="186" x2="{wx:.1f}" y2="{wy:.1f}" '
-        f'class="lead" stroke-width="1.3" marker-end="url(#arrow)"/>')
-
-    # n callout (bottom-right)
-    n_total = total_leaves + total_internal + 1
-    width = total_leaves - total_blocked
-    callout(W - 298, 1000, 264, 110, "n — total nodes",
-            ["Every node in the tree: root +",
-             f"internal + leaves. Here n = {n_total}",
-             f"(width = {width} of {total_leaves} tips; "
-             f"depth {deepest}).",
-             "Streamed incrementally to tree.json."])
-
-    # ---- verdict legend (bottom strip) -----------------------------------
-    ly0 = 1188
-    add(f'<text x="{CX}" y="{ly0}" text-anchor="middle" font-size="13.5" '
-        f'font-weight="700" class="ink">every leaf is a verdict — a branch can '
-        f'win, dead-end, or keep branching (open node = re-expanded):</text>')
-    cols = [CX - 520, CX - 250, CX + 30, CX + 320]
-    for code, cxp in zip(("A", "K", "P", "B"), cols):
-        add(verdict_marker(cxp, ly0 + 26, code, R=8.5))
-        add(f'<text x="{cxp + 16:.1f}" y="{ly0 + 31}" font-size="12.5" '
-            f'class="body">{esc(VERDICT[code]["label"])}</text>')
-
+    tx = 820
+    add(f'<text x="{tx}" y="{y0-2}" font-size="13" font-weight="700" class="ink">'
+        f'One engine, four presets — a run uses one; the roles are the same, the words differ (§5.2)</text>')
+    heads = ("preset", "advances", "kept", "pruned")
+    cols = (tx, tx + 110, tx + 225, tx + 320)
+    for cx_, h_ in zip(cols, heads):
+        add(f'<text x="{cx_}" y="{y0+22}" font-size="12" font-weight="700" class="muted">{h_}</text>')
+    for i, (name, color, words) in enumerate(PRESETS):
+        yy = y0 + 44 + i * 20
+        add(f'<text x="{cols[0]}" y="{yy}" font-size="12.5" font-weight="700" fill="{color}">{name}</text>')
+        for cx_, wd in zip(cols[1:], words[:3]):
+            add(f'<text x="{cx_}" y="{yy}" font-size="12" class="body">{wd}</text>')
     add('</svg>')
-    stats = dict(leaves=total_leaves, width=width, internal=total_internal,
-                 n=n_total, max_depth=deepest)
+    stats = dict(tips=len(tips), width=width, n=n_total, max_depth=depth)
     return "\n".join(svg), stats
 
 
@@ -492,13 +381,11 @@ def main() -> int:
     ET.fromstring(svg_text)  # well-formedness gate before anything is written
     out_dir = os.path.join(os.path.dirname(__file__), "..", "docs", "assets")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.normpath(
-        os.path.join(out_dir, "cc-tree-radial-tree.svg"))
+    out_path = os.path.normpath(os.path.join(out_dir, "cc-tree-radial-tree.svg"))
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(svg_text)
     print("wrote", out_path)
-    print("tips =", stats["leaves"], "width =", stats["width"],
-          "internal =", stats["internal"], "n =", stats["n"],
+    print("tips =", stats["tips"], "width =", stats["width"], "n =", stats["n"],
           "max depth =", stats["max_depth"])
     return 0
 

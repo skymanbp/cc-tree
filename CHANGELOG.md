@@ -3,7 +3,9 @@
 All notable changes to the `cc-tree` plugin. Versions follow the
 `plugin.json` / `marketplace.json` `version` field.
 
-## Unreleased
+## v0.7.4 — 2026-10-02
+
+Documentation and diagram only; no runtime file changed.
 
 ### Fixed (docs)
 
@@ -21,12 +23,18 @@ All notable changes to the `cc-tree` plugin. Versions follow the
   cards, rings and leaders are CSS classes with a `prefers-color-scheme: dark`
   override, so it no longer renders as a white block on a dark GitHub page;
   the canvas lost a 110 px dead band under the legend.
-- **The depth call-out named one verdict twice.** "Dead-ends, or is pruned"
-  are the same `pruned` role, and `kept` was missing; it now says only an
-  `advances` leaf re-expands while `kept` and `pruned` stop where scored.
-- **The generator printed `leaves(width) = 23`.** By the picture's own
-  definition (and ENGINE §0.1) blocked tips are not width, so it now prints
-  `tips = 23 width = 21`, matching the `n` call-out.
+- **The radial diagram drew states the engine cannot reach.** It showed the four
+  presets as four branches of one root (a run uses one preset), two or three
+  children per expansion (every expansion yields one per framing, §0.1), and
+  unexpanded `advances` tips counted as width. It is now one converged run —
+  the root's twelve children lettered A–L, only `advances` nodes growing,
+  n = 49, width = 45, depth 3 — with every call-out arrow on the element it
+  names and the presets as a verdict-vocabulary table (§5.2);
+  `validate_model()` refuses a tree that breaks §0.1, §5.3 or §6.1.
+- **The README is half as long** (786 → 395 lines, the Chinese in step):
+  tables that restated `docs/ENGINE.md`, `docs/framings.md` and the
+  CHANGELOG became links; the sweep record, the full deliverable excerpt, the
+  extensibility table and the search-terms list are gone.
 - **README §8.1 gained an architecture diagram** (Mermaid): what a run loads,
   what it writes, and the repo-side verification that never ships to a run.
   The ASCII tree under the radial diagram, which restated the picture, is gone.
