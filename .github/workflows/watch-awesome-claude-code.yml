@@ -1,0 +1,60 @@
+name: watch awesome-claude-code
+
+# hesreallyhim/awesome-claude-code takes recommendations only through its
+# web issue form, and on 2026-10-15 the repository limited issue creation
+# to collaborators (GitHub's interaction limit). Once a day this looks for
+# an issue opened there by a non-collaborator since then, which means the
+# limit is off, and then opens one issue here with the form's text ready
+# to paste, so the submission can be made by hand. Delete this file once
+# cc-tree has been submitted.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look for an issue by a non-collaborator since the limit
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/hesreallyhim/awesome-claude-code/issues?state=all&since=2026-10-15T12:00:00Z&per_page=100" \
+            --jq '[.[] | select(.pull_request == null) | select(.created_at > "2026-10-15T12:00:00Z") | select(.author_association == "NONE" or .author_association == "FIRST_TIMER" or .author_association == "FIRST_TIME_CONTRIBUTOR")] | length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "issues by non-collaborators since the limit: $count"
+      - name: Open the reminder once
+        if: steps.probe.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="awesome-claude-code accepts recommendations again"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json number --jq length)
+          if [ "$existing" != "0" ]; then
+            echo "the reminder exists"
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file - <<'EOF'
+          A non-collaborator opened an issue on hesreallyhim/awesome-claude-code, so the interaction limit is off. The list takes recommendations only through its web form, filled in by hand:
+
+          https://github.com/hesreallyhim/awesome-claude-code/issues/new?template=recommend-resource.yml
+
+          Display Name: `cc-tree`
+          Category: `Skills`
+          Link: `https://github.com/skymanbp/cc-tree`
+          Author Name: `skymanbp`
+          Author Link: `https://github.com/skymanbp`
+          Description:
+
+          > A Claude Code plugin that runs open-ended thinking as an audited tree: one exploration skill with four presets (brainstorm, adversarial critique, design-space exploration, code audit). Every node is derived with file:line or URL evidence, deferred leaves are refused, and a run stops on convergence rather than on a node budget.
+
+          Checklist: tick the first five boxes; leave the sixth unticked.
+
+          Then delete `.github/workflows/watch-awesome-claude-code.yml` and close this issue.
+          EOF
