@@ -7,9 +7,9 @@
 [![Star on GitHub](https://img.shields.io/github/stars/skymanbp/cc-tree?style=social)](https://github.com/skymanbp/cc-tree/stargazers)
 
 > 语言：中文。英文规范版：[`README.md`](README.md)。如有歧义，以英文版为准。
-<!-- i18n-source-sha256: cea07fa604f27fd88b0109379df67649cfe61a4f01c6289c22a3c7ea053fb608 -->
+<!-- i18n-source-sha256: d63f9a217246866fb7d64e6d17308fbca0ac0e171ab2370f9a30f5d4fa9b74fb -->
 
-**cc-tree 是一个 Claude Code 插件，它把开放式思考变成一棵可以被审计的树。**
+**cc-tree 让 Claude Code 在一棵可审计的树里思考：每个节点都引证据，收敛即停。**
 一台探索引擎，四个 preset —— 头脑风暴、对抗式批评、设计空间探索、代码审计。每个节点都带着
 `file:line` 或 URL 证据被完整推导，推脱式叶子（`defer / future-work / TODO / NEEDS-MORE-INFO`）
 被禁止，运行按实质性收敛终止，而不是按节点预算。

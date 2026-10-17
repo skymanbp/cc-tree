@@ -8,7 +8,7 @@
 
 > Language: English (canonical). Chinese: [`README.zh.md`](README.zh.md).
 
-**cc-tree is a Claude Code plugin that turns open-ended thinking into a tree you can audit.**
+**cc-tree makes Claude Code think in a tree you can audit: every node cites evidence, and the run stops when it converges.**
 One exploration engine, four presets — brainstorm, adversarial critique, design-space exploration,
 code audit. Every node is fully derived with `file:line` or URL evidence, deferred leaves
 (`defer / future-work / TODO / NEEDS-MORE-INFO`) are banned, and a run stops on substantive
